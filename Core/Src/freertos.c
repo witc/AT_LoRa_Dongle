@@ -26,6 +26,7 @@
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 #include "RF_Task.h"
+#include "Main_task.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -84,16 +85,16 @@ const osMessageQueueAttr_t queueRadio_attributes = {
   .mq_mem = &queueRadioBuffer,
   .mq_size = sizeof(queueRadioBuffer)
 };
-/* Definitions for queueCore */
-osMessageQueueId_t queueCoreHandle;
-uint8_t queueCoreBuffer[ 16 * sizeof( dataQueue_t ) ];
-osStaticMessageQDef_t queueCoreControlBlock;
-const osMessageQueueAttr_t queueCore_attributes = {
-  .name = "queueCore",
-  .cb_mem = &queueCoreControlBlock,
-  .cb_size = sizeof(queueCoreControlBlock),
-  .mq_mem = &queueCoreBuffer,
-  .mq_size = sizeof(queueCoreBuffer)
+/* Definitions for queueMain */
+osMessageQueueId_t queueMainHandle;
+uint8_t queueMainBuffer[ 16 * sizeof( dataQueue_t ) ];
+osStaticMessageQDef_t queueMainControlBlock;
+const osMessageQueueAttr_t queueMain_attributes = {
+  .name = "queueMain",
+  .cb_mem = &queueMainControlBlock,
+  .cb_size = sizeof(queueMainControlBlock),
+  .mq_mem = &queueMainBuffer,
+  .mq_size = sizeof(queueMainBuffer)
 };
 
 /* Private function prototypes -----------------------------------------------*/
@@ -149,8 +150,8 @@ void MX_FREERTOS_Init(void) {
   /* creation of queueRadio */
   queueRadioHandle = osMessageQueueNew (16, sizeof(dataQueue_t), &queueRadio_attributes);
 
-  /* creation of queueCore */
-  queueCoreHandle = osMessageQueueNew (16, sizeof(dataQueue_t), &queueCore_attributes);
+  /* creation of queueMain */
+  queueMainHandle = osMessageQueueNew (16, sizeof(dataQueue_t), &queueMain_attributes);
 
   /* USER CODE BEGIN RTOS_QUEUES */
   /* add queues, ... */
@@ -184,6 +185,7 @@ void StartTaskCore(void *argument)
 {
   /* USER CODE BEGIN StartTaskCore */
   /* Infinite loop */
+  main_task();
   for(;;)
   {
     osDelay(1);

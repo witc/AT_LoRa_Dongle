@@ -109,8 +109,7 @@ typedef struct
 #define CMD_MAIN_RF_IS_ON				      254
 #define CMD_MAIN_RF_IS_OFF			      253
 #define CMD_MAIN_RF_RX_PACKET		      252
-#define CMD_MAIN_SEND_DEBUG_INFO      251
-#define CMD_MAIN_TICK_TACK_MEAS_DONE	250
+
 
 
 /* USER CODE END EFP */
