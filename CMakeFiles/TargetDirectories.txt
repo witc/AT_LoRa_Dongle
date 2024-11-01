@@ -1,0 +1,5 @@
+C:/Work/Work/99_Witc/AT_LoRa_Dongle/AT_LoRa_Dongle/CMakeFiles/AT_LoRa_Dongle.dir
+C:/Work/Work/99_Witc/AT_LoRa_Dongle/AT_LoRa_Dongle/CMakeFiles/edit_cache.dir
+C:/Work/Work/99_Witc/AT_LoRa_Dongle/AT_LoRa_Dongle/CMakeFiles/rebuild_cache.dir
+C:/Work/Work/99_Witc/AT_LoRa_Dongle/AT_LoRa_Dongle/cmake/stm32cubemx/CMakeFiles/edit_cache.dir
+C:/Work/Work/99_Witc/AT_LoRa_Dongle/AT_LoRa_Dongle/cmake/stm32cubemx/CMakeFiles/rebuild_cache.dir
