@@ -129,6 +129,7 @@ void radio_task(void)
 	while (1)
 	{
 		/* code */
+		osDelay(1);
 	}
 	
 	// dataQueue_t rxd;
