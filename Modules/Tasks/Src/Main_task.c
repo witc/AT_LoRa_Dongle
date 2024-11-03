@@ -28,11 +28,23 @@ void (*main_task_states[2])(main_ctx_t *ctx, dataQueue_t *rxd) = {main_task_off,
  * @param xTimer 
  */
 static void _Main_Alive_Callback(TimerHandle_t xTimer)
-{	
-	UNUSED(xTimer);
-	
-	HAL_GPIO_TogglePin(LED_GREEN_GPIO_Port, LED_GREEN_Pin);
+{
+    static uint8_t pattern_cnt = 0;
+
+    // Definice patternu (čas v milisekundách) - odpovídá patternu X_X_______
+    const uint32_t pattern[] = {100,100,100,1000};
+    const uint8_t pattern_length = sizeof(pattern) / sizeof(pattern[0]);
+
+    // Nastavení periody podle aktuálního stavu patternu
+    xTimerChangePeriod(xTimer, pdMS_TO_TICKS(pattern[pattern_cnt]), portMAX_DELAY);
+
+    // Přepnutí LED
+    HAL_GPIO_TogglePin(LED_BLUE_GPIO_Port, LED_BLUE_Pin);
+
+    // Posun na další stav patternu (cyklicky)
+    pattern_cnt = (pattern_cnt + 1) % pattern_length;
 }
+
 
 
 
@@ -92,10 +104,11 @@ void main_task(void)
 	HAL_GPIO_WritePin(LED_GREEN_GPIO_Port, LED_GREEN_Pin, true);
 	HAL_GPIO_WritePin(LED_BLUE_GPIO_Port, LED_BLUE_Pin, true);
 
-	ctx.timers.LED_alive.timer = xTimerCreateStatic("LED alive timer", pdMS_TO_TICKS(1000), pdTRUE, NULL, 
+	ctx.timers.LED_alive.timer = xTimerCreateStatic("LED alive timer", pdMS_TO_TICKS(100), pdFALSE, NULL, 
 														 _Main_Alive_Callback,  &ctx.timers.LED_alive.timerPlace);
 
-	osTimerStart(ctx.timers.LED_alive.timer, pdMS_TO_TICKS(1000));
+	osTimerStart(ctx.timers.LED_alive.timer, pdMS_TO_TICKS(100));
+	HAL_GPIO_WritePin(LED_BLUE_GPIO_Port, LED_BLUE_Pin, false);
 
 	for(;;)
 	{
