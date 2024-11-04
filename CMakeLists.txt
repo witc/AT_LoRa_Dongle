@@ -58,6 +58,7 @@ target_sources(${CMAKE_PROJECT_NAME} PRIVATE
     ${CMAKE_SOURCE_DIR}/Modules/RF/SX1262/Src/sx126x_hal.c
     ${CMAKE_SOURCE_DIR}/Modules/RF/SX1262/Src/sx126x_lr_fhss.c
     ${CMAKE_SOURCE_DIR}/Modules/RF/SX1262/Src/sx126x.c
+    ${CMAKE_SOURCE_DIR}/Modules/SerialPort/portSTM32L071xx.c
     
     
 )
@@ -69,6 +70,7 @@ target_include_directories(${CMAKE_PROJECT_NAME} PRIVATE
     ${CMAKE_SOURCE_DIR}/Modules/RF/Inc
     ${CMAKE_SOURCE_DIR}/Modules/RF/SX1262/Inc
     ${CMAKE_SOURCE_DIR}/Modules/Tasks/Inc
+    ${CMAKE_SOURCE_DIR}/Modules/SerialPort
     
 )
 

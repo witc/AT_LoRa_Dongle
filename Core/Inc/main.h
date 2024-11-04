@@ -42,6 +42,8 @@ extern "C" {
 #include "task.h"
 #include "timers.h"
 #include "stm32l0xx.h"
+#include "FreeRTOS.h"
+#include "queue.h"
 
 /* USER CODE END Includes */
 
