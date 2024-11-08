@@ -14,13 +14,13 @@
 
 #include "main.h"
 
-#define MAX_UART_RX_BUFFER 255
-#define MAX_UART_TX_BUFFER 255
+#define MAX_UART_RX_BUFFER 300
+#define MAX_UART_TX_BUFFER 300
 
 typedef struct 
 {
     uint8_t *raw_data;
-    uint8_t size;
+    uint16_t size;
 
 }RAW_DATA_Storage_t;
 

@@ -79,7 +79,8 @@ HAL_StatusTypeDef SP_StartRecToIdle_DMA(UART_HandleTypeDef *huart, void *pData, 
  * @return false 
  */
 bool SP_RxComplete(SP_Context_t *sp_ctx, uint16_t size)
-{
+{	
+	UNUSED(size);
 	HAL_StatusTypeDef ret = SP_StartRecToIdle_DMA(sp_ctx->phuart, sp_ctx->rxStorage.raw_data, sp_ctx->rxStorage.size);
 	return (ret == HAL_OK) ? true : false;
 }

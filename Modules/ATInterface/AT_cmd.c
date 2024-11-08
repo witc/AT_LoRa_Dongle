@@ -21,14 +21,15 @@
  * 
  * @param params 
  */
-static void AT_HandleAT(char *params);
 static void AT_HandleFactorMode(char *params);
 static void AT_HandleHelp(char *params);
 static void AT_HandleRestartSys(char *params);
-
+static void CLI_RouteToCoreTask(char *params, uint8_t cmdToCore);
 
 extern UART_HandleTypeDef huart1;
 
+
+AT_cmd_t at_ctx;
 
 /**
  * @brief 
@@ -37,7 +38,7 @@ extern UART_HandleTypeDef huart1;
 typedef struct
 {
     char *command;
-    void (*handler)(char *params, uint8_t cmdtoCore);  // Handler s pevnym parametrem
+    void (*handler)(char *params, uint8_t cmdtoCore,uint16_t size);  // Handler s pevnym parametrem
     void (*simpleHandler)(char *params);            // Handler bez pevneho parametru
     uint8_t cmdtoCore;
     bool isFixedParamUsed;
@@ -87,7 +88,7 @@ static void AT_ToUpperCase(char *str, size_t max_len)
  * 
  * @param data 
  */
-void AT_HandleATCommand(SP_Context_t *sp_ctx, uint8_t size)
+void AT_HandleATCommand(SP_Context_t *sp_ctx, uint16_t size)
 {   
     bool dataUsed = false;
     char *data=(char*) sp_ctx->rxStorage.raw_data;
@@ -103,7 +104,7 @@ void AT_HandleATCommand(SP_Context_t *sp_ctx, uint8_t size)
              data[commandLen] == '\r' ||
              data[commandLen] == '\n' ||
              data[commandLen] == '=' ||
-              data[commandLen] == '?'))
+             data[commandLen] == '?'))
         {
             char *params = data + commandLen;  // Nastavíme ukazatel za příkaz
 
@@ -121,7 +122,7 @@ void AT_HandleATCommand(SP_Context_t *sp_ctx, uint8_t size)
             
             if(AT_Commands[i].handler != NULL)
             {
-                AT_Commands[i].handler(params,AT_Commands[i].cmdtoCore);
+                AT_Commands[i].handler(params,AT_Commands[i].cmdtoCore,size);
             }
             else if(AT_Commands[i].simpleHandler != NULL)
             {
@@ -135,7 +136,6 @@ void AT_HandleATCommand(SP_Context_t *sp_ctx, uint8_t size)
     if(dataUsed == false)    UART_SendResponse("ERROR - Check your EOL sequence\r\n");  // Neznámý příkaz
 
     memset(data,0,size);
-
     SP_RxComplete(sp_ctx, size);  
    
 }
@@ -215,4 +215,34 @@ void UART_SendResponse(char *response)
 {   
     //TODOJR DMA
     HAL_UART_Transmit(&huart1, (uint8_t *)response, strlen(response),0xFFFF);
+}
+
+
+/**
+ * @brief 
+ * 
+ * @param params 
+ * @param cmdToCore 
+ */
+static void CLI_RouteToCoreTask(char *params, uint8_t cmdToCore,uint16_t size)
+{
+    dataQueue_t txm;
+    txm.ptr = NULL;
+
+    BaseType_t xHigherPriorityTaskWoken = pdFALSE;
+
+    if(xSemaphoreGiveFromISR(xSemaphore, &xHigherPriorityTaskWoken)==pdTRUE)
+    {
+         memcpy(at_ctx.dataBuff, params, size);
+        txm.cmd = cmdToCore;
+        txm.ptr = &at_ctx;
+        xQueueSendFromISR(xPointerQueue, &txm, &xHigherPriorityTaskWoken);
+        portYIELD_FROM_ISR(xHigherPriorityTaskWoken);
+    }
+    else
+    {
+        /* Buffer wa not procesed yet */
+        UART_SendResponse("Error: Previous command not yet processed\r\n");
+    }
+
 }
