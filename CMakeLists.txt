@@ -49,7 +49,7 @@ target_link_directories(${CMAKE_PROJECT_NAME} PRIVATE
 target_sources(${CMAKE_PROJECT_NAME} PRIVATE
     # Add user sources here
     ${CMAKE_SOURCE_DIR}/Modules/Tasks/Src/RF_Task.c
-    ${CMAKE_SOURCE_DIR}/Modules/Tasks/Src/Main_Task.c
+    ${CMAKE_SOURCE_DIR}/Modules/Tasks/MainTask/Main_task.c
     ${CMAKE_SOURCE_DIR}/Modules/RF/Src/radio_user.c
     ${CMAKE_SOURCE_DIR}/Modules/RF/SX1262/Src/lr_fhss_mac.c
     ${CMAKE_SOURCE_DIR}/Modules/RF/SX1262/Src/ral_sx126x_bsp.c
@@ -58,7 +58,8 @@ target_sources(${CMAKE_PROJECT_NAME} PRIVATE
     ${CMAKE_SOURCE_DIR}/Modules/RF/SX1262/Src/sx126x_hal.c
     ${CMAKE_SOURCE_DIR}/Modules/RF/SX1262/Src/sx126x_lr_fhss.c
     ${CMAKE_SOURCE_DIR}/Modules/RF/SX1262/Src/sx126x.c
-    ${CMAKE_SOURCE_DIR}/Modules/SerialPort/portSTM32L071xx.c
+    ${CMAKE_SOURCE_DIR}/Modules/ATInterface/SerialPort/portSTM32L071xx.c
+    ${CMAKE_SOURCE_DIR}/Modules/ATInterface/AT_cmd.c
     
     
 )
@@ -70,7 +71,9 @@ target_include_directories(${CMAKE_PROJECT_NAME} PRIVATE
     ${CMAKE_SOURCE_DIR}/Modules/RF/Inc
     ${CMAKE_SOURCE_DIR}/Modules/RF/SX1262/Inc
     ${CMAKE_SOURCE_DIR}/Modules/Tasks/Inc
-    ${CMAKE_SOURCE_DIR}/Modules/SerialPort
+    ${CMAKE_SOURCE_DIR}/Modules/Tasks/MainTask
+    ${CMAKE_SOURCE_DIR}/Modules/ATInterface/SerialPort
+    ${CMAKE_SOURCE_DIR}/Modules/ATInterface/
     
 )
 

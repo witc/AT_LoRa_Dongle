@@ -8,7 +8,6 @@
 #define LOG_TAG "[ATCM-G0]"
 #define LOG_LEVEL MCU_PLAT_LOG_LEVEL
 #include "Log.h"
-#include "modemLibCoreAPI.h"
 #else
 #define LOG_FATAL(...) 		do{} while(0)
 #define LOG_ERROR(...)		do{} while(0)
@@ -41,7 +40,6 @@ bool SP_PlatformInit(SP_Context_t *sp_ctx)
 		LOG_ERROR("Invalid argument.");
 		return false;
 	}
-
 	
 	return SP_StartRecToIdle_DMA(sp_ctx->phuart, sp_ctx->rxStorage.raw_data, sp_ctx->rxStorage.size);
 }

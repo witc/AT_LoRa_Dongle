@@ -26,6 +26,8 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
+#include "portSTM32L071xx.h"
+#include "AT_cmd.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -46,7 +48,7 @@
 /* Private variables ---------------------------------------------------------*/
 
 /* USER CODE BEGIN PV */
-
+extern SP_Context_t sp_ctx;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -58,6 +60,32 @@ void MX_FREERTOS_Init(void);
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
+
+
+/**
+ * @brief 
+ * 
+ * @param huart 
+ * @param Size 
+ */
+void HAL_UARTEx_RxEventCallback(UART_HandleTypeDef *huart, uint16_t Size)
+{ 
+    UNUSED(huart);
+    ProcessATCommand(&sp_ctx.rxStorage, Size);
+    SP_RxComplete(&sp_ctx, Size);  
+}
+
+/**
+ * @brief 
+ * 
+ * @param huart 
+ * @param Size 
+ */
+void HAL_UART_ErrorCallback(UART_HandleTypeDef *huart)
+{ 
+    UNUSED(huart);
+    SP_HandleUARTError(&sp_ctx);
+}
 
 /* USER CODE END 0 */
 

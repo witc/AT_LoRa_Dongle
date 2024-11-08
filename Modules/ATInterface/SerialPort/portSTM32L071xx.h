@@ -1,3 +1,14 @@
+/**
+ * @file portSTM32L071xx.h
+ * @author your name (you@domain.com)
+ * @brief 
+ * @version 0.1
+ * @date 2024-11-08
+ * 
+ * @copyright Copyright (c) 2024
+ * 
+ */
+
 #ifndef PORTSTM32L071XX_H
 #define PORTSTM32L071XX_H
 
@@ -25,6 +36,7 @@ typedef struct
 
 bool SP_PlatformInit(SP_Context_t *sp_ctx);
 HAL_StatusTypeDef SP_HandleUARTError(SP_Context_t *sp_ctx);
+bool SP_RxComplete(SP_Context_t *sp_ctx, uint16_t size);
 
 
 #endif // PORTSTM32L071XX_H
