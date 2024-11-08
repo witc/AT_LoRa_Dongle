@@ -11,9 +11,10 @@
 #ifndef AT_CMD_H
 #define AT_CMD_H
 
+#include "portSTM32L071xx.h"
 
 void UART_SendResponse(char *response);
-void ProcessATCommand(char *data, uint8_t size);
+void AT_HandleATCommand(SP_Context_t *sp_ctx, uint8_t size);
 
 #endif // AT_CMD_H
 

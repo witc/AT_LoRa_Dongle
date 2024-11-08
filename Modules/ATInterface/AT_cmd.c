@@ -13,6 +13,7 @@
 
 #include "main.h"
 #include "AT_cmd.h"
+#include <ctype.h>
 
 
 /**
@@ -20,10 +21,10 @@
  * 
  * @param params 
  */
-static void CLI_HandleAT(char *params);
-static void CLI_HandleFactorMode(char *params);
-static void CLI_HandleHelp(char *params);
-static void CLI_HandleRestartSys(char *params);
+static void AT_HandleAT(char *params);
+static void AT_HandleFactorMode(char *params);
+static void AT_HandleHelp(char *params);
+static void AT_HandleRestartSys(char *params);
 
 
 extern UART_HandleTypeDef huart1;
@@ -46,39 +47,65 @@ typedef struct
 
 /* Table of AT commands */
 AT_Command_Struct AT_Commands[] = {
-    {"AT",                      NULL,                  CLI_HandleHelp,          0,                          false, "AT - Basic test command",                  ""},
-    {"AT+HELP",                 NULL,                  CLI_HandleHelp,          0,                          false, "AT+HELP - List all supported commands",      ""},
-    {"AT+FACTORY_MODE",         NULL,                  CLI_HandleFactorMode,    0,                          false, "AT+FACTORY_MODE - Enable factory mode",    "=ON, =OFF"},
-    {"AT+SYS_RESTART",          NULL,                  CLI_HandleRestartSys,    0,                          false, "AT+SYS_RESTART - Restart the system",        ""},                       
-    // {"AT+FACTORY_MODE",         NULL,                  CLI_HandleFactorMode,0,                          false, "AT+FACTORY_MODE - Enable factory mode",    "=ON, =OFF"},
+    {"AT",                      NULL,                  AT_HandleHelp,          0,                          false, "AT - Basic test command",                  ""},
+    {"AT+HELP",                 NULL,                  AT_HandleHelp,          0,                          false, "AT+HELP - List all supported commands",      ""},
+    {"AT+FACTORY_MODE",         NULL,                  AT_HandleFactorMode,    0,                          false, "AT+FACTORY_MODE - Enable factory mode",    "=ON, =OFF"},
+    {"AT+SYS_RESTART",          NULL,                  AT_HandleRestartSys,    0,                          false, "AT+SYS_RESTART - Restart the system",        ""},                       
+    // {"AT+FACTORY_MODE",         NULL,                  AT_HandleFactorMode,0,                          false, "AT+FACTORY_MODE - Enable factory mode",    "=ON, =OFF"},
    
-    // {"AT+SYS_RESTART",          NULL,                  CLI_HandleRestartSys,0,                          false, "AT+SYS_RESTART - Restart the system",        ""},
-    // {"AT+SYS_STATE",            CLI_RouteToCoreTask,   NULL,                SYS_CMD_SYS_STATE,          true,  "AT+SYS_STATE - Get or set system state",     "?, =ON, =OFF"},
-    // {"AT+SYS_NAME",             CLI_RouteToCoreTask,   NULL,                SYS_CMD_SYS_NAME,           true,  "AT+SYS_NAME=<name> - Set system name",       "?"},
-    // {"AT+RF_MAC",               CLI_RouteToCoreTask,   NULL,                SYS_CMD_RF_MAC,             true,  "AT+RF_MAC=<MAC> ",                           "?"},
-    // {"AT+FACTORY_RST",          CLI_RouteToCoreTask,   NULL,                SYS_CMD_FACTORY_RST,        true,  "AT+FACTORY_RST - Factory reset the device",  ""},
-    // {"AT+LORA_TX_CW",           CLI_RouteToCoreTask,   NULL,                SYS_CMD_TX_CW,              true,  "AT+LORA_TX_CW - Transmit continuous wave",   "=ON, =OFF"},
-    // {"AT+LORA_RX_TO_UART",      CLI_RouteToCoreTask,   NULL,                SYS_CMD_LORA_RX_TO_UART,    true,  "AT+LORA_RX_TO_UART - Forward LoRa data",     "=ON, =OFF"},
-    // {"AT+LORA_SEND",            CLI_RouteToCoreTask,   NULL,                SYS_CMD_LORA_SEND,          true,  "AT+LORA_SEND=<length>,<data> - Send data",   ""},
-    // {"AT+RF_PAIR",              CLI_RouteToCoreTask,   NULL,                SYS_CMD_RF_PAIR,            true,  "AT+RF_PAIR - Pair RF device",                "=ON, =OFF"},
+    // {"AT+SYS_RESTART",          NULL,                  AT_HandleRestartSys,0,                          false, "AT+SYS_RESTART - Restart the system",        ""},
+    // {"AT+SYS_STATE",            AT_RouteToCoreTask,   NULL,                SYS_CMD_SYS_STATE,          true,  "AT+SYS_STATE - Get or set system state",     "?, =ON, =OFF"},
+    // {"AT+SYS_NAME",             AT_RouteToCoreTask,   NULL,                SYS_CMD_SYS_NAME,           true,  "AT+SYS_NAME=<name> - Set system name",       "?"},
+    // {"AT+RF_MAC",               AT_RouteToCoreTask,   NULL,                SYS_CMD_RF_MAC,             true,  "AT+RF_MAC=<MAC> ",                           "?"},
+    // {"AT+FACTORY_RST",          AT_RouteToCoreTask,   NULL,                SYS_CMD_FACTORY_RST,        true,  "AT+FACTORY_RST - Factory reset the device",  ""},
+    // {"AT+LORA_TX_CW",           AT_RouteToCoreTask,   NULL,                SYS_CMD_TX_CW,              true,  "AT+LORA_TX_CW - Transmit continuous wave",   "=ON, =OFF"},
+    // {"AT+LORA_RX_TO_UART",      AT_RouteToCoreTask,   NULL,                SYS_CMD_LORA_RX_TO_UART,    true,  "AT+LORA_RX_TO_UART - Forward LoRa data",     "=ON, =OFF"},
+    // {"AT+LORA_SEND",            AT_RouteToCoreTask,   NULL,                SYS_CMD_LORA_SEND,          true,  "AT+LORA_SEND=<length>,<data> - Send data",   ""},
+    // {"AT+RF_PAIR",              AT_RouteToCoreTask,   NULL,                SYS_CMD_RF_PAIR,            true,  "AT+RF_PAIR - Pair RF device",                "=ON, =OFF"},
 };
 
 
 /**
  * @brief 
  * 
+ * @param str 
+ */
+static void AT_ToUpperCase(char *str, size_t max_len)
+{
+    size_t i = 0;
+    while (i < max_len && *str) {
+        if (*str >= 'a' && *str <= 'z') {  // Kontrola, zda je znak malé písmeno
+            *str = *str - ('a' - 'A');     // Převod na velké písmeno
+        }
+        str++;
+        i++;
+    }
+}
+
+/**
+ * @brief 
+ * 
  * @param data 
  */
-void ProcessATCommand(char *data, uint8_t size)
+void AT_HandleATCommand(SP_Context_t *sp_ctx, uint8_t size)
 {   
     bool dataUsed = false;
+    char *data=(char*) sp_ctx->rxStorage.raw_data;
+
+    AT_ToUpperCase(data,size);
 
     for (uint16_t i = 0; i < sizeof(AT_Commands) / sizeof(AT_Command_Struct); i++)
-    {
-        if (strncmp(data, AT_Commands[i].command, strlen(AT_Commands[i].command)) == 0 &&
-            (data[strlen(AT_Commands[i].command)] == '\0' || data[strlen(AT_Commands[i].command)] == '=' || data[strlen(AT_Commands[i].command)] == '?'))
+    {   
+        size_t commandLen = strlen(AT_Commands[i].command);
+
+        if (strncmp(data, AT_Commands[i].command, commandLen) == 0 &&
+            (data[commandLen] == '\0' ||
+             data[commandLen] == '\r' ||
+             data[commandLen] == '\n' ||
+             data[commandLen] == '=' ||
+              data[commandLen] == '?'))
         {
-            char *params = data + strlen(AT_Commands[i].command);  // Nastavíme ukazatel za příkaz
+            char *params = data + commandLen;  // Nastavíme ukazatel za příkaz
 
             // Pokud je tam `=`, přeskočíme znak `=`, abychom získali parametry
             if (*params == '=')
@@ -108,26 +135,19 @@ void ProcessATCommand(char *data, uint8_t size)
     if(dataUsed == false)    UART_SendResponse("ERROR - Check your EOL sequence\r\n");  // Neznámý příkaz
 
     memset(data,0,size);
+
+    SP_RxComplete(sp_ctx, size);  
    
 }
 
-/**
- * @brief 
- * 
- * @param params 
- */
-static void CLI_HandleAT(char *params)
-{
-    CLI_HandleHelp(NULL);
-    UART_SendResponse("OK\r\n");
-}
+
 
 /**
  * @brief 
  * 
  * @param params 
  */
-static  void CLI_HandleFactorMode(char *params)
+static  void AT_HandleFactorMode(char *params)
 {   
     if(memcmp(params,"ON",2) == 0)
     {
@@ -149,18 +169,19 @@ static  void CLI_HandleFactorMode(char *params)
  * 
  * @param params 
  */
-static void CLI_HandleHelp(char *params)
+static void AT_HandleHelp(char *params)
 {   
     UNUSED(params);
+
+    UART_SendResponse("\r\n");
     UART_SendResponse("Supported AT commands:\r\n");
 
     for (uint16_t i = 0; i < sizeof(AT_Commands) / sizeof(AT_Command_Struct); i++)
     {
-        UART_SendResponse(AT_Commands[i].command);
-        UART_SendResponse((char *)" - ");
+       // UART_SendResponse(AT_Commands[i].command);
+       // UART_SendResponse((char *)" - ");
         UART_SendResponse((char*)AT_Commands[i].usage);
 
-        // Pokud má příkaz podporované parametry, přidej je do výstupu
         if (strlen(AT_Commands[i].parameters) > 0)
         {
             UART_SendResponse(" (Par: ");
@@ -178,7 +199,7 @@ static void CLI_HandleHelp(char *params)
  * 
  * @param params 
  */
-static void CLI_HandleRestartSys(char *params)
+static void AT_HandleRestartSys(char *params)
 {
     UNUSED(params);
     NVIC_SystemReset();

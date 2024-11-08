@@ -10,6 +10,8 @@
 #include "radio_user.h"
 #include "portSTM32L071xx.h"
 
+#define LOG_LEVEL	LOG_LEVEL_VERBOSE
+#include "Log.h"
 //#include "process_main_task.h"
 
 extern UART_HandleTypeDef huart1;
@@ -122,6 +124,8 @@ void main_task(void)
 
 	/* init and start recieve*/
 	SP_PlatformInit(&sp_ctx);
+
+	LOG_DEBUG("Main task started");
 
 	for(;;)
 	{

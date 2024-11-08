@@ -48,6 +48,7 @@ target_link_directories(${CMAKE_PROJECT_NAME} PRIVATE
 # Add sources to executable
 target_sources(${CMAKE_PROJECT_NAME} PRIVATE
     # Add user sources here
+    ${CMAKE_SOURCE_DIR}/Core/Src/Log.c
     ${CMAKE_SOURCE_DIR}/Modules/Tasks/Src/RF_Task.c
     ${CMAKE_SOURCE_DIR}/Modules/Tasks/MainTask/Main_task.c
     ${CMAKE_SOURCE_DIR}/Modules/RF/Src/radio_user.c
@@ -60,6 +61,7 @@ target_sources(${CMAKE_PROJECT_NAME} PRIVATE
     ${CMAKE_SOURCE_DIR}/Modules/RF/SX1262/Src/sx126x.c
     ${CMAKE_SOURCE_DIR}/Modules/ATInterface/SerialPort/portSTM32L071xx.c
     ${CMAKE_SOURCE_DIR}/Modules/ATInterface/AT_cmd.c
+    
     
     
 )

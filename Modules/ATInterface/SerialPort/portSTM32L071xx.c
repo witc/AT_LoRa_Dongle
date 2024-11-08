@@ -4,18 +4,11 @@
 #include "main.h"
 #include "portSTM32L071xx.h"
 
-#if MCC_USE_LOG_LIB
-#define LOG_TAG "[ATCM-G0]"
-#define LOG_LEVEL MCU_PLAT_LOG_LEVEL
+
+#define LOG_TAG "[sPort:]"
+#define LOG_LEVEL LOG_LEVEL_VERBOSE
 #include "Log.h"
-#else
-#define LOG_FATAL(...) 		do{} while(0)
-#define LOG_ERROR(...)		do{} while(0)
-#define LOG_WARNING(...)	do{} while(0)
-#define LOG_INFO(...)		do{} while(0)
-#define LOG_DEBUG(...)		do{} while(0)
-#define LOG_VERBOOSE(...)	do{} while(0)
-#endif
+
 
 /****************************************************************/
 /*      S T A T I C   F U N C T I O N   P R O T O T Y P E       */
@@ -37,7 +30,6 @@ bool SP_PlatformInit(SP_Context_t *sp_ctx)
 {
 	if (sp_ctx == NULL || sp_ctx->phuart == NULL)
 	{
-		LOG_ERROR("Invalid argument.");
 		return false;
 	}
 	
@@ -54,7 +46,8 @@ bool SP_PlatformInit(SP_Context_t *sp_ctx)
  * @return HAL_StatusTypeDef 
  */
 HAL_StatusTypeDef SP_StartRecToIdle_DMA(UART_HandleTypeDef *huart, void *pData, uint16_t Size)
-{
+{	
+	__HAL_UART_CLEAR_FLAG(huart, 0xFFFFFFFF);
 	if (HAL_UARTEx_ReceiveToIdle_DMA(huart, pData, Size) == HAL_OK)
 	{
 		__HAL_DMA_DISABLE_IT(huart->hdmarx, DMA_IT_HT);
@@ -87,7 +80,6 @@ HAL_StatusTypeDef SP_StartRecToIdle_DMA(UART_HandleTypeDef *huart, void *pData, 
  */
 bool SP_RxComplete(SP_Context_t *sp_ctx, uint16_t size)
 {
-
 	HAL_StatusTypeDef ret = SP_StartRecToIdle_DMA(sp_ctx->phuart, sp_ctx->rxStorage.raw_data, sp_ctx->rxStorage.size);
 	return (ret == HAL_OK) ? true : false;
 }
@@ -103,7 +95,6 @@ HAL_StatusTypeDef SP_HandleUARTError(SP_Context_t *sp_ctx)
 {
 	if (sp_ctx == NULL || sp_ctx->phuart == NULL)
 	{
-		LOG_ERROR("Invalid argument in %s.", __func__);
 		return HAL_ERROR;
 	}
 

@@ -28,6 +28,9 @@
 /* USER CODE BEGIN Includes */
 #include "portSTM32L071xx.h"
 #include "AT_cmd.h"
+
+#define LOG_LEVEL LOG_LEVEL_VERBOSE
+#include "Log.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -71,8 +74,7 @@ void MX_FREERTOS_Init(void);
 void HAL_UARTEx_RxEventCallback(UART_HandleTypeDef *huart, uint16_t Size)
 { 
     UNUSED(huart);
-    ProcessATCommand(&sp_ctx.rxStorage, Size);
-    SP_RxComplete(&sp_ctx, Size);  
+    AT_HandleATCommand(&sp_ctx, Size);
 }
 
 /**
@@ -123,6 +125,7 @@ int main(void)
   MX_SPI1_Init();
   /* USER CODE BEGIN 2 */
 
+  LOG_Initialise();
   /* USER CODE END 2 */
 
   /* Init scheduler */
