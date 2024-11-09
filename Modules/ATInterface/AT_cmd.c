@@ -14,6 +14,8 @@
 #include "main.h"
 #include "AT_cmd.h"
 #include <ctype.h>
+#include "Main_task.h"
+#include "semphr.h"
 
 
 /**
@@ -24,10 +26,14 @@
 static void AT_HandleFactorMode(char *params);
 static void AT_HandleHelp(char *params);
 static void AT_HandleRestartSys(char *params);
-static void CLI_RouteToCoreTask(char *params, uint8_t cmdToCore);
+static void CLI_RouteToCoreTask(char *params, uint8_t cmdToCore, uint16_t size);
 
 extern UART_HandleTypeDef huart1;
+extern osMessageQueueId_t queueMainHandle;
 
+// Struktura pro uložení statického semaforu
+StaticSemaphore_t xSemaphoreBuffer;
+SemaphoreHandle_t xBinarySemaphore;
 
 AT_cmd_t at_ctx;
 
@@ -45,6 +51,7 @@ typedef struct
     const char *usage;   
     const char *parameters;
 } AT_Command_Struct;
+
 
 /* Table of AT commands */
 AT_Command_Struct AT_Commands[] = {
@@ -64,6 +71,23 @@ AT_Command_Struct AT_Commands[] = {
     // {"AT+LORA_SEND",            AT_RouteToCoreTask,   NULL,                SYS_CMD_LORA_SEND,          true,  "AT+LORA_SEND=<length>,<data> - Send data",   ""},
     // {"AT+RF_PAIR",              AT_RouteToCoreTask,   NULL,                SYS_CMD_RF_PAIR,            true,  "AT+RF_PAIR - Pair RF device",                "=ON, =OFF"},
 };
+
+
+void AT_Init(void)
+{
+    memset(&at_ctx,0,sizeof(AT_cmd_t));
+
+    if (xBinarySemaphore == NULL)
+    {
+        // Vytvoření semaforu
+        xBinarySemaphore = xSemaphoreCreateBinaryStatic(&xSemaphoreBuffer);
+
+        if (xBinarySemaphore != NULL)
+        {
+            xSemaphoreGive(xBinarySemaphore);
+        }
+    }
+}
 
 
 /**
@@ -224,20 +248,19 @@ void UART_SendResponse(char *response)
  * @param params 
  * @param cmdToCore 
  */
-static void CLI_RouteToCoreTask(char *params, uint8_t cmdToCore,uint16_t size)
+static void CLI_RouteToCoreTask(char *params, uint8_t cmdToCore, uint16_t size)
 {
     dataQueue_t txm;
     txm.ptr = NULL;
 
     BaseType_t xHigherPriorityTaskWoken = pdFALSE;
 
-    if(xSemaphoreGiveFromISR(xSemaphore, &xHigherPriorityTaskWoken)==pdTRUE)
+    if(xSemaphoreTakeFromISR(xBinarySemaphore, &xHigherPriorityTaskWoken) == pdTRUE)
     {
-         memcpy(at_ctx.dataBuff, params, size);
+        memcpy(at_ctx.dataBuff, params, size);
         txm.cmd = cmdToCore;
         txm.ptr = &at_ctx;
-        xQueueSendFromISR(xPointerQueue, &txm, &xHigherPriorityTaskWoken);
-        portYIELD_FROM_ISR(xHigherPriorityTaskWoken);
+        MT_SendDataToMainTask(&txm);
     }
     else
     {

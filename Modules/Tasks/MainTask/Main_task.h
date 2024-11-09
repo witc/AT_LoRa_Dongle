@@ -40,6 +40,7 @@ typedef struct
 
 void main_task(void);
 void irq_RELE_falling(void);
+bool MT_SendDataToMainTask(dataQueue_t *data);
 
 
 #endif /* INC_MAIN_TASK_H_ */

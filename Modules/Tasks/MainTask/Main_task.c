@@ -9,6 +9,7 @@
 #include "main_task.h"
 #include "radio_user.h"
 #include "portSTM32L071xx.h"
+#include "semphr.h"
 
 #define LOG_LEVEL	LOG_LEVEL_VERBOSE
 #include "Log.h"
@@ -28,6 +29,8 @@ void (*main_task_states[2])(main_ctx_t *ctx, dataQueue_t *rxd) = {main_task_off,
 
 static uint8_t rxBuffer_SPI[MAX_UART_RX_BUFFER];
 static uint8_t txBuffer_SPI[MAX_UART_RX_BUFFER];
+static SemaphoreHandle_t _Main_QueueSemaphore;
+static StaticSemaphore_t _Main_QueueSemaphoreBuffer;
 
 SP_Context_t sp_ctx = {
 		.phuart = &huart1,
@@ -102,6 +105,60 @@ void main_task_on(main_ctx_t *ctx, dataQueue_t *rxd)
 
 }
 
+/**
+ * @brief 
+ * 
+ * @param data 
+ * @return true 
+ * @return false 
+ */
+bool MT_SendDataToMainTask(dataQueue_t *data)
+{
+    BaseType_t xHigherPriorityTaskWoken = pdFALSE;
+    BaseType_t result;
+
+    // Zkontrolujeme, zda je voláno z ISR
+    if (xPortIsInsideInterrupt())
+    {
+        // Pokud jsme v ISR, pokusíme se získat semafor bez blokování
+        if (xSemaphoreTakeFromISR(_Main_QueueSemaphore, &xHigherPriorityTaskWoken) == pdTRUE)
+        {
+            // Semafor je volný, můžeme poslat data do fronty
+            result = xQueueSendFromISR(queueMainHandle, data, &xHigherPriorityTaskWoken);
+
+            // Uvolníme semafor pro další přístup
+            xSemaphoreGiveFromISR(_Main_QueueSemaphore, &xHigherPriorityTaskWoken);
+
+            // Přepneme kontext, pokud je to nutné
+            portYIELD_FROM_ISR(xHigherPriorityTaskWoken);
+        }
+        else
+        {
+            // Semafor nebyl volný - fronta je momentálně obsazena
+            return false;
+        }
+    }
+    else
+    {
+        // Mimo ISR - čekáme na získání semaforu
+        if (xSemaphoreTake(_Main_QueueSemaphore, portMAX_DELAY) == pdTRUE)
+        {
+            // Semafor je získán, posíláme data do fronty
+            result = xQueueSend(queueMainHandle, data, portMAX_DELAY);
+
+            // Uvolníme semafor
+            xSemaphoreGive(_Main_QueueSemaphore);
+        }
+        else
+        {
+            // Semafor nebyl získán, vracíme chybu
+            return false;
+        }
+    }
+
+    return (result == pdTRUE);
+}
+
 
 /**
  * @brief 
@@ -116,6 +173,8 @@ void main_task(void)
 
 	HAL_GPIO_WritePin(LED_GREEN_GPIO_Port, LED_GREEN_Pin, false);
 	HAL_GPIO_WritePin(LED_BLUE_GPIO_Port, LED_BLUE_Pin, false);
+
+	_Main_QueueSemaphore = xSemaphoreCreateMutexStatic(&_Main_QueueSemaphoreBuffer);
 
 	ctx.timers.LED_alive.timer = xTimerCreateStatic("LED alive timer", pdMS_TO_TICKS(100), pdFALSE, NULL, 
 														 _Main_Alive_Callback,  &ctx.timers.LED_alive.timerPlace);
