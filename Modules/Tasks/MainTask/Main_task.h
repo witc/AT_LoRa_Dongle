@@ -8,6 +8,7 @@
 #ifndef INC_MAIN_TASK_H_
 #define INC_MAIN_TASK_H_
 
+#include "at_cmd.h"
 /**
  * @brief 
  * 
@@ -41,6 +42,6 @@ typedef struct
 void main_task(void);
 void irq_RELE_falling(void);
 bool MT_SendDataToMainTask(dataQueue_t *data);
-bool AT_CustomCommandHandler(uint8_t *data, uint8_t atCmd, uint16_t size);
+bool AT_CustomCommandHandler(char *data,eSystemCommands atCmd, uint16_t size);
 
 #endif /* INC_MAIN_TASK_H_ */

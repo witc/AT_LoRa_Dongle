@@ -71,7 +71,7 @@ static void _Main_Alive_Callback(TimerHandle_t xTimer)
  * @return true 
  * @return false 
  */
-bool AT_CustomCommandHandler(uint8_t *data,uint8_t atCmd, uint16_t size)
+bool AT_CustomCommandHandler(char *data,eSystemCommands atCmd, uint16_t size)
 {
 	dataQueue_t txm;
 	txm.ptr = NULL;
@@ -82,7 +82,7 @@ bool AT_CustomCommandHandler(uint8_t *data,uint8_t atCmd, uint16_t size)
 	{
 		memcpy(rxShadowBuffer_USART, data, size);
 		txm.cmd = CMD_MAIN_AT_RX_PACKET;
-		txm.tmp_8 = atCmd;
+		txm.tmp_8 = (uint8_t) atCmd;
 		txm.tmp_16 = size;
 		MT_SendDataToMainTask(&txm);
 
@@ -231,13 +231,13 @@ void main_task(void)
         }
     }
 
-
 	AT_cmd_t at_ctx;
 	at_ctx.sp_ctx.rxStorage.raw_data = rxBuffer_USART;
 	at_ctx.sp_ctx.rxStorage.size = MAX_UART_RX_BUFFER;
 	at_ctx.sp_ctx.txStorage.raw_data = txBuffer_USART;
 	at_ctx.sp_ctx.txStorage.size = MAX_UART_TX_BUFFER;
 	at_ctx.sp_ctx.phuart = &huart1;
+	// Assign the custom command handler to be called when data is received from ISR
 	at_ctx.onDataReceivedFromISR = AT_CustomCommandHandler;
     AT_Init(&at_ctx);
 

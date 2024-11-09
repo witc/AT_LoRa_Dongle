@@ -28,6 +28,7 @@
 /* USER CODE BEGIN Includes */
 #include "AT_cmd.h"
 
+#define LOG_TAG "[MAIN]"
 #define LOG_LEVEL LOG_LEVEL_VERBOSE
 #include "Log.h"
 /* USER CODE END Includes */
@@ -87,6 +88,44 @@ void HAL_UART_ErrorCallback(UART_HandleTypeDef *huart)
     AT_HandleUartError();
 }
 
+
+static void PrintAppInfo(void)
+{
+	char time_string[100];
+	//time_t rawTime = (time_t)BUILD_DATE;
+	//struct tm *time_info = localtime(&rawTime);
+	//strftime(time_string, sizeof(time_string), "%Y-%m-%d %H:%M:%S", time_info);
+
+	printf("-------------- Application Info --------------\n");
+	//printf("Version: %lu\n", SW_VERSION_VALUE);
+	//printf("Subversion: %lu\n", SW_SUB_VERSION_VALUE);
+	//printf("Build type: %s\n", BUILD_TYPE);
+	//printf("Build datetime: %s UTC\n", time_string);
+	printf("----------------------------------------------\n");
+	// #if DEBUG
+	// printf("----------------- Debug Info -----------------\n");
+	// static char buffer[21]; // Enough to hold uint64_t in decimal (max 20 digits + null terminator)
+	// int index = 20;
+	// buffer[index] = '\0'; // Null-terminate the string
+
+	// CheckStartType();
+
+	// #if DEBUG
+	// 	// Convert uint64_t to string in reverse order
+	// 	bool printErrorCode = (lastErrorCode != 0);
+	// 	do {
+	// 			buffer[--index] = '0' + (lastErrorCode % 10);
+	// 			lastErrorCode /= 10;
+	// 	} while (lastErrorCode > 0 || index == 0);
+
+	// 	if (printErrorCode)
+	// 	{
+	// 		printf("Last error code: %s\n", &buffer[index]);
+	// 	}
+	// #endif
+	// printf("----------------------------------------------\n");
+	// #endif
+}
 /* USER CODE END 0 */
 
 /**
@@ -124,6 +163,7 @@ int main(void)
   /* USER CODE BEGIN 2 */
 
   LOG_Initialise();
+  PrintAppInfo();
   /* USER CODE END 2 */
 
   /* Init scheduler */
