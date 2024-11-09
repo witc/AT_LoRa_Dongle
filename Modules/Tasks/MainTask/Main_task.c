@@ -8,7 +8,6 @@
 #include "main.h"
 #include "main_task.h"
 #include "radio_user.h"
-#include "portSTM32L071xx.h"
 #include "semphr.h"
 #include "AT_cmd.h"
 

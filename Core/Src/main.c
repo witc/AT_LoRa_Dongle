@@ -26,7 +26,6 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-#include "portSTM32L071xx.h"
 #include "AT_cmd.h"
 
 #define LOG_LEVEL LOG_LEVEL_VERBOSE
@@ -51,7 +50,6 @@
 /* Private variables ---------------------------------------------------------*/
 
 /* USER CODE BEGIN PV */
-extern SP_Context_t sp_ctx;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
