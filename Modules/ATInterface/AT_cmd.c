@@ -26,14 +26,10 @@
 static void AT_HandleFactorMode(char *params);
 static void AT_HandleHelp(char *params);
 static void AT_HandleRestartSys(char *params);
-static void CLI_RouteToCoreTask(char *params, uint8_t cmdToCore, uint16_t size);
+//static void CLI_RouteToCoreTask(char *params, uint8_t cmdToCore, uint16_t size);
 
 extern UART_HandleTypeDef huart1;
 extern osMessageQueueId_t queueMainHandle;
-
-// Struktura pro uložení statického semaforu
-StaticSemaphore_t xSemaphoreBuffer;
-SemaphoreHandle_t xBinarySemaphore;
 
 AT_cmd_t at_ctx;
 
@@ -44,10 +40,10 @@ AT_cmd_t at_ctx;
 typedef struct
 {
     char *command;
-    void (*handler)(char *params, uint8_t cmdtoCore,uint16_t size);  // Handler s pevnym parametrem
+   // void (*handler)(char *params, uint8_t cmdtoCore,uint16_t size);  // Handler s pevnym parametrem
     void (*simpleHandler)(char *params);            // Handler bez pevneho parametru
-    uint8_t cmdtoCore;
-    bool isFixedParamUsed;
+    eSystemCommands cmdtoCore;
+  //  bool isFixedParamUsed;
     const char *usage;   
     const char *parameters;
 } AT_Command_Struct;
@@ -55,11 +51,11 @@ typedef struct
 
 /* Table of AT commands */
 AT_Command_Struct AT_Commands[] = {
-    {"AT",                      NULL,                  AT_HandleHelp,          0,                          false, "AT - Basic test command",                  ""},
-    {"AT+HELP",                 NULL,                  AT_HandleHelp,          0,                          false, "AT+HELP - List all supported commands",      ""},
-    {"AT+FACTORY_MODE",         NULL,                  AT_HandleFactorMode,    0,                          false, "AT+FACTORY_MODE - Enable factory mode",    "=ON, =OFF"},
-    {"AT+SYS_RESTART",          NULL,                  AT_HandleRestartSys,    0,                          false, "AT+SYS_RESTART - Restart the system",        ""},                       
-    // {"AT+FACTORY_MODE",         NULL,                  AT_HandleFactorMode,0,                          false, "AT+FACTORY_MODE - Enable factory mode",    "=ON, =OFF"},
+    {"AT",                      AT_HandleHelp,          0,                       "AT - Basic test command",                  ""},
+    {"AT+HELP",                 AT_HandleHelp,          0,                       "AT+HELP - List all supported commands",      ""},
+    {"AT+FACTORY_MODE",         AT_HandleFactorMode,    0,                       "AT+FACTORY_MODE - Enable factory mode",    "=ON, =OFF"},
+    {"AT+SYS_RESTART",          AT_HandleRestartSys,    0,                       "AT+SYS_RESTART - Restart the system",        ""},                       
+    {"AT+LED_BLUE"  ,           NULL,                   SYS_LED_BLUE,            "AT+LED_BLUE - Set LED blue state",    "=ON, =OFF"},
    
     // {"AT+SYS_RESTART",          NULL,                  AT_HandleRestartSys,0,                          false, "AT+SYS_RESTART - Restart the system",        ""},
     // {"AT+SYS_STATE",            AT_RouteToCoreTask,   NULL,                SYS_CMD_SYS_STATE,          true,  "AT+SYS_STATE - Get or set system state",     "?, =ON, =OFF"},
@@ -73,20 +69,17 @@ AT_Command_Struct AT_Commands[] = {
 };
 
 
-void AT_Init(void)
-{
-    memset(&at_ctx,0,sizeof(AT_cmd_t));
+/**
+ * @brief 
+ * 
+ * @param atCmd 
+ */
+void AT_Init(AT_cmd_t *atCmd)
+{      
+    memcpy(&at_ctx,atCmd,sizeof(AT_cmd_t));  // Uložení struktury do
 
-    if (xBinarySemaphore == NULL)
-    {
-        // Vytvoření semaforu
-        xBinarySemaphore = xSemaphoreCreateBinaryStatic(&xSemaphoreBuffer);
+    SP_PlatformInit(&at_ctx.sp_ctx);
 
-        if (xBinarySemaphore != NULL)
-        {
-            xSemaphoreGive(xBinarySemaphore);
-        }
-    }
 }
 
 
@@ -112,10 +105,11 @@ static void AT_ToUpperCase(char *str, size_t max_len)
  * 
  * @param data 
  */
-void AT_HandleATCommand(SP_Context_t *sp_ctx, uint16_t size)
+void AT_HandleATCommand(uint16_t size)
 {   
     bool dataUsed = false;
-    char *data=(char*) sp_ctx->rxStorage.raw_data;
+    //char *data=(char*) sp_ctx->rxStorage.raw_data;
+    char *data = (char*) at_ctx.sp_ctx.rxStorage.raw_data;
 
     AT_ToUpperCase(data,size);
 
@@ -144,11 +138,15 @@ void AT_HandleATCommand(SP_Context_t *sp_ctx, uint16_t size)
             }
 
             
-            if(AT_Commands[i].handler != NULL)
-            {
-                AT_Commands[i].handler(params,AT_Commands[i].cmdtoCore,size);
+            if(AT_Commands[i].simpleHandler == NULL)
+            {   
+                if(at_ctx.onDataReceivedFromISR(params,(uint8_t) AT_Commands[i].cmdtoCore,size) == false)
+                {
+                    UART_SendResponse("ERROR - Previous data was not processed yet!\r\n");
+                }
+                //AT_Commands[i].handler(params,AT_Commands[i].cmdtoCore,size);
             }
-            else if(AT_Commands[i].simpleHandler != NULL)
+            else
             {
                 AT_Commands[i].simpleHandler(params);
             }
@@ -160,11 +158,19 @@ void AT_HandleATCommand(SP_Context_t *sp_ctx, uint16_t size)
     if(dataUsed == false)    UART_SendResponse("ERROR - Check your EOL sequence\r\n");  // Neznámý příkaz
 
     memset(data,0,size);
-    SP_RxComplete(sp_ctx, size);  
+    SP_RxComplete(&at_ctx.sp_ctx, size);  
    
 }
 
-
+/**
+ * @brief 
+ * 
+ */
+void AT_HandleUartError(void)
+{   
+    SP_HandleUARTError(&at_ctx.sp_ctx);
+    UART_SendResponse("ERROR - UART error\r\n");
+}
 
 /**
  * @brief 
@@ -248,24 +254,24 @@ void UART_SendResponse(char *response)
  * @param params 
  * @param cmdToCore 
  */
-static void CLI_RouteToCoreTask(char *params, uint8_t cmdToCore, uint16_t size)
-{
-    dataQueue_t txm;
-    txm.ptr = NULL;
+// static void CLI_RouteToCoreTask(char *params, uint8_t cmdToCore, uint16_t size)
+// {
+//     dataQueue_t txm;
+//     txm.ptr = NULL;
 
-    BaseType_t xHigherPriorityTaskWoken = pdFALSE;
+//     BaseType_t xHigherPriorityTaskWoken = pdFALSE;
 
-    if(xSemaphoreTakeFromISR(xBinarySemaphore, &xHigherPriorityTaskWoken) == pdTRUE)
-    {
-        memcpy(at_ctx.dataBuff, params, size);
-        txm.cmd = cmdToCore;
-        txm.ptr = &at_ctx;
-        MT_SendDataToMainTask(&txm);
-    }
-    else
-    {
-        /* Buffer wa not procesed yet */
-        UART_SendResponse("Error: Previous command not yet processed\r\n");
-    }
+//     if(xSemaphoreTakeFromISR(xBinarySemaphore, &xHigherPriorityTaskWoken) == pdTRUE)
+//     {
+//         memcpy(at_ctx.dataBuff, params, size);
+//         txm.cmd = cmdToCore;
+//         txm.ptr = &at_ctx;
+//         MT_SendDataToMainTask(&txm);
+//     }
+//     else
+//     {
+//         /* Buffer wa not procesed yet */
+//         UART_SendResponse("Error: Previous command not yet processed\r\n");
+//     }
 
-}
+// }

@@ -74,7 +74,7 @@ void MX_FREERTOS_Init(void);
 void HAL_UARTEx_RxEventCallback(UART_HandleTypeDef *huart, uint16_t Size)
 { 
     UNUSED(huart);
-    AT_HandleATCommand(&sp_ctx, Size);
+    AT_HandleATCommand(Size);
 }
 
 /**
@@ -86,7 +86,7 @@ void HAL_UARTEx_RxEventCallback(UART_HandleTypeDef *huart, uint16_t Size)
 void HAL_UART_ErrorCallback(UART_HandleTypeDef *huart)
 { 
     UNUSED(huart);
-    SP_HandleUARTError(&sp_ctx);
+    AT_HandleUartError();
 }
 
 /* USER CODE END 0 */

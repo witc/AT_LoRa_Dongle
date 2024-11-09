@@ -22,7 +22,7 @@ typedef struct
     uint8_t *raw_data;
     uint16_t size;
 
-}RAW_DATA_Storage_t;
+}__attribute__((packed)) RAW_DATA_Storage_t;
 
 
 typedef struct
@@ -31,7 +31,7 @@ typedef struct
 	RAW_DATA_Storage_t rxStorage;				//!< Rx storage instance.
 	RAW_DATA_Storage_t txStorage;				//!< Tx storage instance.
 
-} SP_Context_t;	//Serial Port ctx
+}__attribute__((packed)) SP_Context_t;	//Serial Port ctx
 
 
 bool SP_PlatformInit(SP_Context_t *sp_ctx);

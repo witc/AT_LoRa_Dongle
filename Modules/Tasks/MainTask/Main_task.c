@@ -10,10 +10,15 @@
 #include "radio_user.h"
 #include "portSTM32L071xx.h"
 #include "semphr.h"
+#include "AT_cmd.h"
 
 #define LOG_LEVEL	LOG_LEVEL_VERBOSE
 #include "Log.h"
 //#include "process_main_task.h"
+
+// Struktura pro uložení statického semaforu
+StaticSemaphore_t xSemaphoreBuffer_USART;
+SemaphoreHandle_t xBinarySemaphore_USART;
 
 extern UART_HandleTypeDef huart1;
 extern osMessageQId queueRadioHandle;
@@ -27,17 +32,13 @@ volatile uint32_t GL_debug=0;
 void (*main_task_states[2])(main_ctx_t *ctx, dataQueue_t *rxd) = {main_task_off, main_task_on};
 
 
-static uint8_t rxBuffer_SPI[MAX_UART_RX_BUFFER];
-static uint8_t txBuffer_SPI[MAX_UART_RX_BUFFER];
+static uint8_t rxBuffer_USART[MAX_UART_RX_BUFFER];
+static uint8_t txBuffer_USART[MAX_UART_RX_BUFFER];
+
+static uint8_t rxShadowBuffer_USART[MAX_UART_RX_BUFFER];
+
 static SemaphoreHandle_t _Main_QueueSemaphore;
 static StaticSemaphore_t _Main_QueueSemaphoreBuffer;
-
-SP_Context_t sp_ctx = {
-		.phuart = &huart1,
-		.rxStorage = {rxBuffer_SPI, MAX_UART_RX_BUFFER},
-		.txStorage = {txBuffer_SPI, MAX_UART_TX_BUFFER}
-};
-
 
 
 /**
@@ -62,7 +63,40 @@ static void _Main_Alive_Callback(TimerHandle_t xTimer)
 }
 
 
+/**
+ * @brief 
+ * 
+ * @param data 
+ * @param atCmd 
+ * @param size 
+ * @return true 
+ * @return false 
+ */
+bool AT_CustomCommandHandler(uint8_t *data,uint8_t atCmd, uint16_t size)
+{
+	dataQueue_t txm;
+	txm.ptr = NULL;
 
+	BaseType_t xHigherPriorityTaskWoken = pdFALSE;
+
+	if(xSemaphoreTakeFromISR(xBinarySemaphore_USART, &xHigherPriorityTaskWoken) == pdTRUE)
+	{
+		memcpy(rxShadowBuffer_USART, data, size);
+		txm.cmd = CMD_MAIN_AT_RX_PACKET;
+		txm.tmp_8 = atCmd;
+		txm.tmp_16 = size;
+		MT_SendDataToMainTask(&txm);
+
+		//xSemaphoreGiveFromISR(xBinarySemaphore_USART, &xHigherPriorityTaskWoken);
+		portYIELD_FROM_ISR(xHigherPriorityTaskWoken);
+	}
+	else
+	{
+		return false;
+	}
+
+	return true;
+}
 
 /**
  * @brief 
@@ -99,6 +133,10 @@ void main_task_on(main_ctx_t *ctx, dataQueue_t *rxd)
 
 			break;
 
+		case CMD_MAIN_AT_RX_PACKET:
+		HAL_GPIO_TogglePin(LED_BLUE_GPIO_Port, LED_BLUE_Pin);
+			break;
+
 		default:
 			break;
 	}
@@ -118,7 +156,7 @@ bool MT_SendDataToMainTask(dataQueue_t *data)
     BaseType_t result;
 
     // Zkontrolujeme, zda je voláno z ISR
-    if (xPortIsInsideInterrupt())
+    if (__get_IPSR())
     {
         // Pokud jsme v ISR, pokusíme se získat semafor bez blokování
         if (xSemaphoreTakeFromISR(_Main_QueueSemaphore, &xHigherPriorityTaskWoken) == pdTRUE)
@@ -182,7 +220,28 @@ void main_task(void)
 	osTimerStart(ctx.timers.LED_alive.timer, pdMS_TO_TICKS(100));
 
 	/* init and start recieve*/
-	SP_PlatformInit(&sp_ctx);
+
+	 if (xBinarySemaphore_USART == NULL)
+    {
+        // Vytvoření semaforu
+        xBinarySemaphore_USART = xSemaphoreCreateBinaryStatic(&xSemaphoreBuffer_USART);
+
+        if (xBinarySemaphore_USART != NULL)
+        {
+            xSemaphoreGive(xBinarySemaphore_USART);
+        }
+    }
+
+
+	AT_cmd_t at_ctx;
+	at_ctx.sp_ctx.rxStorage.raw_data = rxBuffer_USART;
+	at_ctx.sp_ctx.rxStorage.size = MAX_UART_RX_BUFFER;
+	at_ctx.sp_ctx.txStorage.raw_data = txBuffer_USART;
+	at_ctx.sp_ctx.txStorage.size = MAX_UART_TX_BUFFER;
+	at_ctx.sp_ctx.phuart = &huart1;
+	at_ctx.onDataReceivedFromISR = AT_CustomCommandHandler;
+    AT_Init(&at_ctx);
+
 
 	LOG_DEBUG("Main task started");
 

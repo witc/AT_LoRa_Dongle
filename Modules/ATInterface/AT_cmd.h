@@ -28,6 +28,7 @@ typedef enum
     SYS_CMD_LORA_RX_TO_UART = 6,
     SYS_CMD_LORA_SEND       = 7,
     SYS_CMD_RF_PAIR         = 8,
+    SYS_LED_BLUE            = 9,
 
 }eSystemCommands;
 
@@ -37,13 +38,14 @@ typedef enum
  */
 typedef struct AT_cmd
 {
-    eSystemCommands cmd;
-    uint8_t         dataBuff[300];
+    SP_Context_t sp_ctx;
+    bool (*onDataReceivedFromISR)(char *params, eSystemCommands cmdToCore, uint16_t size); 
 
-}AT_cmd_t;
+} __attribute__((packed)) AT_cmd_t;
 
 void UART_SendResponse(char *response);
-void AT_HandleATCommand(SP_Context_t *sp_ctx, uint16_t size);
+void AT_HandleATCommand(uint16_t size);
+void AT_Init(AT_cmd_t *atCmd);
 
 #endif // AT_CMD_H
 

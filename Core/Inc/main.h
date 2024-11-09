@@ -44,6 +44,7 @@ extern "C" {
 #include "stm32l0xx.h"
 #include "FreeRTOS.h"
 #include "queue.h"
+#include "core_cm0plus.h"
 
 /* USER CODE END Includes */
 
@@ -111,6 +112,7 @@ typedef struct
 #define CMD_MAIN_RF_IS_ON				      254
 #define CMD_MAIN_RF_IS_OFF			      253
 #define CMD_MAIN_RF_RX_PACKET		      252
+#define CMD_MAIN_AT_RX_PACKET		      251
 
 
 
