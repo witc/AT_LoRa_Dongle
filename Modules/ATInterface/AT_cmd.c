@@ -42,7 +42,7 @@ typedef struct
     char *command;
    // void (*handler)(char *params, uint8_t cmdtoCore,uint16_t size);  // Handler s pevnym parametrem
     void (*simpleHandler)(char *params);            // Handler bez pevneho parametru
-    eSystemCommands cmdtoCore;
+    eATCommands cmdtoCore;
   //  bool isFixedParamUsed;
     const char *usage;   
     const char *parameters;
@@ -105,6 +105,22 @@ static void AT_ToUpperCase(char *str, size_t max_len)
  * 
  * @param data 
  */
+static void AT_TrimEndings(char *data)
+{
+    size_t length = strlen(data);
+
+    while (length > 0 && (data[length - 1] == '\n' || data[length - 1] == '\r'))
+    {
+        data[length - 1] = '\0';
+        length--;
+    }
+}
+
+/**
+ * @brief 
+ * 
+ * @param data 
+ */
 void AT_HandleATCommand(uint16_t size)
 {   
     bool dataUsed = false;
@@ -112,6 +128,7 @@ void AT_HandleATCommand(uint16_t size)
     char *data = (char*) at_ctx.sp_ctx.rxStorage.raw_data;
 
     AT_ToUpperCase(data,size);
+    AT_TrimEndings(data);
 
     for (uint16_t i = 0; i < sizeof(AT_Commands) / sizeof(AT_Command_Struct); i++)
     {   
@@ -119,8 +136,8 @@ void AT_HandleATCommand(uint16_t size)
 
         if (strncmp(data, AT_Commands[i].command, commandLen) == 0 &&
             (data[commandLen] == '\0' ||
-             data[commandLen] == '\r' ||
-             data[commandLen] == '\n' ||
+            // data[commandLen] == '\r' ||
+            // data[commandLen] == '\n' ||
              data[commandLen] == '=' ||
              data[commandLen] == '?'))
         {

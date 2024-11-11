@@ -10,6 +10,7 @@
 #include "radio_user.h"
 #include "semphr.h"
 #include "AT_cmd.h"
+#include "general_sys_cmd.h"
 
 #define LOG_LEVEL	LOG_LEVEL_VERBOSE
 #include "Log.h"
@@ -71,7 +72,7 @@ static void _Main_Alive_Callback(TimerHandle_t xTimer)
  * @return true 
  * @return false 
  */
-bool AT_CustomCommandHandler(char *data,eSystemCommands atCmd, uint16_t size)
+bool AT_CustomCommandHandler(char *data,eATCommands atCmd, uint16_t size)
 {
 	dataQueue_t txm;
 	txm.ptr = NULL;
@@ -120,6 +121,7 @@ void main_task_off(main_ctx_t *ctx,dataQueue_t *rxd)
 void main_task_on(main_ctx_t *ctx, dataQueue_t *rxd)
 {
 	packet_info_t	*rx_pkt;
+	bool 	AtCmdProcessed;
 
 	switch (rxd->cmd)
 	{
@@ -133,7 +135,17 @@ void main_task_on(main_ctx_t *ctx, dataQueue_t *rxd)
 			break;
 
 		case CMD_MAIN_AT_RX_PACKET:
-		HAL_GPIO_TogglePin(LED_BLUE_GPIO_Port, LED_BLUE_Pin);
+			AtCmdProcessed = GSC_ProcessCommand((eATCommands) rxd->tmp_8, rxShadowBuffer_USART, rxd->tmp_16);
+			xSemaphoreGive(xBinarySemaphore_USART);
+			if(AtCmdProcessed == true)	
+			{
+				UART_SendResponse("OK\r\n");
+			}
+			else
+			{
+				UART_SendResponse("ERROR\r\n");
+			}
+			
 			break;
 
 		default:

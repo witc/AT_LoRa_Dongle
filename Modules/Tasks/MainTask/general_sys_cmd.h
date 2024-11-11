@@ -12,14 +12,7 @@
 #ifndef GENERAL_SYS_CMD_H
 #define GENERAL_SYS_CMD_H
 
-
-typedef enum
-{   
-    SYS_CMD_NONE            = 0,
-    SYS_CMD_SYS_STATE       = 1,
-
-}eSystemCommands;
-
+bool GSC_ProcessCommand(eATCommands cmd, uint8_t *data, uint16_t size);
 
 #endif // GENERAL_SYS_CMD_H
 

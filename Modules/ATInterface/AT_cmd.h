@@ -30,7 +30,7 @@ typedef enum
     SYS_CMD_RF_PAIR         = 8,
     SYS_LED_BLUE            = 9,
 
-}eSystemCommands;
+}eATCommands;
 
 /**
  * @brief 
@@ -39,7 +39,7 @@ typedef enum
 typedef struct AT_cmd
 {
     SP_Context_t sp_ctx;
-    bool (*onDataReceivedFromISR)(char *params, eSystemCommands cmdToCore, uint16_t size); 
+    bool (*onDataReceivedFromISR)(char *params, eATCommands cmdToCore, uint16_t size); 
 
 } __attribute__((packed)) AT_cmd_t;
 
