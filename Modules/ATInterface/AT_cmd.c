@@ -85,6 +85,8 @@ const AT_Command_Struct AT_Commands[] = {
  */
 void AT_Init(AT_cmd_t *p_at_Ctx)
 {   
+    at_ctx.onDataReceivedFromISR = NULL;
+
     if(xUART_TXSemaphore == NULL)
     {
         xUART_TXSemaphore = xSemaphoreCreateBinary();
@@ -103,10 +105,8 @@ void AT_Init(AT_cmd_t *p_at_Ctx)
     at_ctx.sp_ctx.txStorage.raw_data = p_at_Ctx->sp_ctx.txStorage.raw_data;
     at_ctx.sp_ctx.txStorage.size = p_at_Ctx->sp_ctx.txStorage.size;
 
-    if(p_at_Ctx->onDataReceivedFromISR != NULL)
-    {
-        at_ctx.onDataReceivedFromISR = p_at_Ctx->onDataReceivedFromISR;
-    }
+   
+    at_ctx.onDataReceivedFromISR = p_at_Ctx->onDataReceivedFromISR;
 
     SP_PlatformInit(&at_ctx.sp_ctx);
 

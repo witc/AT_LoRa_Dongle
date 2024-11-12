@@ -162,7 +162,7 @@ void NVMA_Get_LR_RX_SF(uint8_t *sf)
  * 
  * @param bw 
  */
-void NVMA_Set_LR_TX_BW(uint8_t bw)
+void NVMA_Set_LR_TX_BW(uint32_t bw)
 {   
     xSemaphoreTake(xEepromMutex, portMAX_DELAY);
     HAL_FLASHEx_DATAEEPROM_Unlock();
@@ -176,10 +176,10 @@ void NVMA_Set_LR_TX_BW(uint8_t bw)
  * 
  * @param bw 
  */
-void NVMA_Get_LR_TX_BW(uint8_t *bw)
+void NVMA_Get_LR_TX_BW(uint32_t *bw)
 {   
     xSemaphoreTake(xEepromMutex, portMAX_DELAY);
-    *bw = *((uint8_t *)EE_ADDR_LR_TX_BW);
+    *bw = *((uint32_t *)EE_ADDR_LR_TX_BW);
     xSemaphoreGive(xEepromMutex);
 }
 
@@ -188,7 +188,7 @@ void NVMA_Get_LR_TX_BW(uint8_t *bw)
  * 
  * @param bw 
  */
-void NVMA_Set_LR_RX_BW(uint8_t bw)
+void NVMA_Set_LR_RX_BW(uint32_t bw)
 {   
     xSemaphoreTake(xEepromMutex, portMAX_DELAY);
     HAL_FLASHEx_DATAEEPROM_Unlock();
@@ -202,10 +202,10 @@ void NVMA_Set_LR_RX_BW(uint8_t bw)
  * 
  * @param bw 
  */
-void NVMA_Get_LR_RX_BW(uint8_t *bw)
+void NVMA_Get_LR_RX_BW(uint32_t *bw)
 {   
     xSemaphoreTake(xEepromMutex, portMAX_DELAY);
-    *bw = *((uint8_t *)EE_ADDR_LR_RX_BW);
+    *bw = *((uint32_t *)EE_ADDR_LR_RX_BW);
     xSemaphoreGive(xEepromMutex);
 }
 

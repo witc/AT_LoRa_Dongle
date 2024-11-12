@@ -12,6 +12,17 @@
 #ifndef GENERAL_SYS_CMD_H
 #define GENERAL_SYS_CMD_H
 
+#include "main.h"
+#include "AT_cmd.h"
+
+typedef struct {
+    eATCommands cmd;  // Typ příkazu
+    int32_t minValue; // Minimální povolená hodnota
+    int32_t maxValue; // Maximální povolená hodnota
+} AT_CommandLimit_t;
+
+
+
 bool GSC_ProcessCommand(eATCommands cmd, uint8_t *data, uint16_t size);
 
 #endif // GENERAL_SYS_CMD_H

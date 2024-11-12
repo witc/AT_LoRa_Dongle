@@ -49,6 +49,7 @@ target_link_directories(${CMAKE_PROJECT_NAME} PRIVATE
 target_sources(${CMAKE_PROJECT_NAME} PRIVATE
     # Add user sources here
     ${CMAKE_SOURCE_DIR}/Core/Src/Log.c
+    ${CMAKE_SOURCE_DIR}/Core/Src/Constrain.c
     ${CMAKE_SOURCE_DIR}/Modules/Tasks/Src/RF_Task.c
     ${CMAKE_SOURCE_DIR}/Modules/Tasks/MainTask/Main_task.c
     ${CMAKE_SOURCE_DIR}/Modules/RF/Src/radio_user.c
