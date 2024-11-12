@@ -31,7 +31,7 @@
 
 
 
-
+void NVMA_Init(void);
 
 void NVMA_Set_LR_Freq_TX(uint32_t freq);
 void NVMA_Get_LR_Freq_TX(uint32_t *freq);

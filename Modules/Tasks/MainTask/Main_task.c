@@ -234,6 +234,8 @@ void main_task(void)
         }
     }
 
+	NVMA_Init();
+
 	AT_cmd_t at_ctx;
 	at_ctx.sp_ctx.rxStorage.raw_data = rxBuffer_USART;
 	at_ctx.sp_ctx.rxStorage.size = MAX_UART_RX_BUFFER;

@@ -313,7 +313,6 @@ void AT_SendResponse(char *response)
         }
     }
 
-
     //TODOJR DMA
     //HAL_UART_Transmit(&huart1, (uint8_t *)response, strlen(response),0xFFFF);
 }
