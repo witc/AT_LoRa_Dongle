@@ -9,8 +9,6 @@
  * 
  */
 
-
-
 #include "main.h"
 #include "AT_cmd.h"
 #include <ctype.h>
@@ -26,12 +24,12 @@
 static void AT_HandleFactorMode(char *params);
 static void AT_HandleHelp(char *params);
 static void AT_HandleRestartSys(char *params);
-//static void CLI_RouteToCoreTask(char *params, uint8_t cmdToCore, uint16_t size);
 
 extern UART_HandleTypeDef huart1;
 extern osMessageQueueId_t queueMainHandle;
 
 AT_cmd_t at_ctx;
+SemaphoreHandle_t xUART_TXSemaphore;
 
 /**
  * @brief 
@@ -86,7 +84,19 @@ const AT_Command_Struct AT_Commands[] = {
  * @param p_at_Ctx 
  */
 void AT_Init(AT_cmd_t *p_at_Ctx)
-{     
+{   
+    if(xUART_TXSemaphore == NULL)
+    {
+        xUART_TXSemaphore = xSemaphoreCreateBinary();
+        if (xUART_TXSemaphore != NULL)
+        {
+            xSemaphoreGive(xUART_TXSemaphore);
+        }else
+        {
+            Error_Handler();
+        }
+    }
+    
     at_ctx.sp_ctx.phuart = p_at_Ctx->sp_ctx.phuart;
     at_ctx.sp_ctx.rxStorage.raw_data = p_at_Ctx->sp_ctx.rxStorage.raw_data;
     at_ctx.sp_ctx.rxStorage.size = p_at_Ctx->sp_ctx.rxStorage.size;
@@ -96,10 +106,6 @@ void AT_Init(AT_cmd_t *p_at_Ctx)
     if(p_at_Ctx->onDataReceivedFromISR != NULL)
     {
         at_ctx.onDataReceivedFromISR = p_at_Ctx->onDataReceivedFromISR;
-    }
-    else
-    {
-        at_ctx.onDataReceivedFromISR = NULL;
     }
 
     SP_PlatformInit(&at_ctx.sp_ctx);
@@ -147,7 +153,6 @@ static void AT_TrimEndings(char *data)
  */
 void AT_HandleATCommand(uint16_t size)
 {   
-    bool dataUsed = false;
     //char *data=(char*) sp_ctx->rxStorage.raw_data;
     char *data = (char*) at_ctx.sp_ctx.rxStorage.raw_data;
 
@@ -180,14 +185,15 @@ void AT_HandleATCommand(uint16_t size)
             {   
                 if(at_ctx.onDataReceivedFromISR == NULL)
                 {
-                    UART_SendResponse("ERROR - No handler for this command\r\n");
+                    AT_SendResponse("ERROR - No handler for this command\r\n");
                     break;
                 }
                 
                 if(at_ctx.onDataReceivedFromISR(params,(uint8_t) AT_Commands[i].cmdtoCore,size) == false)
                 {
-                    UART_SendResponse("ERROR - Previous data was not processed yet!\r\n");
+                    AT_SendResponse("ERROR - Previous data was not processed yet!\r\n");
                 }
+                
                 //AT_Commands[i].handler(params,AT_Commands[i].cmdtoCore,size);
             }
             else
@@ -195,7 +201,6 @@ void AT_HandleATCommand(uint16_t size)
                 AT_Commands[i].simpleHandler(params);
             }
             
-            dataUsed = true;
         }
     }
 
@@ -211,7 +216,7 @@ void AT_HandleATCommand(uint16_t size)
 void AT_HandleUartError(void)
 {   
     SP_HandleUARTError(&at_ctx.sp_ctx);
-    UART_SendResponse("ERROR - UART error\r\n");
+    AT_SendResponse("ERROR - UART error\r\n");
 }
 
 /**
@@ -223,15 +228,15 @@ static  void AT_HandleFactorMode(char *params)
 {   
     if(memcmp(params,"ON",2) == 0)
     {
-        UART_SendResponse("Factory mode UI enabled\r\n");
+        AT_SendResponse("Factory mode UI enabled\r\n");
     }
     else if(memcmp(params,"OFF",3) == 0)
     {
-        UART_SendResponse("Factory mode UI disabled\r\n");
+        AT_SendResponse("Factory mode UI disabled\r\n");
     }
     else
     {
-        UART_SendResponse("ERROR\r\n");
+        AT_SendResponse("ERROR\r\n");
     }
     
 }
@@ -245,23 +250,23 @@ static void AT_HandleHelp(char *params)
 {   
     UNUSED(params);
 
-    UART_SendResponse("\r\n");
-    UART_SendResponse("Supported AT commands:\r\n");
+    AT_SendResponse("\r\n");
+    AT_SendResponse("Supported AT commands:\r\n");
 
     for (uint16_t i = 0; i < sizeof(AT_Commands) / sizeof(AT_Command_Struct); i++)
     {
-       // UART_SendResponse(AT_Commands[i].command);
-       // UART_SendResponse((char *)" - ");
-        UART_SendResponse((char*)AT_Commands[i].usage);
+       // AT_SendResponse(AT_Commands[i].command);
+       // AT_SendResponse((char *)" - ");
+        AT_SendResponse((char*)AT_Commands[i].usage);
 
         if (strlen(AT_Commands[i].parameters) > 0)
         {
-            UART_SendResponse(" (Par: ");
-            UART_SendResponse((char*)AT_Commands[i].parameters);
-            UART_SendResponse(")");
+            AT_SendResponse(" (Par: ");
+            AT_SendResponse((char*)AT_Commands[i].parameters);
+            AT_SendResponse(")");
         }
 
-        UART_SendResponse("\r\n");
+        AT_SendResponse("\r\n");
     }
 }
 
@@ -283,37 +288,32 @@ static void AT_HandleRestartSys(char *params)
  * 
  * @param response 
  */
-void UART_SendResponse(char *response)
+void AT_SendResponse(char *response)
 {   
+    BaseType_t xHigherPriorityTaskWoken = pdFALSE;
+
+    if (__get_IPSR())  
+    {
+        // Použití semaforu z ISR
+        if (xSemaphoreTakeFromISR(xUART_TXSemaphore, &xHigherPriorityTaskWoken) == pdTRUE)
+        {
+         //   HAL_UART_Transmit_DMA(&huart1, (uint8_t *)response, strlen(response));
+            HAL_UART_Transmit(&huart1, (uint8_t *)response, strlen(response),HAL_MAX_DELAY);
+            xSemaphoreGiveFromISR(xUART_TXSemaphore, &xHigherPriorityTaskWoken);
+            // Uvolníme semafor při dokončení přenosu (v přerušení)
+            portYIELD_FROM_ISR(xHigherPriorityTaskWoken);
+        }
+    }
+    else
+    {
+        if (xSemaphoreTake(xUART_TXSemaphore, portMAX_DELAY) == pdTRUE)
+        {
+            HAL_UART_Transmit(&huart1, (uint8_t *)response, strlen(response),HAL_MAX_DELAY);
+            xSemaphoreGive(xUART_TXSemaphore);
+        }
+    }
+
+
     //TODOJR DMA
-    HAL_UART_Transmit(&huart1, (uint8_t *)response, strlen(response),0xFFFF);
+    //HAL_UART_Transmit(&huart1, (uint8_t *)response, strlen(response),0xFFFF);
 }
-
-
-/**
- * @brief 
- * 
- * @param params 
- * @param cmdToCore 
- */
-// static void CLI_RouteToCoreTask(char *params, uint8_t cmdToCore, uint16_t size)
-// {
-//     dataQueue_t txm;
-//     txm.ptr = NULL;
-
-//     BaseType_t xHigherPriorityTaskWoken = pdFALSE;
-
-//     if(xSemaphoreTakeFromISR(xBinarySemaphore, &xHigherPriorityTaskWoken) == pdTRUE)
-//     {
-//         memcpy(at_ctx.dataBuff, params, size);
-//         txm.cmd = cmdToCore;
-//         txm.ptr = &at_ctx;
-//         MT_SendDataToMainTask(&txm);
-//     }
-//     else
-//     {
-//         /* Buffer wa not procesed yet */
-//         UART_SendResponse("Error: Previous command not yet processed\r\n");
-//     }
-
-// }

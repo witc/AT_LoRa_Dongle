@@ -16,9 +16,9 @@
 #include <string.h>
 #include <stdlib.h>
 #include <stdio.h>
+#include "AT_cmd.h"
 
 static bool _GSC_Handle_BlueLED(uint8_t *data);
-
 
 
 /**
@@ -351,10 +351,22 @@ bool GSC_ProcessCommand(eATCommands cmd, uint8_t *data, uint16_t size)
 
     if (hasResponse)
     {
-        UART_SendResponse(response);
+        AT_SendResponse(response);
+    }
+    else
+    {
+        if(commandHandled == false)
+        {
+            AT_SendResponse("ERROR\r\n");
+        }
+        else
+        {
+            AT_SendResponse("OK\r\n");
+        }
     }
     return commandHandled;
 }
+
 
 /**
  * @brief 

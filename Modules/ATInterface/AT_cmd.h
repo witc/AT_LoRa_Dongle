@@ -63,7 +63,7 @@ typedef struct AT_cmd
 
 } __attribute__((packed)) AT_cmd_t;
 
-void UART_SendResponse(char *response);
+void AT_SendResponse(char *response);
 void AT_HandleATCommand(uint16_t size);
 void AT_Init(AT_cmd_t *atCmd);
 

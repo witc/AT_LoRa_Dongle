@@ -87,7 +87,6 @@ bool AT_CustomCommandHandler(char *data,eATCommands atCmd, uint16_t size)
 		txm.tmp_16 = size;
 		MT_SendDataToMainTask(&txm);
 
-		//xSemaphoreGiveFromISR(xBinarySemaphore_USART, &xHigherPriorityTaskWoken);
 		portYIELD_FROM_ISR(xHigherPriorityTaskWoken);
 	}
 	else
@@ -137,14 +136,6 @@ void main_task_on(main_ctx_t *ctx, dataQueue_t *rxd)
 		case CMD_MAIN_AT_RX_PACKET:
 			AtCmdProcessed = GSC_ProcessCommand((eATCommands) rxd->tmp_8, rxShadowBuffer_USART, rxd->tmp_16);
 			xSemaphoreGive(xBinarySemaphore_USART);
-			if(AtCmdProcessed == true)	
-			{
-				UART_SendResponse("OK\r\n");
-			}
-			else
-			{
-				UART_SendResponse("ERROR\r\n");
-			}
 
 			break;
 
@@ -232,7 +223,7 @@ void main_task(void)
 
 	/* init and start recieve*/
 
-	 if (xBinarySemaphore_USART == NULL)
+	if (xBinarySemaphore_USART == NULL)
     {
         // Vytvoření semaforu
         xBinarySemaphore_USART = xSemaphoreCreateBinaryStatic(&xSemaphoreBuffer_USART);
@@ -252,7 +243,6 @@ void main_task(void)
 	// Assign the custom command handler to be called when data is received from ISR
 	at_ctx.onDataReceivedFromISR = AT_CustomCommandHandler;
     AT_Init(&at_ctx);
-
 
 	LOG_DEBUG("Main task started");
 
