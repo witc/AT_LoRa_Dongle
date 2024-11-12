@@ -1,6 +1,13 @@
-/****************************************************************/
-/*                        I N C L U D E                         */
-/****************************************************************/
+/**
+ * @file portSTM32L071xx.c
+ * @author your name (you@domain.com)
+ * @brief 
+ * @version 0.1
+ * @date 2024-11-12
+ * 
+ * @copyright Copyright (c) 2024
+ * 
+ */
 #include "main.h"
 #include "portSTM32L071xx.h"
 
