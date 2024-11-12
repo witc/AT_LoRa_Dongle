@@ -30,7 +30,27 @@ typedef enum
     SYS_CMD_RF_PAIR         = 8,
     SYS_LED_BLUE            = 9,
 
-}eATCommands;
+    /* LoRa SX1262-specific commands */
+    SYS_CMD_TX_FREQ         = 20,
+    SYS_CMD_RX_FREQ         = 21,
+    SYS_CMD_TX_POWER        = 22,
+    SYS_CMD_TX_SF           = 23,
+    SYS_CMD_RX_SF           = 24,
+    SYS_CMD_TX_BW           = 25,
+    SYS_CMD_RX_BW           = 26,
+    SYS_CMD_TX_IQ           = 27,
+    SYS_CMD_RX_IQ           = 28,
+    SYS_CMD_TX_CR           = 29,
+    SYS_CMD_RX_CR           = 30,
+    SYS_CMD_HEADERMODE_TX   = 31,
+    SYS_CMD_HEADERMODE_RX   = 32,
+    SYS_CMD_CRC_TX          = 33,
+    SYS_CMD_CRC_RX          = 34,
+    SYS_CMD_PREAM_SIZE_TX   = 35,
+    SYS_CMD_PREAM_SIZE_RX   = 36,
+
+} eATCommands;
+
 
 /**
  * @brief 

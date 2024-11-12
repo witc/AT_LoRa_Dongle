@@ -50,33 +50,57 @@ typedef struct
 
 
 /* Table of AT commands */
-AT_Command_Struct AT_Commands[] = {
-    {"AT",                      AT_HandleHelp,          0,                       "AT - Basic test command",                  ""},
-    {"AT+HELP",                 AT_HandleHelp,          0,                       "AT+HELP - List all supported commands",      ""},
-    {"AT+FACTORY_MODE",         AT_HandleFactorMode,    0,                       "AT+FACTORY_MODE - Enable factory mode",    "=ON, =OFF"},
-    {"AT+SYS_RESTART",          AT_HandleRestartSys,    0,                       "AT+SYS_RESTART - Restart the system",        ""},                       
-    {"AT+LED_BLUE"  ,           NULL,                   SYS_LED_BLUE,            "AT+LED_BLUE - Set LED blue state",    "=ON, =OFF"},
-   
-    // {"AT+SYS_RESTART",          NULL,                  AT_HandleRestartSys,0,                          false, "AT+SYS_RESTART - Restart the system",        ""},
-    // {"AT+SYS_STATE",            AT_RouteToCoreTask,   NULL,                SYS_CMD_SYS_STATE,          true,  "AT+SYS_STATE - Get or set system state",     "?, =ON, =OFF"},
-    // {"AT+SYS_NAME",             AT_RouteToCoreTask,   NULL,                SYS_CMD_SYS_NAME,           true,  "AT+SYS_NAME=<name> - Set system name",       "?"},
-    // {"AT+RF_MAC",               AT_RouteToCoreTask,   NULL,                SYS_CMD_RF_MAC,             true,  "AT+RF_MAC=<MAC> ",                           "?"},
-    // {"AT+FACTORY_RST",          AT_RouteToCoreTask,   NULL,                SYS_CMD_FACTORY_RST,        true,  "AT+FACTORY_RST - Factory reset the device",  ""},
-    // {"AT+LORA_TX_CW",           AT_RouteToCoreTask,   NULL,                SYS_CMD_TX_CW,              true,  "AT+LORA_TX_CW - Transmit continuous wave",   "=ON, =OFF"},
-    // {"AT+LORA_RX_TO_UART",      AT_RouteToCoreTask,   NULL,                SYS_CMD_LORA_RX_TO_UART,    true,  "AT+LORA_RX_TO_UART - Forward LoRa data",     "=ON, =OFF"},
-    // {"AT+LORA_SEND",            AT_RouteToCoreTask,   NULL,                SYS_CMD_LORA_SEND,          true,  "AT+LORA_SEND=<length>,<data> - Send data",   ""},
-    // {"AT+RF_PAIR",              AT_RouteToCoreTask,   NULL,                SYS_CMD_RF_PAIR,            true,  "AT+RF_PAIR - Pair RF device",                "=ON, =OFF"},
+const AT_Command_Struct AT_Commands[] = {
+    {"AT",                       AT_HandleHelp,          0,                       "AT - Basic test command",                     ""},
+    {"AT+HELP",                  AT_HandleHelp,          0,                       "AT+HELP - List all supported commands",       ""},
+    {"AT+FACTORY_MODE",          AT_HandleFactorMode,    0,                       "AT+FACTORY_MODE - Enable factory mode",       "=ON, =OFF"},
+    {"AT+SYS_RESTART",           AT_HandleRestartSys,    0,                       "AT+SYS_RESTART - Restart the system",         ""},
+    {"AT+LED_BLUE",              NULL,                   SYS_LED_BLUE,            "AT+LED_BLUE - Set LED blue state",            "=ON, =OFF"},
+
+    /* LoRa RF settings for SX1262 */
+    {"AT+LR_TXFREQ",                NULL,               SYS_CMD_TX_FREQ,                     "AT+LR_TXFREQ - Set TX frequency",                "=<frequency_in_Hz>, ?"},
+    {"AT+LR_RXFREQ",                NULL,               SYS_CMD_RX_FREQ,                     "AT+LR_RXFREQ - Set RX frequency",                "=<frequency_in_Hz>, ?"},
+    {"AT+LR_TXPOWER",               NULL,               SYS_CMD_TX_POWER,                    "AT+LR_TXPOWER - Set TX power",                   "=<power_in_dBm>, ?"},
+    {"AT+LR_TXSF",                  NULL,               SYS_CMD_TX_SF,                       "AT+LR_TXSF - Set TX spreading factor",           "=5 to 12, ?"},
+    {"AT+LR_RXSF",                  NULL,               SYS_CMD_RX_SF,                       "AT+LR_RXSF - Set RX spreading factor",           "=5 to 12, ?"},
+    {"AT+LR_TXBW",                  NULL,               SYS_CMD_TX_BW,                       "AT+LR_TXBW - Set TX bandwidth",                  "=7810 to 500000 Hz, ?"},
+    {"AT+LR_RXBW",                  NULL,               SYS_CMD_RX_BW,                       "AT+LR_RXBW - Set RX bandwidth",                  "=7810 to 500000 Hz, ?"},
+    {"AT+LR_TXIQ_INV",              NULL,               SYS_CMD_TX_IQ,                       "AT+LR_TXIQ_INV - Set TX IQ inversion",           "=TRUE, =FALSE, ?"},
+    {"AT+LR_RXIQ_INV",              NULL,               SYS_CMD_RX_IQ,                       "AT+LR_RXIQ_INV - Set RX IQ inversion",           "=TRUE, =FALSE, ?"},
+    {"AT+LR_TXCR",                  NULL,               SYS_CMD_TX_CR,                       "AT+LR_TXCR - Set TX coding rate",                "=45, =46, =47, =48, ?"},
+    {"AT+LR_RXCR",                  NULL,               SYS_CMD_RX_CR,                       "AT+LR_RXCR - Set RX coding rate",                "=45, =46, =47, =48, ?"},
+    {"AT+LR_HEADERMODE_TX",         NULL,               SYS_CMD_HEADERMODE_TX,               "AT+LR_HEADERMODE_TX - Enable TX header mode",    "=TRUE, =FALSE, ?"},
+    {"AT+LR_HEADERMODE_RX",         NULL,               SYS_CMD_HEADERMODE_RX,               "AT+LR_HEADERMODE_RX - Enable RX header mode",    "=TRUE, =FALSE, ?"},
+    {"AT+LR_CRC_TX",                NULL,               SYS_CMD_CRC_TX,                      "AT+LR_CRC_TX - Set TX CRC check",                "=TRUE, =FALSE, ?"},
+    {"AT+LR_CRC_RX",                NULL,               SYS_CMD_CRC_RX,                      "AT+LR_CRC_RX - Set RX CRC check",                "=TRUE, =FALSE, ?"},
+    {"AT+LR_PREAMBLE_SIZE_TX",      NULL,               SYS_CMD_PREAM_SIZE_TX,               "AT+LR_PREAMBLE_SIZE_TX",                         "=<1 to 65535>, ?"  },
+    {"AT+LR_PREAMBLE_SIZE_RX",      NULL,               SYS_CMD_PREAM_SIZE_RX,               "AT+LR_PREAMBLE_SIZE_RX",                         "=<1 to 65535> should be >= TX side,?"}
+
 };
+
 
 
 /**
  * @brief 
  * 
- * @param atCmd 
+ * @param p_at_Ctx 
  */
-void AT_Init(AT_cmd_t *atCmd)
-{      
-    memcpy(&at_ctx,atCmd,sizeof(AT_cmd_t));  // Uložení struktury do
+void AT_Init(AT_cmd_t *p_at_Ctx)
+{     
+    at_ctx.sp_ctx.phuart = p_at_Ctx->sp_ctx.phuart;
+    at_ctx.sp_ctx.rxStorage.raw_data = p_at_Ctx->sp_ctx.rxStorage.raw_data;
+    at_ctx.sp_ctx.rxStorage.size = p_at_Ctx->sp_ctx.rxStorage.size;
+    at_ctx.sp_ctx.txStorage.raw_data = p_at_Ctx->sp_ctx.txStorage.raw_data;
+    at_ctx.sp_ctx.txStorage.size = p_at_Ctx->sp_ctx.txStorage.size;
+
+    if(p_at_Ctx->onDataReceivedFromISR != NULL)
+    {
+        at_ctx.onDataReceivedFromISR = p_at_Ctx->onDataReceivedFromISR;
+    }
+    else
+    {
+        at_ctx.onDataReceivedFromISR = NULL;
+    }
 
     SP_PlatformInit(&at_ctx.sp_ctx);
 
@@ -136,8 +160,6 @@ void AT_HandleATCommand(uint16_t size)
 
         if (strncmp(data, AT_Commands[i].command, commandLen) == 0 &&
             (data[commandLen] == '\0' ||
-            // data[commandLen] == '\r' ||
-            // data[commandLen] == '\n' ||
              data[commandLen] == '=' ||
              data[commandLen] == '?'))
         {
@@ -154,9 +176,14 @@ void AT_HandleATCommand(uint16_t size)
                 params = "?";  // Nastavíme `params` přímo na `?`
             }
 
-            
             if(AT_Commands[i].simpleHandler == NULL)
             {   
+                if(at_ctx.onDataReceivedFromISR == NULL)
+                {
+                    UART_SendResponse("ERROR - No handler for this command\r\n");
+                    break;
+                }
+                
                 if(at_ctx.onDataReceivedFromISR(params,(uint8_t) AT_Commands[i].cmdtoCore,size) == false)
                 {
                     UART_SendResponse("ERROR - Previous data was not processed yet!\r\n");
@@ -171,8 +198,6 @@ void AT_HandleATCommand(uint16_t size)
             dataUsed = true;
         }
     }
-
-    if(dataUsed == false)    UART_SendResponse("ERROR - Check your EOL sequence\r\n");  // Neznámý příkaz
 
     memset(data,0,size);
     SP_RxComplete(&at_ctx.sp_ctx, size);  

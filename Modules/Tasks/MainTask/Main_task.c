@@ -145,7 +145,7 @@ void main_task_on(main_ctx_t *ctx, dataQueue_t *rxd)
 			{
 				UART_SendResponse("ERROR\r\n");
 			}
-			
+
 			break;
 
 		default:
