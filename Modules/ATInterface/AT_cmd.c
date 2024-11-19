@@ -163,6 +163,7 @@ void AT_HandleATCommand(uint16_t size)
     //char *data=(char*) sp_ctx->rxStorage.raw_data;
     char *data = (char*) at_ctx.sp_ctx.rxStorage.raw_data;
     bool noParam = false;
+    bool isCommand = false;
 
     AT_ToUpperCase(data,size);
     AT_TrimEndings(data);
@@ -177,7 +178,7 @@ void AT_HandleATCommand(uint16_t size)
              data[commandLen] == '?'))
         {
             char *params = data + commandLen;  // Nastavíme ukazatel za příkaz
-
+            isCommand = true;
             // Pokud je tam `=`, přeskočíme znak `=`, abychom získali parametry
             if (*params == '=')
             {
@@ -221,6 +222,10 @@ void AT_HandleATCommand(uint16_t size)
             }
             
         }
+    }
+    if(isCommand == false)
+    {
+        AT_SendResponse("ERROR - Unknown command\r\n");
     }
 
     memset(data,0,size);
@@ -301,26 +306,6 @@ static void AT_HandleRestartSys(char *params)
     NVIC_SystemReset();
 }
 
-/**
- * @brief 
- * 
- * @param params 
- */
-static void AT_HandleRF_TX_HEX(char *params)
-{
-    uint8_t byteArray[256]; // Adjust size as needed
-    size_t byteArraySize = sizeof(byteArray);
-
-    if (HexStringToByteArray(params, byteArray, byteArraySize))
-    {
-        // Process the byteArray as needed
-        AT_SendResponse("OK\r\n");
-    }
-    else
-    {
-        AT_SendResponse("ERROR: Invalid hex string\r\n");
-    }
-}
 
 /**
  * @brief 

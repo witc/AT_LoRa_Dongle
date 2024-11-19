@@ -25,8 +25,8 @@ const AT_CommandLimit_t AT_CommandLimits[] = {
     {SYS_CMD_TX_POWER, 0, 22},                     // TX power in dBm (0 to 22 dBm)
     {SYS_CMD_TX_SF, 5, 12},                         // TX spreading factor (5 to 12)
     {SYS_CMD_RX_SF, 5, 12},                         // RX spreading factor (5 to 12)
-    {SYS_CMD_TX_BW, 7810, 500000},                  // TX bandwidth in Hz (7.81 kHz to 500 kHz)
-    {SYS_CMD_RX_BW, 7810, 500000},                  // RX bandwidth in Hz (7.81 kHz to 500 kHz)
+    {SYS_CMD_TX_BW, 0, 9},                          // TX bandwidth 0-9
+    {SYS_CMD_RX_BW, 0, 9},                          // RX bandwidth 0-9
     {SYS_CMD_TX_IQ, 0, 1},                          // TX IQ inversion (0 = FALSE, 1 = TRUE)
     {SYS_CMD_RX_IQ, 0, 1},                          // RX IQ inversion (0 = FALSE, 1 = TRUE)
     {SYS_CMD_TX_CR, 45, 48},                        // TX coding rate (45 to 48, corresponds to different CR values)
@@ -48,6 +48,7 @@ static bool _GSC_Handle_BlueLED(uint8_t *data);
 static void _GSC_Handle_TX(uint8_t *data, uint8_t size);
 static bool GetCommandLimits(eATCommands cmd, int32_t *minValue, int32_t *maxValue);
 static bool IsValidBandwidth(uint32_t bandwidth);
+static uint8_t HexStringToByteArray(const char *hexStr, uint8_t *byteArray, size_t byteArraySize);
  
 /**
  * @brief Parse data to uint32_t
@@ -307,15 +308,11 @@ bool GSC_ProcessCommand(eATCommands cmd, uint8_t *data, uint16_t size)
             else
             {
                 bw = AT_ParseUint32(data);
-                if (IsValidBandwidth(bw))
+                if (GetCommandLimits(cmd, &minValue, &maxValue))
                 {
-                    NVMA_Set_LR_TX_BW(bw);
+                    bw = Constrain_u8(bw, minValue, maxValue);
                 }
-                else
-                {
-                    AT_SendResponse("ERROR: Invalid Bandwidth\r\n");
-                    commandHandled = false;
-                }
+                NVMA_Set_LR_TX_BW(bw);
             }
             break;
         }
@@ -332,15 +329,11 @@ bool GSC_ProcessCommand(eATCommands cmd, uint8_t *data, uint16_t size)
             else
             {
                 bw = AT_ParseUint32(data);
-                if (IsValidBandwidth(bw))
+                if (GetCommandLimits(cmd, &minValue, &maxValue))
                 {
-                    NVMA_Set_LR_RX_BW(bw);
+                    bw = Constrain_u8(bw, minValue, maxValue);
                 }
-                else
-                {
-                    AT_SendResponse("ERROR: Invalid Bandwidth\r\n");
-                    commandHandled = false;
-                }
+                NVMA_Set_LR_TX_BW(bw);
             }
             break;
         }

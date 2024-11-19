@@ -11,6 +11,7 @@
 #include "ral.h"
 #include "ralf.h"
 #include "ralf_sx126x.h"
+#include "NVMA.h"
 
 
 extern osMessageQId queueMainHandle;
@@ -20,6 +21,38 @@ extern osMessageQId queueMainHandle;
 #include "Log.h"
 
 extern SPI_HandleTypeDef hspi1;
+
+
+// Mapování hodnot 0-9 na šířky pásma v ral_lora_bw_t
+static const ral_lora_bw_t BW_MAP[] = {
+    RAL_LORA_BW_007_KHZ,   // BW 0 -> 7.81 kHz
+    RAL_LORA_BW_010_KHZ,   // BW 1 -> 10.42 kHz
+    RAL_LORA_BW_015_KHZ,   // BW 2 -> 15.63 kHz
+    RAL_LORA_BW_020_KHZ,   // BW 3 -> 20.83 kHz
+    RAL_LORA_BW_031_KHZ,   // BW 4 -> 31.25 kHz
+    RAL_LORA_BW_041_KHZ,   // BW 5 -> 41.67 kHz
+    RAL_LORA_BW_062_KHZ,   // BW 6 -> 62.5 kHz
+    RAL_LORA_BW_125_KHZ,   // BW 7 -> 125 kHz (default for SX1262)
+    RAL_LORA_BW_250_KHZ,   // BW 8 -> 250 kHz
+    RAL_LORA_BW_500_KHZ    // BW 9 -> 500 kHz
+};
+
+/**
+ * @brief Get the lora bw from user value object
+ * 
+ * @param user_value 
+ * @return ral_lora_bw_t 
+ */
+ral_lora_bw_t get_lora_bw_from_user_value(uint8_t user_value)
+{
+    if (user_value >= sizeof(BW_MAP) / sizeof(BW_MAP[0]))
+    {
+        return RAL_LORA_BW_125_KHZ;
+    }
+
+    return BW_MAP[user_value];
+}
+
 
 /**
  * @brief 
@@ -138,7 +171,58 @@ bool ru_radioInit(radio_context_t *ctx)
 
 }
 
+#include <stdint.h>
 
+
+
+
+/**
+ * @brief 
+ * 
+ * @param loraParam 
+ * @return true 
+ * @return false 
+ */
+bool ru_load_radio_config_tx(ralf_params_lora_t *loraParam)
+{	
+	uint8_t bw;
+	NVMA_Get_LR_CRC_TX((uint8_t*)&loraParam->pkt_params.crc_is_on);
+	NVMA_Get_LR_HeaderMode_TX(&loraParam->pkt_params.header_type);
+	NVMA_Get_LR_TX_IQ((uint8_t*)&loraParam->pkt_params.invert_iq_is_on);
+	NVMA_Get_LR_PreamSize_TX(&loraParam->pkt_params.preamble_len_in_symb);
+	NVMA_Get_LR_TX_SF(&loraParam->mod_params.sf);	
+	NVMA_Get_LR_TX_CR(&loraParam->mod_params.cr);
+	NVMA_Get_LR_Freq_TX(&loraParam->rf_freq_in_hz);
+	NVMA_Get_LR_TX_Power((uint8_t *)&loraParam->output_pwr_in_dbm);
+
+	NVMA_Get_LR_TX_BW(&bw);
+	get_lora_bw_from_user_value(bw);
+	loraParam->mod_params.bw = bw;
+
+	//NVMA_Get_LR_(&loraParam->sync_word);
+	
+	return true;
+}
+
+bool ru_load_radio_config_rx(ralf_params_lora_t *loraParam)
+{	
+	uint8_t bw;
+	
+	NVMA_Get_LR_CRC_RX((uint8_t*)&loraParam->pkt_params.crc_is_on);
+	NVMA_Get_LR_HeaderMode_RX(&loraParam->pkt_params.header_type);
+	NVMA_Get_LR_RX_IQ((uint8_t*)&loraParam->pkt_params.invert_iq_is_on);
+	NVMA_Get_LR_PreamSize_RX(&loraParam->pkt_params.preamble_len_in_symb);
+	NVMA_Get_LR_RX_SF(&loraParam->mod_params.sf);
+	NVMA_Get_LR_RX_CR(&loraParam->mod_params.cr);
+	NVMA_Get_LR_Freq_RX(&loraParam->rf_freq_in_hz);
+
+	NVMA_Get_LR_RX_BW(&bw);
+	get_lora_bw_from_user_value(bw);
+	loraParam->mod_params.bw = bw;
+	//NVMA_Get_LR_(&loraParam->sync_word);
+	
+	return true;
+}
 /*
  *
  */
@@ -204,6 +288,7 @@ bool ru_radio_send_packet(uint8_t *data, uint8_t size, radio_context_t	*ctx)
 	ctx->rfConfig.loraParam_tx.pkt_params.pld_len_in_bytes = size;
 //	ral_set_lora_pkt_params(ral,&ctx->rfConfig.loraParam_tx.pkt_params); //TODO asi je obsazeno v tom nize
 
+	ru_load_radio_config_tx(&ctx->rfConfig.loraParam_tx);
 	ralf_setup_lora(ralf, &ctx->rfConfig.loraParam_tx);
 
 	ral_set_pkt_payload(ral, data, size);
@@ -250,7 +335,8 @@ void ru_radio_start_rx(radio_context_t	*ctx)
 
 	ru_radioCleanAndStandby(RAL_STANDBY_CFG_RC, ctx);
 
-//	ctx->rfConfig.loraParam_rx.symb_nb_timeout =
+	ru_load_radio_config_rx(&ctx->rfConfig.loraParam_rx);
+
 	ret += ralf_setup_lora(ralf, &ctx->rfConfig.loraParam_rx);
 	ret += ral_set_dio_irq_params(ral,RAL_IRQ_RX_DONE  | RAL_IRQ_RX_TIMEOUT| RAL_IRQ_RX_CRC_ERROR);
 	ret += ral_cfg_rx_boosted(ral,true);	
@@ -344,7 +430,8 @@ void ru_radio_process_commands(RFCommands_e cmd,radio_context_t *ctx, const data
 			ru_radioCleanAndStandby(RAL_STANDBY_CFG_XOSC,ctx);
 			ru_radio_send_packet(pkt->packet,pkt->size,ctx);
 			vPortFree(pkt->packet);
-			LOG_INFO("RF data sent: %d B", pkt->size);
+			uint32_t toa_ms =  ral_get_lora_time_on_air_in_ms(ral, &ctx->rfConfig.loraParam_tx.pkt_params, &ctx->rfConfig.loraParam_tx.mod_params);
+			LOG_INFO("RF data sent: %d B, TOA: %d ms", pkt->size,toa_ms);
 
 			break;
 
@@ -369,8 +456,10 @@ void ru_radio_process_commands(RFCommands_e cmd,radio_context_t *ctx, const data
 
 }
 
-/*
- *
+/**
+ * @brief 
+ * 
+ * @param ctx 
  */
 void ru_radio_process_IRQ(radio_context_t *ctx)
 {
