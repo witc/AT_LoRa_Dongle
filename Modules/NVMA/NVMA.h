@@ -29,6 +29,12 @@
 #define EE_ADDR_LR_PREAM_SIZE_TX                (EE_ADDR_LR_CRC_RX + sizeof(uint32_t))
 #define EE_ADDR_LR_PREAM_SIZE_RX                (EE_ADDR_LR_PREAM_SIZE_TX + sizeof(uint32_t))
 
+#define EE_ADDR_LR_ACTIVE_RX_TO_UART            (EE_ADDR_LR_PREAM_SIZE_RX + sizeof(uint32_t))
+#define EE_ADDR_LR_SAVED_PCKT_SIZE              (EE_ADDR_LR_ACTIVE_RX_TO_UART + sizeof(uint32_t))
+#define EE_ADDR_LR_TX_RF_PCKT                   (EE_ADDR_LR_SAVED_PCKT_SIZE + sizeof(uint32_t))   // max is 256 B
+#define EE_ADDR_LR_TX_PERIOD_TX                 (EE_ADDR_LR_TX_RF_PCKT + (64*sizeof(uint32_t)))
+
+
 
 
 void NVMA_Init(void);
@@ -83,5 +89,17 @@ void NVMA_Get_LR_PreamSize_TX(uint16_t *size);
 
 void NVMA_Set_LR_PreamSize_RX(uint16_t size);
 void NVMA_Get_LR_PreamSize_RX(uint16_t *size);
+
+void NVMA_Set_LR_Active_RX_To_UART(uint32_t active);
+void NVMA_Get_LR_Active_RX_To_UART(uint32_t *active);
+
+void NVMA_Set_LR_Pckt_Size(uint16_t size);
+void NVMA_Get_LR_Saved_Pckt_Size(uint16_t *size);
+
+void NVMA_Set_LR_TX_RF_PCKT(uint8_t *pckt, size_t size);
+void NVMA_Get_LR_TX_RF_PCKT(uint8_t *pckt, size_t size);
+
+void NVMA_Set_LR_TX_Period_TX(uint32_t period);
+void NVMA_Get_LR_TX_Period_TX(uint32_t *period);
 
 #endif // NVMA_H

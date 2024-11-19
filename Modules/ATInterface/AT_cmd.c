@@ -49,11 +49,11 @@ typedef struct
 
 /* Table of AT commands */
 const AT_Command_Struct AT_Commands[] = {
-    {"AT",                       AT_HandleHelp,          0,                       "AT - Basic test command",                     ""},
-    {"AT+HELP",                  AT_HandleHelp,          0,                       "AT+HELP - List all supported commands",       ""},
-    {"AT+FACTORY_MODE",          AT_HandleFactorMode,    0,                       "AT+FACTORY_MODE - Enable factory mode",       "=ON, =OFF"},
-    {"AT+SYS_RESTART",           AT_HandleRestartSys,    0,                       "AT+SYS_RESTART - Restart the system",         ""},
-    {"AT+LED_BLUE",              NULL,                   SYS_LED_BLUE,            "AT+LED_BLUE - Set LED blue state",            "=ON, =OFF"},
+    {"AT",                       AT_HandleHelp,          0,                                 "AT - Basic test command",                         ""},
+    {"AT+HELP",                  AT_HandleHelp,          0,                                 "AT+HELP - List all supported commands",           ""},
+    {"AT+FACTORY_MODE",          AT_HandleFactorMode,    0,                                 "AT+FACTORY_MODE - Enable factory mode",           "=ON, =OFF"},
+    {"AT+SYS_RESTART",           AT_HandleRestartSys,    0,                                 "AT+SYS_RESTART - Restart the system",             ""},
+    {"AT+LED_BLUE",              NULL,                   SYS_LED_BLUE,                      "AT+LED_BLUE - Set LED blue state",                "=ON, =OFF"},
 
     /* LoRa RF settings for SX1262 */
     {"AT+LR_TXFREQ",                NULL,               SYS_CMD_TX_FREQ,                     "AT+LR_TXFREQ - Set TX frequency",                "=<frequency_in_Hz>, ?"},
@@ -72,8 +72,14 @@ const AT_Command_Struct AT_Commands[] = {
     {"AT+LR_CRC_TX",                NULL,               SYS_CMD_CRC_TX,                      "AT+LR_CRC_TX - Set TX CRC check",                "=TRUE, =FALSE, ?"},
     {"AT+LR_CRC_RX",                NULL,               SYS_CMD_CRC_RX,                      "AT+LR_CRC_RX - Set RX CRC check",                "=TRUE, =FALSE, ?"},
     {"AT+LR_PREAMBLE_SIZE_TX",      NULL,               SYS_CMD_PREAM_SIZE_TX,               "AT+LR_PREAMBLE_SIZE_TX",                         "=<1 to 65535>, ?"  },
-    {"AT+LR_PREAMBLE_SIZE_RX",      NULL,               SYS_CMD_PREAM_SIZE_RX,               "AT+LR_PREAMBLE_SIZE_RX",                         "=<1 to 65535> should be >= TX side,?"}
-
+    {"AT+LR_PREAMBLE_SIZE_RX",      NULL,               SYS_CMD_PREAM_SIZE_RX,               "AT+LR_PREAMBLE_SIZE_RX",                         "=<1 to 65535> should be >= TX side,?"},
+    {"AT+RF_TX_HEX",                NULL,               SYS_CMD_RF_TX_HEX,                   "AT+RF_TX_HEX - Transmit data via RF in HEX format",  "=<HEX data>"},
+    {"AT+RF_TX_TXT",                NULL,               SYS_CMD_RF_TX_TXT,                   "AT+RF_TX_TXT - Transmit data via RF in text format", "=<Text data>"},
+    {"AT+RF_TX_FROM_NVM",           NULL,               SYS_CMD_RF_TX_FROM_NVM,              "Transmit saved RF packet from NVM",                   ""},
+    {"AT+RF_TX_PERIOD",             NULL,               SYS_CMD_RF_PERIOD_SET,               "AT+RF_PERIOD - Set TX period",                "=<period_ms>, ?"},
+    {"AT+RF_TX_PERIOD_CTRL",        NULL,               SYS_CMD_RF_PERIOD_CTRL,              "AT+RF_PERIOD_CTRL - Start/Stop periodic TX",      "=<ON|OFF>, ?"},
+    {"AT+RF_TX_SAVE_PCKT",          NULL,               SYS_CMD_RF_SAVE_PCKT_NVM,            "AT+RF_TX_SAVE_PCKT - Save packet to NVM",         "=<HEX data>, ?"},
+    {"AT+RF_TX_PERIOD_STATUS",      NULL,               SYS_CMD_RF_PERIOD_STATUS,            "AT+RF_PERIOD_STATUS - Get periodic TX status",     "?"}
 };
 
 
@@ -155,6 +161,7 @@ void AT_HandleATCommand(uint16_t size)
 {   
     //char *data=(char*) sp_ctx->rxStorage.raw_data;
     char *data = (char*) at_ctx.sp_ctx.rxStorage.raw_data;
+    bool noParam = false;
 
     AT_ToUpperCase(data,size);
     AT_TrimEndings(data);
@@ -180,9 +187,20 @@ void AT_HandleATCommand(uint16_t size)
             {
                 params = "?";  // Nastavíme `params` přímo na `?`
             }
+            else
+            {
+                // zadny parametr
+                noParam= true;
+            }
 
             if(AT_Commands[i].simpleHandler == NULL)
-            {   
+            {      
+                if (noParam == true)
+                {
+                    AT_SendResponse("ERROR - Missing parameters\r\n");
+                    break;
+                }
+
                 if(at_ctx.onDataReceivedFromISR == NULL)
                 {
                     AT_SendResponse("ERROR - No handler for this command\r\n");

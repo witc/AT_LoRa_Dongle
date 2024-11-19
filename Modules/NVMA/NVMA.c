@@ -468,3 +468,117 @@ void NVMA_Get_LR_PreamSize_RX(uint16_t *size)
     *size = *((uint16_t *)EE_ADDR_LR_PREAM_SIZE_RX);
     xSemaphoreGive(xEepromMutex);
 }
+
+/**
+ * @brief 
+ * 
+ * @param active 
+ */
+void NVMA_Set_LR_Active_RX_To_UART(uint32_t active)
+{   
+    xSemaphoreTake(xEepromMutex, portMAX_DELAY);
+    HAL_FLASHEx_DATAEEPROM_Unlock();
+    HAL_FLASHEx_DATAEEPROM_Program(FLASH_TYPEPROGRAMDATA_WORD, EE_ADDR_LR_ACTIVE_RX_TO_UART, active);
+    HAL_FLASHEx_DATAEEPROM_Lock();
+    xSemaphoreGive(xEepromMutex);
+}
+
+/**
+ * @brief 
+ * 
+ * @param active 
+ */
+void NVMA_Get_LR_Active_RX_To_UART(uint32_t *active)
+{   
+    xSemaphoreTake(xEepromMutex, portMAX_DELAY);
+    *active = *((uint32_t *)EE_ADDR_LR_ACTIVE_RX_TO_UART);
+    xSemaphoreGive(xEepromMutex);
+}
+
+
+/**
+ * @brief 
+ * 
+ * @param size 
+ */
+void NVMA_Get_LR_Saved_Pckt_Size(uint16_t   *size)
+{
+    xSemaphoreTake(xEepromMutex, portMAX_DELAY);
+    *size = *((uint32_t *)EE_ADDR_LR_SAVED_PCKT_SIZE);
+    xSemaphoreGive(xEepromMutex);
+}
+
+/**
+ * @brief 
+ * 
+ * @param size 
+ */
+void NVMA_Set_LR_Pckt_Size(uint16_t size)
+{
+    xSemaphoreTake(xEepromMutex, portMAX_DELAY);
+    HAL_FLASHEx_DATAEEPROM_Unlock();
+    HAL_FLASHEx_DATAEEPROM_Program(FLASH_TYPEPROGRAMDATA_WORD, EE_ADDR_LR_SAVED_PCKT_SIZE, size);
+    HAL_FLASHEx_DATAEEPROM_Lock();
+    xSemaphoreGive(xEepromMutex);
+}
+
+
+/**
+ * @brief 
+ * 
+ * @param pckt 
+ */
+void NVMA_Set_LR_TX_RF_PCKT(uint8_t *pckt, size_t size)
+{   
+    xSemaphoreTake(xEepromMutex, portMAX_DELAY);
+    HAL_FLASHEx_DATAEEPROM_Unlock();
+    for (size_t i = 0; i < size; i++)
+    {
+        HAL_FLASHEx_DATAEEPROM_Program(FLASH_TYPEPROGRAMDATA_BYTE, EE_ADDR_LR_TX_RF_PCKT + (i * sizeof(uint8_t)), pckt[i]);
+    }
+    HAL_FLASHEx_DATAEEPROM_Lock();
+    xSemaphoreGive(xEepromMutex);
+}
+
+/**
+ * @brief 
+ * 
+ * @param pckt 
+ */
+void NVMA_Get_LR_TX_RF_PCKT(uint8_t *pckt, size_t size)
+{   
+    xSemaphoreTake(xEepromMutex, portMAX_DELAY);
+    for (size_t i = 0; i < size; i++)
+    {
+        pckt[i] = *((uint8_t *)(EE_ADDR_LR_TX_RF_PCKT + (i * sizeof(uint8_t))));
+    }
+    xSemaphoreGive(xEepromMutex);
+}
+
+/**
+ * @brief 
+ * 
+ * @param period 
+ */
+void NVMA_Set_LR_TX_Period_TX(uint32_t period)
+{   
+    xSemaphoreTake(xEepromMutex, portMAX_DELAY);
+    HAL_FLASHEx_DATAEEPROM_Unlock();
+    HAL_FLASHEx_DATAEEPROM_Program(FLASH_TYPEPROGRAMDATA_WORD, EE_ADDR_LR_TX_PERIOD_TX, period);
+    HAL_FLASHEx_DATAEEPROM_Lock();
+    xSemaphoreGive(xEepromMutex);
+}
+
+/**
+ * @brief 
+ * 
+ * @param period 
+ */
+void NVMA_Get_LR_TX_Period_TX(uint32_t *period)
+{   
+    xSemaphoreTake(xEepromMutex, portMAX_DELAY);
+    *period = *((uint32_t *)EE_ADDR_LR_TX_PERIOD_TX);
+    xSemaphoreGive(xEepromMutex);
+}
+
+

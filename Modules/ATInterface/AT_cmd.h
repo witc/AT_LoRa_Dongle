@@ -19,16 +19,19 @@
  */
 typedef enum
 {   
-    SYS_CMD_NONE            = 0,
-    SYS_CMD_SYS_STATE       = 1,
-    SYS_CMD_SYS_NAME        = 2,
-    SYS_CMD_RF_MAC          = 3,
-    SYS_CMD_FACTORY_RST     = 4,
-    SYS_CMD_TX_CW           = 5,    
-    SYS_CMD_LORA_RX_TO_UART = 6,
-    SYS_CMD_LORA_SEND       = 7,
-    SYS_CMD_RF_PAIR         = 8,
-    SYS_LED_BLUE            = 9,
+    SYS_CMD_NONE                = 0,
+    SYS_CMD_SYS_NAME            = 1,    
+    SYS_CMD_FACTORY_RST         = 2,
+    SYS_CMD_TX_CW               = 3,    
+    SYS_CMD_RF_RX_TO_UART       = 4,
+    SYS_CMD_RF_TX_HEX           = 5,      
+    SYS_CMD_RF_TX_TXT           = 6,      
+    SYS_CMD_RF_TX_FROM_NVM      = 7, 
+    SYS_CMD_RF_PERIOD_SET       = 8,  
+    SYS_CMD_RF_PERIOD_CTRL      = 9, 
+    SYS_CMD_RF_SAVE_PCKT_NVM    = 10,
+    SYS_CMD_RF_PERIOD_STATUS    = 11,
+    SYS_LED_BLUE                = 12,
 
     /* LoRa SX1262-specific commands */
     SYS_CMD_TX_FREQ         = 20,

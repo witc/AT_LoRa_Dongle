@@ -19,9 +19,9 @@
 
 
 const AT_CommandLimit_t AT_CommandLimits[] = {
-    {SYS_CMD_TX_FREQ, 100000000, 960000000},        // TX frequency in Hz (100 MHz to 960 MHz)
-    {SYS_CMD_RX_FREQ, 100000000, 960000000},        // RX frequency in Hz (100 MHz to 960 MHz)
-    {SYS_CMD_TX_POWER, 0, 22},                      // TX power in dBm (0 to 22 dBm)
+    {SYS_CMD_TX_FREQ, 150000000, 960000000},        // TX frequency in Hz (100 MHz to 960 MHz)
+    {SYS_CMD_RX_FREQ, 150000000, 960000000},        // RX frequency in Hz (100 MHz to 960 MHz)
+    {SYS_CMD_TX_POWER, 0, 22},                     // TX power in dBm (0 to 22 dBm)
     {SYS_CMD_TX_SF, 5, 12},                         // TX spreading factor (5 to 12)
     {SYS_CMD_RX_SF, 5, 12},                         // RX spreading factor (5 to 12)
     {SYS_CMD_TX_BW, 7810, 500000},                  // TX bandwidth in Hz (7.81 kHz to 500 kHz)
@@ -51,7 +51,7 @@ static bool IsValidBandwidth(uint32_t bandwidth);
  * @param data 
  * @return uint32_t 
  */
-static uint32_t ParseToUint32(uint8_t *data)
+static uint32_t AT_ParseUint32(uint8_t *data)
 {
     return (uint32_t)strtoul((char *)data, NULL, 10);
 }
@@ -62,7 +62,7 @@ static uint32_t ParseToUint32(uint8_t *data)
  * @param data 
  * @return uint8_t 
  */
-static uint8_t ParseToUint8(uint8_t *data)
+static uint8_t AT_ParseUint8(uint8_t *data)
 {
     return (uint8_t)atoi((char *)data);
 }
@@ -74,7 +74,7 @@ static uint8_t ParseToUint8(uint8_t *data)
  * @param response 
  * @param response_size 
  */
-static void ReturnUint32(uint32_t value, uint8_t *response, uint16_t *response_size)
+static void AT_FormatUint32Response(uint32_t value, uint8_t *response, uint16_t *response_size)
 {
     *response_size = sprintf((char *)response, "%lu", (unsigned long)value);
 }
@@ -86,7 +86,7 @@ static void ReturnUint32(uint32_t value, uint8_t *response, uint16_t *response_s
  * @param response 
  * @param response_size 
  */
-static void ReturnUint8(uint8_t value, uint8_t *response, uint16_t *response_size)
+static void AT_FormatUint8Response(uint8_t value, uint8_t *response, uint16_t *response_size)
 {
     *response_size = sprintf((char *)response, "%u", value);
 }
@@ -162,17 +162,17 @@ bool GSC_ProcessCommand(eATCommands cmd, uint8_t *data, uint16_t size)
         }
 
         case SYS_CMD_TX_FREQ:
-        {
+        {   
+            uint32_t freq;
             if (isQuery)
             {
-                uint32_t freq;
                 NVMA_Get_LR_Freq_TX(&freq);
-                ReturnUint32(freq, (uint8_t *)response, &response_size);
+                AT_FormatUint32Response(freq, (uint8_t *)response, &response_size);
                 hasResponse = true;
             }
             else
             {
-                uint32_t freq = ParseToUint32(data);
+                freq = AT_ParseUint32(data);
                 if (GetCommandLimits(cmd, &minValue, &maxValue))
                 {
                     freq = Constrain_u32(freq, minValue, maxValue);
@@ -184,16 +184,16 @@ bool GSC_ProcessCommand(eATCommands cmd, uint8_t *data, uint16_t size)
 
         case SYS_CMD_RX_FREQ:
         {
+            uint32_t freq;
             if (isQuery)
             {
-                uint32_t freq;
                 NVMA_Get_LR_Freq_RX(&freq);
-                ReturnUint32(freq, (uint8_t *)response, &response_size);
+                AT_FormatUint32Response(freq, (uint8_t *)response, &response_size);
                 hasResponse = true;
             }
             else
             {
-                uint32_t freq = ParseToUint32(data);
+                freq = AT_ParseUint32(data);
                 if (GetCommandLimits(cmd, &minValue, &maxValue))
                 {
                     freq = Constrain_u32(freq, minValue, maxValue);
@@ -205,16 +205,16 @@ bool GSC_ProcessCommand(eATCommands cmd, uint8_t *data, uint16_t size)
 
         case SYS_CMD_TX_POWER:
         {
+            uint8_t power;
             if (isQuery)
             {
-                uint8_t power;
                 NVMA_Get_LR_TX_Power(&power);
-                ReturnUint8(power, (uint8_t *)response, &response_size);
+                AT_FormatUint8Response(power, (uint8_t *)response, &response_size);
                 hasResponse = true;
             }
             else
             {
-                uint8_t power = ParseToUint8(data);
+                power = AT_ParseUint8(data);
                 if (GetCommandLimits(cmd, &minValue, &maxValue))
                 {
                     power = Constrain_u8(power, minValue, maxValue);
@@ -225,17 +225,17 @@ bool GSC_ProcessCommand(eATCommands cmd, uint8_t *data, uint16_t size)
         }
 
         case SYS_CMD_TX_SF:
-        {
+        {   
+            uint8_t sf;
             if (isQuery)
             {
-                uint8_t sf;
                 NVMA_Get_LR_TX_SF(&sf);
-                ReturnUint8(sf, (uint8_t *)response, &response_size);
+                AT_FormatUint8Response(sf, (uint8_t *)response, &response_size);
                 hasResponse = true;
             }
             else
             {
-                uint8_t sf = ParseToUint8(data);
+                sf = AT_ParseUint8(data);
                 if (GetCommandLimits(cmd, &minValue, &maxValue))
                 {
                     sf = Constrain_u8(sf, minValue, maxValue);
@@ -246,17 +246,17 @@ bool GSC_ProcessCommand(eATCommands cmd, uint8_t *data, uint16_t size)
         }
 
         case SYS_CMD_RX_SF:
-        {
+        {   
+            uint8_t sf;
             if (isQuery)
             {
-                uint8_t sf;
                 NVMA_Get_LR_RX_SF(&sf);
-                ReturnUint8(sf, (uint8_t *)response, &response_size);
+                AT_FormatUint8Response(sf, (uint8_t *)response, &response_size);
                 hasResponse = true;
             }
             else
             {
-                uint8_t sf = ParseToUint8(data);
+                sf = AT_ParseUint8(data);
                 if (GetCommandLimits(cmd, &minValue, &maxValue))
                 {
                     sf = Constrain_u8(sf, minValue, maxValue);
@@ -267,17 +267,17 @@ bool GSC_ProcessCommand(eATCommands cmd, uint8_t *data, uint16_t size)
         }
 
         case SYS_CMD_TX_BW:
-        {
+        {   
+            uint32_t bw;
             if (isQuery)
             {
-                uint32_t bw;
                 NVMA_Get_LR_TX_BW(&bw);
-                ReturnUint32(bw, (uint8_t *)response, &response_size);
+                AT_FormatUint32Response(bw, (uint8_t *)response, &response_size);
                 hasResponse = true;
             }
             else
             {
-               uint32_t bw = ParseToUint32(data);
+                bw = AT_ParseUint32(data);
                 if (IsValidBandwidth(bw))
                 {
                     NVMA_Set_LR_TX_BW(bw);
@@ -292,17 +292,17 @@ bool GSC_ProcessCommand(eATCommands cmd, uint8_t *data, uint16_t size)
         }
 
         case SYS_CMD_RX_BW:
-        {
+        {   
+            uint32_t bw;
             if (isQuery)
             {
-                uint32_t bw;
                 NVMA_Get_LR_RX_BW(&bw);
-                ReturnUint32(bw, (uint8_t *)response, &response_size);
+                AT_FormatUint32Response(bw, (uint8_t *)response, &response_size);
                 hasResponse = true;
             }
             else
             {
-                uint32_t bw = ParseToUint32(data);
+                bw = AT_ParseUint32(data);
                 if (IsValidBandwidth(bw))
                 {
                     NVMA_Set_LR_RX_BW(bw);
@@ -317,17 +317,17 @@ bool GSC_ProcessCommand(eATCommands cmd, uint8_t *data, uint16_t size)
         }
 
         case SYS_CMD_TX_IQ:
-        {
+        {   
+            uint8_t iq;
             if (isQuery)
             {
-                uint8_t iq;
                 NVMA_Get_LR_TX_IQ(&iq);
-                ReturnUint8(iq, (uint8_t *)response, &response_size);
+                AT_FormatUint8Response(iq, (uint8_t *)response, &response_size);
                 hasResponse = true;
             }
             else
             {
-                uint8_t iq = ParseToUint8(data);
+                iq = AT_ParseUint8(data);
                 if (GetCommandLimits(cmd, &minValue, &maxValue))
                 {
                     iq = Constrain_u8(iq, minValue, maxValue);
@@ -338,17 +338,17 @@ bool GSC_ProcessCommand(eATCommands cmd, uint8_t *data, uint16_t size)
         }
 
         case SYS_CMD_RX_IQ:
-        {
+        {   
+            uint8_t iq;
             if (isQuery)
             {
-                uint8_t iq;
                 NVMA_Get_LR_RX_IQ(&iq);
-                ReturnUint8(iq, (uint8_t *)response, &response_size);
+                AT_FormatUint8Response(iq, (uint8_t *)response, &response_size);
                 hasResponse = true;
             }
             else
             {
-                uint8_t iq = ParseToUint8(data);
+                iq = AT_ParseUint8(data);
                 if (GetCommandLimits(cmd, &minValue, &maxValue))
                 {
                     iq = Constrain_u8(iq, minValue, maxValue);
@@ -359,17 +359,18 @@ bool GSC_ProcessCommand(eATCommands cmd, uint8_t *data, uint16_t size)
         }
 
         case SYS_CMD_TX_CR:
-        {
+        {   
+            uint8_t cr;
+
             if (isQuery)
             {
-                uint8_t cr;
                 NVMA_Get_LR_TX_CR(&cr);
-                ReturnUint8(cr, (uint8_t *)response, &response_size);
+                AT_FormatUint8Response(cr, (uint8_t *)response, &response_size);
                 hasResponse = true;
             }
             else
             {
-                uint8_t cr = ParseToUint8(data);
+                cr = AT_ParseUint8(data);
                 if (GetCommandLimits(cmd, &minValue, &maxValue))
                 {
                     cr = Constrain_u8(cr, minValue, maxValue);
@@ -380,17 +381,17 @@ bool GSC_ProcessCommand(eATCommands cmd, uint8_t *data, uint16_t size)
         }
 
         case SYS_CMD_RX_CR:
-        {
+        {   
+            uint8_t cr;
             if (isQuery)
             {
-                uint8_t cr;
                 NVMA_Get_LR_RX_CR(&cr);
-                ReturnUint8(cr, (uint8_t *)response, &response_size);
+                AT_FormatUint8Response(cr, (uint8_t *)response, &response_size);
                 hasResponse = true;
             }
             else
             {
-                uint8_t cr = ParseToUint8(data);
+                cr = AT_ParseUint8(data);
                 if (GetCommandLimits(cmd, &minValue, &maxValue))
                 {
                     cr = Constrain_u8(cr, minValue, maxValue);
@@ -401,17 +402,17 @@ bool GSC_ProcessCommand(eATCommands cmd, uint8_t *data, uint16_t size)
         }
 
         case SYS_CMD_HEADERMODE_TX:
-        {
+        {   
+            uint8_t mode;
             if (isQuery)
             {
-                uint8_t mode;
                 NVMA_Get_LR_HeaderMode_TX(&mode);
-                ReturnUint8(mode, (uint8_t *)response, &response_size);
+                AT_FormatUint8Response(mode, (uint8_t *)response, &response_size);
                 hasResponse = true;
             }
             else
             {
-                uint8_t mode = ParseToUint8(data);
+                mode = AT_ParseUint8(data);
                 if (GetCommandLimits(cmd, &minValue, &maxValue))
                 {
                     mode = Constrain_u8(mode, minValue, maxValue);
@@ -422,17 +423,17 @@ bool GSC_ProcessCommand(eATCommands cmd, uint8_t *data, uint16_t size)
         }
 
         case SYS_CMD_HEADERMODE_RX:
-        {
+        {   
+            uint8_t mode;
             if (isQuery)
             {
-                uint8_t mode;
                 NVMA_Get_LR_HeaderMode_RX(&mode);
-                ReturnUint8(mode, (uint8_t *)response, &response_size);
+                AT_FormatUint8Response(mode, (uint8_t *)response, &response_size);
                 hasResponse = true;
             }
             else
             {
-                uint8_t mode = ParseToUint8(data);
+                mode = AT_ParseUint8(data);
                 if (GetCommandLimits(cmd, &minValue, &maxValue))
                 {
                     mode = Constrain_u8(mode, minValue, maxValue);
@@ -443,17 +444,17 @@ bool GSC_ProcessCommand(eATCommands cmd, uint8_t *data, uint16_t size)
         }
 
         case SYS_CMD_CRC_TX:
-        {
+        {   
+            uint8_t crc;
             if (isQuery)
             {
-                uint8_t crc;
                 NVMA_Get_LR_CRC_TX(&crc);
-                ReturnUint8(crc, (uint8_t *)response, &response_size);
+                AT_FormatUint8Response(crc, (uint8_t *)response, &response_size);
                 hasResponse = true;
             }
             else
             {
-                uint8_t crc = ParseToUint8(data);
+                crc = AT_ParseUint8(data);
                 if (GetCommandLimits(cmd, &minValue, &maxValue))
                 {
                     crc = Constrain_u8(crc, minValue, maxValue);
@@ -464,17 +465,17 @@ bool GSC_ProcessCommand(eATCommands cmd, uint8_t *data, uint16_t size)
         }
 
         case SYS_CMD_CRC_RX:
-        {
+        {   
+            uint8_t crc;
             if (isQuery)
             {
-                uint8_t crc;
                 NVMA_Get_LR_CRC_RX(&crc);
-                ReturnUint8(crc, (uint8_t *)response, &response_size);
+                AT_FormatUint8Response(crc, (uint8_t *)response, &response_size);
                 hasResponse = true;
             }
             else
             {
-                uint8_t crc = ParseToUint8(data);
+                crc = AT_ParseUint8(data);
                 if (GetCommandLimits(cmd, &minValue, &maxValue))
                 {
                     crc = Constrain_u8(crc, minValue, maxValue);
@@ -485,17 +486,17 @@ bool GSC_ProcessCommand(eATCommands cmd, uint8_t *data, uint16_t size)
         }
 
         case SYS_CMD_PREAM_SIZE_TX:
-        {
+        {   
+            uint16_t size;
             if (isQuery)
             {
-                uint16_t size;
                 NVMA_Get_LR_PreamSize_TX(&size);
-                ReturnUint32(size, (uint8_t *)response, &response_size);
+                AT_FormatUint32Response(size, (uint8_t *)response, &response_size);
                 hasResponse = true;
             }
             else
             {
-                uint16_t size = (uint16_t)ParseToUint32(data);
+                size = (uint16_t)AT_ParseUint32(data);
                 if (GetCommandLimits(cmd, &minValue, &maxValue))
                 {
                     size = Constrain_u16(size, minValue, maxValue);
@@ -506,23 +507,81 @@ bool GSC_ProcessCommand(eATCommands cmd, uint8_t *data, uint16_t size)
         }
 
         case SYS_CMD_PREAM_SIZE_RX:
-        {
+        {   
+            uint16_t size;
             if (isQuery)
             {
-                uint16_t size;
                 NVMA_Get_LR_PreamSize_RX(&size);
-                ReturnUint32(size, (uint8_t *)response, &response_size);
+                AT_FormatUint32Response(size, (uint8_t *)response, &response_size);
                 hasResponse = true;
             }
             else
             {
-                uint16_t size = (uint16_t)ParseToUint32(data);
+                size = (uint16_t)AT_ParseUint32(data);
                 if (GetCommandLimits(cmd, &minValue, &maxValue))
                 {
                     size = Constrain_u16(size, minValue, maxValue);
                 }
                 NVMA_Set_LR_PreamSize_RX(size);
             }
+            break;
+        }
+
+        case SYS_CMD_RF_TX_HEX:
+        {
+            // Transmit data via RF in HEX format
+            break;
+        }
+
+        case SYS_CMD_RF_TX_TXT:
+        {
+            // Transmit data via RF in text format
+            break;
+        }
+
+        case SYS_CMD_RF_TX_FROM_NVM:
+        {
+            // Transmit saved RF packet from NVM
+            break;
+        }
+
+        case SYS_CMD_RF_PERIOD_SET:
+        {
+            uint32_t period;
+            if (isQuery)
+            {
+                NVMA_Get_LR_TX_Period_TX(&period);
+                AT_FormatUint32Response(period, (uint8_t *)response, &response_size);
+                hasResponse = true;
+            }
+            else
+            {
+                period = (uint32_t)AT_ParseUint32(data);
+                if (GetCommandLimits(cmd, &minValue, &maxValue))
+                {
+                    period = Constrain_u16(period, minValue, maxValue);
+                }
+                NVMA_Set_LR_TX_Period_TX(period);
+            }
+
+            break;
+        }
+
+        case SYS_CMD_RF_PERIOD_CTRL:
+        {
+            // Start/Stop periodic TX
+            break;
+        }
+
+        case SYS_CMD_RF_SAVE_PCKT_NVM:
+        {
+            // Save packet to NVM
+            break;
+        }
+
+        case SYS_CMD_RF_PERIOD_STATUS:
+        {
+            // Get periodic TX status
             break;
         }
 
