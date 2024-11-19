@@ -14,8 +14,8 @@
 
 #include "main.h"
 
-#define MAX_UART_RX_BUFFER 300
-#define MAX_UART_TX_BUFFER 300
+#define MAX_UART_RX_BUFFER 550
+#define MAX_UART_TX_BUFFER 550
 
 typedef struct 
 {

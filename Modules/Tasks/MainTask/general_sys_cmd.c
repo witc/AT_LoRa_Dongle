@@ -16,6 +16,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include "AT_cmd.h"
+#include "radio_user.h"
 
 
 const AT_CommandLimit_t AT_CommandLimits[] = {
@@ -38,10 +39,13 @@ const AT_CommandLimit_t AT_CommandLimits[] = {
     {SYS_CMD_PREAM_SIZE_RX, 1, 65535},              // RX preamble size (1 to 65535, should be >= TX)
 };
 
+extern osMessageQueueId_t queueRadioHandle;
+
 const uint32_t AllowedBandwidths[] = {7810, 10420, 15630, 20830, 31250, 41670, 62500, 125000, 250000, 500000};
 const size_t AllowedBandwidthCount = sizeof(AllowedBandwidths) / sizeof(AllowedBandwidths[0]);
 
 static bool _GSC_Handle_BlueLED(uint8_t *data);
+static void _GSC_Handle_TX(uint8_t *data, uint8_t size);
 static bool GetCommandLimits(eATCommands cmd, int32_t *minValue, int32_t *maxValue);
 static bool IsValidBandwidth(uint32_t bandwidth);
  
@@ -132,6 +136,31 @@ static bool IsValidBandwidth(uint32_t bandwidth)
     return false;
 }
 
+/**
+ * @brief Convert hex string to uint8_t array
+ * 
+ * @param hexStr 
+ * @param byteArray 
+ * @param byteArraySize 
+ * @return true 
+ * @return false 
+ */
+static uint8_t HexStringToByteArray(const char *hexStr, uint8_t *byteArray, size_t byteArraySize)
+{
+    size_t hexStrLen = strlen(hexStr);
+    if (hexStrLen % 2 != 0 || hexStrLen / 2 > byteArraySize)
+    {
+        return 0;
+    }
+
+    for (size_t i = 0; i < hexStrLen; i += 2)
+    {
+        char byteStr[3] = {hexStr[i], hexStr[i + 1], '\0'};
+        byteArray[i / 2] = (uint8_t)strtoul(byteStr, NULL, 16);
+    }
+
+    return (uint8_t)(hexStrLen / 2);
+}
 
 /**
  * @brief Process system command
@@ -528,8 +557,16 @@ bool GSC_ProcessCommand(eATCommands cmd, uint8_t *data, uint16_t size)
         }
 
         case SYS_CMD_RF_TX_HEX:
-        {
-            // Transmit data via RF in HEX format
+        {   uint8_t packet[256];
+            uint8_t packetSize;
+            packetSize = HexStringToByteArray((char *)data, packet, sizeof(packet));
+            if(packetSize == 0)
+            {
+                AT_SendResponse("ERROR: Invalid HEX data\r\n");
+                commandHandled = false;
+                break;
+            }
+            _GSC_Handle_TX(packet,packetSize);
             break;
         }
 
@@ -574,8 +611,19 @@ bool GSC_ProcessCommand(eATCommands cmd, uint8_t *data, uint16_t size)
         }
 
         case SYS_CMD_RF_SAVE_PCKT_NVM:
-        {
-            // Save packet to NVM
+        {   
+            if (isQuery)
+            {      
+                uint16_t pcktSize;
+                NVMA_Get_LR_Saved_Pckt_Size(&pcktSize);
+               // NVMA_Get_LR_TX_RF_PCKT(packet,pcktSize);
+               // AT_FormatUint32Response(period, (uint8_t *)response, &response_size);
+               // hasResponse = true;
+            }
+            else
+            {
+                // Save packet to NVM
+            }
             break;
         }
 
@@ -634,4 +682,38 @@ static bool _GSC_Handle_BlueLED(uint8_t *data)
     }
 
     return true;
+}
+
+/**
+ * @brief 
+ * 
+ * @param data 
+ * @param size 
+ * @return staic 
+ */
+static void _GSC_Handle_TX(uint8_t *data, uint8_t size)
+{   
+    dataQueue_t     txm;
+    packet_info_t	*tx_pkt;
+    uint8_t         *tx_raw_data;
+
+    tx_raw_data =  pvPortMalloc(size);
+    if (tx_raw_data == NULL)
+    {
+        _exit(313513);
+    }
+
+    tx_pkt = pvPortMalloc(sizeof(packet_info_t));
+    if (tx_pkt == NULL)
+    {
+        _exit(314687);
+    }
+    
+    tx_pkt->packet = tx_raw_data;
+    tx_pkt->size = size;
+    
+    txm.ptr = tx_pkt;
+    txm.cmd = CMD_RF_SEND_DATA_NOW;
+
+    xQueueSend(queueRadioHandle,&txm,portMAX_DELAY);
 }

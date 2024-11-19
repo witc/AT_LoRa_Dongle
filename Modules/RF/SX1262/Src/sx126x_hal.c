@@ -81,20 +81,20 @@ sx126x_hal_status_t sx126x_hal_write(const void *context, const uint8_t *command
 	sx126xCheckDeviceReady( context);
 #if(FRAM_RF_SPI_WITH_DMA == 1)
 
-	if(SPI_RFFRAMGetLine(SPI_RFFRAM_Select_RF)==false)	log_error(785186);
+	if(SPI_RFFRAMGetLine(SPI_RFFRAM_Select_RF)==false)	_exit(785186);
 	osDelay(2);
-	if(SPI_RFFRAMTransmit_DMA_NoNSS(SPI_RFFRAM_Select_RF, (uint8_t*)command, command_length) != HAL_OK)	log_error(7875315);
-	if(SPI_RFFRAMTransmit_DMA_NoNSS(SPI_RFFRAM_Select_RF,(uint8_t*) data, data_length) != HAL_OK);// 		log_error(7875316);
+	if(SPI_RFFRAMTransmit_DMA_NoNSS(SPI_RFFRAM_Select_RF, (uint8_t*)command, command_length) != HAL_OK)	_exit(7875315);
+	if(SPI_RFFRAMTransmit_DMA_NoNSS(SPI_RFFRAM_Select_RF,(uint8_t*) data, data_length) != HAL_OK);// 		_exit(7875316);
 	osDelay(2);
-	if(SPI_RFFRAMFreeLine(SPI_RFFRAM_Select_RF) == false)	log_error(785185);
+	if(SPI_RFFRAMFreeLine(SPI_RFFRAM_Select_RF) == false)	_exit(785185);
 
 #else
 	vTaskSuspendAll();
 	//Put NSS low to start spi transaction
 	HAL_GPIO_WritePin(spiDev->pin_NSS.port, spiDev->pin_NSS.pin, GPIO_PIN_RESET);
 
-	if(HAL_SPI_Transmit(spiDev->target,command_copy,command_length,0xffff) != HAL_OK)	log_error(789);
-	if(HAL_SPI_Transmit(spiDev->target,data_copy,data_length,0xffff) != HAL_OK);// 		log_error(789);
+	if(HAL_SPI_Transmit(spiDev->target,command_copy,command_length,0xffff) != HAL_OK)	_exit(789);
+	if(HAL_SPI_Transmit(spiDev->target,data_copy,data_length,0xffff) != HAL_OK);// 		_exit(789);
 
 	HAL_GPIO_WritePin(spiDev->pin_NSS.port, spiDev->pin_NSS.pin, GPIO_PIN_SET);
 
@@ -134,10 +134,10 @@ sx126x_hal_status_t sx126x_hal_read(const void *context, const uint8_t *command,
 
 #if(FRAM_RF_SPI_WITH_DMA == 1)
 	
-	if(SPI_RFFRAMGetLine(SPI_RFFRAM_Select_RF)==false)	log_error(785186);
-	if(SPI_RFFRAMTransmit_DMA_NoNSS(SPI_RFFRAM_Select_RF, (uint8_t*)command, command_length) != HAL_OK)	log_error(7875315);
-	if(SPI_RFFRAMReceive_DMA_NoNSS(SPI_RFFRAM_Select_RF,(uint8_t*) data, data_length) != HAL_OK) 		log_error(7875316);
-	if(SPI_RFFRAMFreeLine(SPI_RFFRAM_Select_RF) == false)	log_error(785185);
+	if(SPI_RFFRAMGetLine(SPI_RFFRAM_Select_RF)==false)	_exit(785186);
+	if(SPI_RFFRAMTransmit_DMA_NoNSS(SPI_RFFRAM_Select_RF, (uint8_t*)command, command_length) != HAL_OK)	_exit(7875315);
+	if(SPI_RFFRAMReceive_DMA_NoNSS(SPI_RFFRAM_Select_RF,(uint8_t*) data, data_length) != HAL_OK) 		_exit(7875316);
+	if(SPI_RFFRAMFreeLine(SPI_RFFRAM_Select_RF) == false)	_exit(785185);
 
 #else
 	//toto asi nepotrebujeme??
@@ -152,8 +152,8 @@ sx126x_hal_status_t sx126x_hal_read(const void *context, const uint8_t *command,
 	// Put NSS low to start spi transaction
 	HAL_GPIO_WritePin(spiDev->pin_NSS.port, spiDev->pin_NSS.pin, GPIO_PIN_RESET);
 
-	if(HAL_SPI_Transmit(spiDev->target,command_copy,command_length,0xffff) != HAL_OK)	log_error(787);
-	if(HAL_SPI_Receive(spiDev->target,data,data_length,0xffff) != HAL_OK) 				log_error(788);
+	if(HAL_SPI_Transmit(spiDev->target,command_copy,command_length,0xffff) != HAL_OK)	_exit(787);
+	if(HAL_SPI_Receive(spiDev->target,data,data_length,0xffff) != HAL_OK) 				_exit(788);
 
     // Put NSS high as the spi transaction is finished
 	HAL_GPIO_WritePin(spiDev->pin_NSS.port, spiDev->pin_NSS.pin, GPIO_PIN_SET);

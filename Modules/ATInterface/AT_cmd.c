@@ -24,6 +24,7 @@
 static void AT_HandleFactorMode(char *params);
 static void AT_HandleHelp(char *params);
 static void AT_HandleRestartSys(char *params);
+static void AT_HandleRF_TX_HEX(char *params);
 
 extern UART_HandleTypeDef huart1;
 extern osMessageQueueId_t queueMainHandle;
@@ -300,6 +301,26 @@ static void AT_HandleRestartSys(char *params)
     NVIC_SystemReset();
 }
 
+/**
+ * @brief 
+ * 
+ * @param params 
+ */
+static void AT_HandleRF_TX_HEX(char *params)
+{
+    uint8_t byteArray[256]; // Adjust size as needed
+    size_t byteArraySize = sizeof(byteArray);
+
+    if (HexStringToByteArray(params, byteArray, byteArraySize))
+    {
+        // Process the byteArray as needed
+        AT_SendResponse("OK\r\n");
+    }
+    else
+    {
+        AT_SendResponse("ERROR: Invalid hex string\r\n");
+    }
+}
 
 /**
  * @brief 

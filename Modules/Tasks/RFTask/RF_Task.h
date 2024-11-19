@@ -92,9 +92,8 @@ typedef struct
 
 typedef enum
 {
-	RF_TASK_INIT = 0,
-	RF_TASK_OFF = 1,
-	RF_TASK_ON = 2,
+	RF_TASK_OFF = 0,
+	RF_TASK_ON = 1,
 
 }radio_task_state_e;
 

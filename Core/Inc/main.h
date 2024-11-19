@@ -46,7 +46,8 @@ extern "C" {
 #include "queue.h"
 #include "core_cm0plus.h"
 #include "Constrain.h"
-
+#include <unistd.h>
+#include <stdlib.h>
 /* USER CODE END Includes */
 
 /* Exported types ------------------------------------------------------------*/
@@ -130,6 +131,8 @@ typedef struct
 #define SX1262_BUSY_GPIO_Port GPIOB
 #define LED_GREEN_Pin GPIO_PIN_15
 #define LED_GREEN_GPIO_Port GPIOB
+#define SX1262_RF_SW_Pin GPIO_PIN_8
+#define SX1262_RF_SW_GPIO_Port GPIOA
 #define aux4_Pin GPIO_PIN_12
 #define aux4_GPIO_Port GPIOA
 #define aux3_Pin GPIO_PIN_3
@@ -152,6 +155,7 @@ typedef struct
 #define CMD_RF_IRQ_FIRED		    252
 #define CMD_RF_SEND_DATA_NOW		251
 #define CMD_RF_SEND_DATA_LBT		250
+#define CMD_RF_RADIO_HB         249
 
 
 #define CMD_CORE_RF_IS_ON			254

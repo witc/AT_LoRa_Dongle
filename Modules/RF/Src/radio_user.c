@@ -15,9 +15,9 @@
 
 extern osMessageQId queueMainHandle;
 
-//#define //LOG_TAG "[RADIO-USER]"
-//#define //LOG_LEVEL //LOG_LEVEL_DEBUG
-//#include "Log.h"
+#define LOG_TAG "[RADIO-USER]"
+#define LOG_LEVEL LOG_LEVEL_DEBUG
+#include "Log.h"
 
 extern SPI_HandleTypeDef hspi1;
 
@@ -40,10 +40,10 @@ void ru_sx1262_assign( radio_context_t	*ctx)
 	ctx->rfConfig.radioHal.pin_DIO1.pin=SX1262_DIO1_Pin;
 	ctx->rfConfig.radioHal.pin_NSS.port=SX1262_NSS_GPIO_Port;
 	ctx->rfConfig.radioHal.pin_NSS.pin=SX1262_NSS_Pin;
-	//ctx->rfConfig.radioHal.pin_RF_SWITCH_1.port=RF_SW_1_GPIO_Port;
-	//ctx->rfConfig.radioHal.pin_RF_SWITCH_1.pin=RF_SW_1_Pin;
-	//ctx->rfConfig.radioHal.pin_RF_SWITCH_2.port=RF_SW_2_GPIO_Port;
-	//ctx->rfConfig.radioHal.pin_RF_SWITCH_2.pin=RF_SW_2_Pin;
+	ctx->rfConfig.radioHal.pin_RF_SWITCH_1.port=SX1262_RF_SW_GPIO_Port;
+	ctx->rfConfig.radioHal.pin_RF_SWITCH_1.pin=SX1262_RF_SW_Pin;
+	ctx->rfConfig.radioHal.pin_RF_SWITCH_2.port=NULL;
+	ctx->rfConfig.radioHal.pin_RF_SWITCH_2.pin=NULL;
 	ctx->rfConfig.radioHal.TCXO_is_used=true;
 	ctx->rfConfig.radioHal.DIO2_AS_RF_SWITCH=false;
 	ctx->rfConfig.radioHal.target=&hspi1;
@@ -182,8 +182,14 @@ bool ru_radioCleanAndSleep( bool onlySleep, radio_context_t *ctx)
 }
 
 
-/*
- *
+/**
+ * @brief 
+ * 
+ * @param data 
+ * @param size 
+ * @param ctx 
+ * @return true 
+ * @return false 
  */
 bool ru_radio_send_packet(uint8_t *data, uint8_t size, radio_context_t	*ctx)
 {
@@ -209,20 +215,23 @@ bool ru_radio_send_packet(uint8_t *data, uint8_t size, radio_context_t	*ctx)
 	return true;
 }
 
-/*
- *
+/**
+ * @brief 
+ * 
+ * @param tx 
+ * @param ctx 
  */
 void ru_radio_rfSwitch(bool tx,radio_context_t	*ctx)
 {
 	if(tx == true)
-	{
-		HAL_GPIO_WritePin(ctx->rfConfig.radioHal.pin_RF_SWITCH_1.port, ctx->rfConfig.radioHal.pin_RF_SWITCH_1.pin, GPIO_PIN_RESET);
-		HAL_GPIO_WritePin(ctx->rfConfig.radioHal.pin_RF_SWITCH_2.port, ctx->rfConfig.radioHal.pin_RF_SWITCH_2.pin, GPIO_PIN_SET);
+	{	
+		if(ctx->rfConfig.radioHal.pin_RF_SWITCH_1.port != NULL)		HAL_GPIO_WritePin(ctx->rfConfig.radioHal.pin_RF_SWITCH_1.port, ctx->rfConfig.radioHal.pin_RF_SWITCH_1.pin, GPIO_PIN_RESET);
+		if(ctx->rfConfig.radioHal.pin_RF_SWITCH_2.port != NULL)		HAL_GPIO_WritePin(ctx->rfConfig.radioHal.pin_RF_SWITCH_2.port, ctx->rfConfig.radioHal.pin_RF_SWITCH_2.pin, GPIO_PIN_RESET);
 	}
 	else
 	{
-		HAL_GPIO_WritePin(ctx->rfConfig.radioHal.pin_RF_SWITCH_1.port, ctx->rfConfig.radioHal.pin_RF_SWITCH_1.pin, GPIO_PIN_SET);
-		HAL_GPIO_WritePin(ctx->rfConfig.radioHal.pin_RF_SWITCH_2.port, ctx->rfConfig.radioHal.pin_RF_SWITCH_2.pin, GPIO_PIN_RESET);
+		if(ctx->rfConfig.radioHal.pin_RF_SWITCH_1.port != NULL)	 HAL_GPIO_WritePin(ctx->rfConfig.radioHal.pin_RF_SWITCH_1.port, ctx->rfConfig.radioHal.pin_RF_SWITCH_1.pin, GPIO_PIN_SET);
+		if(ctx->rfConfig.radioHal.pin_RF_SWITCH_2.port != NULL)   HAL_GPIO_WritePin(ctx->rfConfig.radioHal.pin_RF_SWITCH_2.port, ctx->rfConfig.radioHal.pin_RF_SWITCH_2.pin, GPIO_PIN_RESET);
 	}
 
 }
@@ -247,7 +256,7 @@ void ru_radio_start_rx(radio_context_t	*ctx)
 	ret += ral_cfg_rx_boosted(ral,true);	
 	ret += ral_set_rx(ral,RAL_RX_TIMEOUT_CONTINUOUS_MODE);
 
-	if(ret != RAL_STATUS_OK) log_error(5315321);
+	if(ret != RAL_STATUS_OK) _exit(5315321);
 
 	ctx->rfConfig.lastMode = RF_MODE_RX;
 }
@@ -279,7 +288,7 @@ void ru_radio_start_CAD(radio_context_t	*ctx)
 	ret += ral_set_lora_cad_params(ral, &cadPar);
 	ret += ral_set_lora_cad(ral);
 
-	if(ret != RAL_STATUS_OK) log_error(68431);
+	if(ret != RAL_STATUS_OK) _exit(68431);
 
 	ctx->rfConfig.lastMode = RF_MODE_CAD;
 
@@ -304,6 +313,7 @@ void ru_radio_process_commands(RFCommands_e cmd,radio_context_t *ctx, const data
 {
 	ral_t* ral;
 	ral = &ctx->rfConfig.ralf.ral;
+	packet_info_t *pkt;
 
 	switch (cmd)
 	{
@@ -330,8 +340,11 @@ void ru_radio_process_commands(RFCommands_e cmd,radio_context_t *ctx, const data
 			break;
 
 		case RADIO_CMD_SEND_UNIVERSAL_PAYLOAD_NOW:
-			ru_radioCleanAndStandby(RAL_STANDBY_CFG_RC,ctx);
-			ru_radio_send_packet(rxm->ptr,rxm->data,ctx);
+			pkt = (packet_info_t*)rxm->ptr;
+			ru_radioCleanAndStandby(RAL_STANDBY_CFG_XOSC,ctx);
+			ru_radio_send_packet(pkt->packet,pkt->size,ctx);
+			vPortFree(pkt->packet);
+			LOG_INFO("RF data sent: %d B", pkt->size);
 
 			break;
 
@@ -367,7 +380,6 @@ void ru_radio_process_IRQ(radio_context_t *ctx)
 	uint16_t		rxSize;
 	ral_irq_t		irqSet;
 	int16_t			RSSI;
-	uint16_t		crc;
 	dataQueue_t		txm;	//tx message
 	packet_info_t	*rx_pkt;
 	uint8_t			*rx_raw_data;
@@ -383,13 +395,13 @@ void ru_radio_process_IRQ(radio_context_t *ctx)
 		    {
 		    	if(ral_get_pkt_payload(ral,255,rxPayload,&rxSize) == RAL_STATUS_OK)
 		    	{
-					ral_get_rssi_inst(ral, &RSSI);	//TODO nefunguje RSSI cteni
+					ral_get_rssi_inst(ral, &RSSI);	
 					LOG_INFO("RX: %d B, RSSI: %d dBm", rxSize, RSSI);
 
 					rx_raw_data =  pvPortMalloc(rxSize);
 					if (rx_raw_data == NULL)
 					{
-						log_error(313513);
+						_exit(313513);
 					}
 
 					memcpy(rx_raw_data,&rxPayload,rxSize);
@@ -403,7 +415,6 @@ void ru_radio_process_IRQ(radio_context_t *ctx)
 					txm.ptr = rx_pkt;
 
 					xQueueSend(queueMainHandle,&txm,portMAX_DELAY);
-
 		    	}
 		    }
 			else if(irqSet & RAL_IRQ_RX_CRC_ERROR)
@@ -417,10 +428,7 @@ void ru_radio_process_IRQ(radio_context_t *ctx)
 			break;
 
 		case RF_MODE_TX:
-		//	vTaskSuspendAll();
 			ru_radio_start_rx(ctx);
-		//	xTaskResumeAll();
-
 			break;
 
 		case RF_MODE_CAD:

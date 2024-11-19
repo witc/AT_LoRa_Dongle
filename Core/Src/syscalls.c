@@ -62,6 +62,7 @@ void _exit (int status)
 {
   _kill(status, -1);
   while (1) {}    /* Make sure we hang here */
+  //TODOJR
 }
 
 __attribute__((weak)) int _read(int file, char *ptr, int len)

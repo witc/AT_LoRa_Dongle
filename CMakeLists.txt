@@ -50,7 +50,7 @@ target_sources(${CMAKE_PROJECT_NAME} PRIVATE
     # Add user sources here
     ${CMAKE_SOURCE_DIR}/Core/Src/Log.c
     ${CMAKE_SOURCE_DIR}/Core/Src/Constrain.c
-    ${CMAKE_SOURCE_DIR}/Modules/Tasks/Src/RF_Task.c
+    ${CMAKE_SOURCE_DIR}/Modules/Tasks/RFTask/RF_Task.c
     ${CMAKE_SOURCE_DIR}/Modules/Tasks/MainTask/Main_task.c
     ${CMAKE_SOURCE_DIR}/Modules/RF/Src/radio_user.c
     ${CMAKE_SOURCE_DIR}/Modules/RF/SX1262/Src/lr_fhss_mac.c
@@ -75,11 +75,11 @@ target_include_directories(${CMAKE_PROJECT_NAME} PRIVATE
     ${CMAKE_SOURCE_DIR}/Inc
     ${CMAKE_SOURCE_DIR}/Modules/RF/Inc
     ${CMAKE_SOURCE_DIR}/Modules/RF/SX1262/Inc
-    ${CMAKE_SOURCE_DIR}/Modules/Tasks/Inc
-    ${CMAKE_SOURCE_DIR}/Modules/Tasks/MainTask
     ${CMAKE_SOURCE_DIR}/Modules/ATInterface/SerialPort
     ${CMAKE_SOURCE_DIR}/Modules/ATInterface/
     ${CMAKE_SOURCE_DIR}/Modules/NVMA
+    ${CMAKE_SOURCE_DIR}/Modules/Tasks/MainTask
+    ${CMAKE_SOURCE_DIR}/Modules/Tasks/RFTask
     
 )
 
