@@ -38,7 +38,6 @@ static const ral_lora_bw_t BW_MAP[] = {
 };
 
 
-
 /**
  * @brief Get the lora bw from user value object
  * 
@@ -223,7 +222,7 @@ bool ru_load_radio_config_tx(ralf_params_lora_t *loraParam)
 	bw = get_lora_bw_from_user_value(bw);
 	loraParam->mod_params.bw = bw;
 
-	//NVMA_Get_LR_(&loraParam->sync_word);
+	//NVMA_Get_LR_(&loraParam->sync_word);		//TODO
 	
 	return true;
 }
@@ -248,12 +247,18 @@ bool ru_load_radio_config_rx(ralf_params_lora_t *loraParam)
 	NVMA_Get_LR_RX_BW(&bw);
 	get_lora_bw_from_user_value(bw);
 	loraParam->mod_params.bw = bw;
-	//NVMA_Get_LR_(&loraParam->sync_word);
+	//NVMA_Get_LR_(&loraParam->sync_word);		//TODO
 	
 	return true;
 }
-/*
- *
+
+/**
+ * @brief 
+ * 
+ * @param standbyMode 
+ * @param ctx 
+ * @return true 
+ * @return false 
  */
 bool ru_radioCleanAndStandby(ral_standby_cfg_t standbyMode, radio_context_t *ctx)
 {
@@ -351,8 +356,10 @@ void ru_radio_rfSwitch(bool tx,radio_context_t	*ctx)
 }
 
 
-/*
- *
+/**
+ * @brief 
+ * 
+ * @param ctx 
  */
 void ru_radio_start_rx(radio_context_t	*ctx)
 {
@@ -377,8 +384,10 @@ void ru_radio_start_rx(radio_context_t	*ctx)
 }
 
 
-/*
- *
+/**
+ * @brief 
+ * 
+ * @param ctx 
  */
 void ru_radio_start_CAD(radio_context_t	*ctx)
 {
@@ -410,8 +419,11 @@ void ru_radio_start_CAD(radio_context_t	*ctx)
 }
 
 
-/*
- *
+/**
+ * @brief 
+ * 
+ * @param ctx 
+ * @return radio_modes_e 
  */
 radio_modes_e	ru_get_radio_last_status( radio_context_t	*ctx)
 {
