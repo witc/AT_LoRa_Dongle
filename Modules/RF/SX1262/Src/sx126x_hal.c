@@ -70,22 +70,29 @@ sx126x_hal_status_t sx126x_hal_write(const void *context, const uint8_t *command
 		const uint16_t data_length)
 {
 	/* alokujeme statisky - tedy bereme to ze stacku - nikoliv z heapu */
-	uint8_t command_copy[command_length];
-	memcpy(command_copy, command, command_length);
-	uint8_t data_copy[data_length];
-	memcpy(data_copy, data, data_length);
 
 	radio_hal_cfg_t* spiDev;
 	spiDev = (radio_hal_cfg_t*) context;
+
 
 	sx126xCheckDeviceReady( context);
 #if(FRAM_RF_SPI_WITH_DMA == 1)
 
 	if(SPI_RFFRAMGetLine(SPI_RFFRAM_Select_RF)==false)	_exit(785186);
-	osDelay(2);
-	if(SPI_RFFRAMTransmit_DMA_NoNSS(SPI_RFFRAM_Select_RF, (uint8_t*)command, command_length) != HAL_OK)	_exit(7875315);
-	if(SPI_RFFRAMTransmit_DMA_NoNSS(SPI_RFFRAM_Select_RF,(uint8_t*) data, data_length) != HAL_OK);// 		_exit(7875316);
-	osDelay(2);
+	if(SPI_RFFRAMTransmit_DMA_NoNSS(SPI_RFFRAM_Select_RF, (uint8_t*)command, command_length) != HAL_OK)
+	{
+		SPI_RFFRAMFreeLine(SPI_RFFRAM_Select_RF);
+		return SX126X_HAL_STATUS_ERROR;
+	}
+	if(data_length > 0)
+	{
+		if(SPI_RFFRAMTransmit_DMA_NoNSS(SPI_RFFRAM_Select_RF, (uint8_t*)data, data_length) != HAL_OK)
+		{
+			SPI_RFFRAMFreeLine(SPI_RFFRAM_Select_RF);
+			return SX126X_HAL_STATUS_ERROR;
+		}
+	}
+
 	if(SPI_RFFRAMFreeLine(SPI_RFFRAM_Select_RF) == false)	_exit(785185);
 
 #else
@@ -93,9 +100,9 @@ sx126x_hal_status_t sx126x_hal_write(const void *context, const uint8_t *command
 	//Put NSS low to start spi transaction
 	HAL_GPIO_WritePin(spiDev->pin_NSS.port, spiDev->pin_NSS.pin, GPIO_PIN_RESET);
 
-	if(HAL_SPI_Transmit(spiDev->target,command_copy,command_length,0xffff) != HAL_OK)	_exit(789);
-	if(HAL_SPI_Transmit(spiDev->target,data_copy,data_length,0xffff) != HAL_OK);// 		_exit(789);
-
+	if(HAL_SPI_Transmit(spiDev->target,command,command_length,0xffff) != HAL_OK)					_exit(789);
+	if(data_length > 0)	if(HAL_SPI_Transmit(spiDev->target,data,data_length,0xffff) != HAL_OK) 	_exit(789);
+	
 	HAL_GPIO_WritePin(spiDev->pin_NSS.port, spiDev->pin_NSS.pin, GPIO_PIN_SET);
 
 	xTaskResumeAll();
@@ -135,16 +142,25 @@ sx126x_hal_status_t sx126x_hal_read(const void *context, const uint8_t *command,
 #if(FRAM_RF_SPI_WITH_DMA == 1)
 	
 	if(SPI_RFFRAMGetLine(SPI_RFFRAM_Select_RF)==false)	_exit(785186);
-	if(SPI_RFFRAMTransmit_DMA_NoNSS(SPI_RFFRAM_Select_RF, (uint8_t*)command, command_length) != HAL_OK)	_exit(7875315);
-	if(SPI_RFFRAMReceive_DMA_NoNSS(SPI_RFFRAM_Select_RF,(uint8_t*) data, data_length) != HAL_OK) 		_exit(7875316);
+	if(SPI_RFFRAMTransmit_DMA_NoNSS(SPI_RFFRAM_Select_RF, (uint8_t*)command, command_length) != HAL_OK)
+	{
+		SPI_RFFRAMFreeLine(SPI_RFFRAM_Select_RF);
+		return SX126X_HAL_STATUS_ERROR;
+	}
+
+	if(data_length > 0)
+	{	
+		if(SPI_RFFRAMReceive_DMA_NoNSS(SPI_RFFRAM_Select_RF,(uint8_t*) data, data_length) != HAL_OK) 	
+		{
+			SPI_RFFRAMFreeLine(SPI_RFFRAM_Select_RF);
+			return SX126X_HAL_STATUS_ERROR;
+		}
+	}
+	
 	if(SPI_RFFRAMFreeLine(SPI_RFFRAM_Select_RF) == false)	_exit(785185);
 
 #else
-	//toto asi nepotrebujeme??
-	uint8_t command_copy[command_length];
-	memcpy(command_copy, command, command_length);
 
-	//TODO binarni semaphore
 	vTaskSuspendAll();
 	radio_hal_cfg_t* spiDev;
 	spiDev = (radio_hal_cfg_t*) context;
@@ -152,8 +168,9 @@ sx126x_hal_status_t sx126x_hal_read(const void *context, const uint8_t *command,
 	// Put NSS low to start spi transaction
 	HAL_GPIO_WritePin(spiDev->pin_NSS.port, spiDev->pin_NSS.pin, GPIO_PIN_RESET);
 
-	if(HAL_SPI_Transmit(spiDev->target,command_copy,command_length,0xffff) != HAL_OK)	_exit(787);
-	if(HAL_SPI_Receive(spiDev->target,data,data_length,0xffff) != HAL_OK) 				_exit(788);
+	if(HAL_SPI_Transmit(spiDev->target,command,command_length,0xffff) != HAL_OK)				_exit(787);
+
+	if(data_length > 0)	if(HAL_SPI_Receive(spiDev->target,data,data_length,0xffff) != HAL_OK) 	_exit(788);
 
     // Put NSS high as the spi transaction is finished
 	HAL_GPIO_WritePin(spiDev->pin_NSS.port, spiDev->pin_NSS.pin, GPIO_PIN_SET);

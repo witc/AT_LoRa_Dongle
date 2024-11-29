@@ -136,6 +136,7 @@ void radio_task(void)
 	ru_sx1262_assign(&ctx);
 
 	if(ru_radioInit(&ctx) == false)	_exit(48351);
+	ru_radio_start_rx(&ctx);
 
 	for(;;)
 	{

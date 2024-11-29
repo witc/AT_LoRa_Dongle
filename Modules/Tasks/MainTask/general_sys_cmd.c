@@ -18,6 +18,7 @@
 #include "AT_cmd.h"
 #include "radio_user.h"
 
+#define RESPONSE_BUFF_SIZE  32
 
 const AT_CommandLimit_t AT_CommandLimits[] = {
     {SYS_CMD_TX_FREQ, 150000000, 960000000},        // TX frequency in Hz (100 MHz to 960 MHz)
@@ -72,6 +73,135 @@ static uint8_t AT_ParseUint8(uint8_t *data)
     return (uint8_t)atoi((char *)data);
 }
 
+void ProcessTxSetCommand(char *params)
+{
+    bool success = true;
+    char *token = strtok(params, ",");
+    while (token != NULL)
+    {
+        char *key = token;
+        char *value_str = strchr(token, ':');
+        if (value_str != NULL)
+        {
+            *value_str = '\0'; // Ukončíme řetězec klíče
+            value_str++; // Posuneme ukazatel na hodnotu
+        }
+        else
+        {
+            success = false;
+            AT_SendStringResponse("ERROR: Invalid parameter format\r\n");
+            break;
+        }
+
+        eATCommands cmd = SYS_CMD_NONE;
+
+        if (strcmp(key, "SF") == 0)
+        {
+            cmd = SYS_CMD_TX_SF;
+            // Případně ověření hodnoty
+        }
+        else if (strcmp(key, "BW") == 0)
+        {
+            cmd = SYS_CMD_TX_BW;
+            // Případně ověření hodnoty
+        }
+        else if (strcmp(key, "CR") == 0)
+        {
+            cmd = SYS_CMD_TX_CR;
+            // Případně ověření hodnoty
+        }
+        else if (strcmp(key, "POWER") == 0)
+        {
+            cmd = SYS_CMD_TX_POWER;
+            // Případně ověření hodnoty
+        }
+        else if (strcmp(key, "FREQ") == 0)
+        {
+            cmd = SYS_CMD_TX_FREQ;
+            // Případně ověření hodnoty
+        }
+        else if (strcmp(key, "IQ") == 0)
+        {
+            cmd = SYS_CMD_TX_IQ;
+            // if (strcmp(value_str, "TRUE") == 0 || strcmp(value_str, "1") == 0)
+            // {
+            //     value_str = "1";
+            // }
+            // else if (strcmp(value_str, "FALSE") == 0 || strcmp(value_str, "0") == 0)
+            // {
+            //     value_str = "0";
+            // }
+            // else
+            // {
+            //     success = false;
+            //     AT_SendStringResponse("ERROR: Invalid IQ value\r\n");
+            //     break;
+            // }
+        }
+        else if (strcmp(key, "HEADER") == 0)
+        {
+            cmd = SYS_CMD_HEADERMODE_TX;
+            // if (strcmp(value_str, "TRUE") == 0 || strcmp(value_str, "1") == 0)
+            // {
+            //     value_str = "1";
+            // }
+            // else if (strcmp(value_str, "FALSE") == 0 || strcmp(value_str, "0") == 0)
+            // {
+            //     value_str = "0";
+            // }
+            // else
+            // {
+            //     success = false;
+            //     AT_SendStringResponse("ERROR: Invalid Header value\r\n");
+            //     break;
+            // }
+        }
+        else if (strcmp(key, "CRC") == 0)
+        {
+            cmd = SYS_CMD_CRC_TX;
+            // if (strcmp(value_str, "TRUE") == 0 || strcmp(value_str, "1") == 0)
+            // {
+            //     value_str = "1";
+            // }
+            // else if (strcmp(value_str, "FALSE") == 0 || strcmp(value_str, "0") == 0)
+            // {
+            //     value_str = "0";
+            // }
+            // else
+            // {
+            //     success = false;
+            //     AT_SendStringResponse("ERROR: Invalid CRC value\r\n");
+            //     break;
+            // }
+        }
+        else
+        {
+            success = false;
+            AT_SendStringResponse("ERROR: Unknown parameter\r\n");
+            break;
+        }
+
+        // Předáme value_str přímo do GSC_ProcessCommand
+        if (!GSC_ProcessCommand(cmd, (uint8_t *)value_str, strlen(value_str)))
+        {
+            success = false;
+            AT_SendStringResponse("ERROR: Failed to set parameter\r\n");
+            break;
+        }
+
+        // Další token
+        token = strtok(NULL, ",");
+    }
+
+    // if (success)
+    // {
+    //     AT_SendStringResponse("OK\r\n");
+    // }
+}
+
+
+
+
 /**
  * @brief Return uint32_t value as a string
  * 
@@ -81,7 +211,7 @@ static uint8_t AT_ParseUint8(uint8_t *data)
  */
 static void AT_FormatUint32Response(uint32_t value, uint8_t *response, uint16_t *response_size)
 {
-    *response_size = sprintf((char *)response, "%lu", (unsigned long)value);
+    *response_size = snprintf((char *)response, RESPONSE_BUFF_SIZE, "%lu", (unsigned long) value);
 }
 
 /**
@@ -92,8 +222,9 @@ static void AT_FormatUint32Response(uint32_t value, uint8_t *response, uint16_t 
  * @param response_size 
  */
 static void AT_FormatUint8Response(uint8_t value, uint8_t *response, uint16_t *response_size)
-{
-    *response_size = sprintf((char *)response, "%u", value);
+{   
+    *response_size = snprintf((char *)response, RESPONSE_BUFF_SIZE, "%u", value);
+    //*response_size = sprintf((char *)response, "%u", value);
 }
 
 /**
@@ -175,7 +306,7 @@ static uint8_t HexStringToByteArray(const char *hexStr, uint8_t *byteArray, size
 bool GSC_ProcessCommand(eATCommands cmd, uint8_t *data, uint16_t size)
 {   
     UNUSED(size);
-    char response[32];
+    char response[RESPONSE_BUFF_SIZE];
     uint16_t response_size = 0;
     bool isQuery = (data[0] == '?');
     bool hasResponse = false;
@@ -333,7 +464,7 @@ bool GSC_ProcessCommand(eATCommands cmd, uint8_t *data, uint16_t size)
                 {
                     bw = Constrain_u8(bw, minValue, maxValue);
                 }
-                NVMA_Set_LR_TX_BW(bw);
+                NVMA_Set_LR_RX_BW(bw);
             }
             break;
         }
@@ -555,7 +686,7 @@ bool GSC_ProcessCommand(eATCommands cmd, uint8_t *data, uint16_t size)
             packetSize = HexStringToByteArray((char *)data, packet, sizeof(packet));
             if(packetSize == 0)
             {
-                AT_SendResponse("ERROR: Invalid HEX data\r\n");
+                AT_SendStringResponse("ERROR: Invalid HEX data\r\n");
                 commandHandled = false;
                 break;
             }
@@ -626,6 +757,13 @@ bool GSC_ProcessCommand(eATCommands cmd, uint8_t *data, uint16_t size)
             break;
         }
 
+        case SYS_CMD_TX_COMPLETE_SET:
+        {
+            // Set TX complete callback
+            ProcessTxSetCommand((char *)data);
+            break;
+        }
+
         default:
         {
             commandHandled = false;
@@ -635,17 +773,17 @@ bool GSC_ProcessCommand(eATCommands cmd, uint8_t *data, uint16_t size)
 
     if (hasResponse)
     {
-        AT_SendResponse(response);
+        AT_SendStringResponse(response);
     }
     else
     {
         if (commandHandled == false)
         {
-            AT_SendResponse("ERROR\r\n");
+            AT_SendStringResponse("ERROR\r\n");
         }
         else
         {
-            AT_SendResponse("OK\r\n");
+            AT_SendStringResponse("OK\r\n");
         }
     }
 

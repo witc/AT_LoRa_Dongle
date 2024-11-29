@@ -56,24 +56,27 @@ const AT_Command_Struct AT_Commands[] = {
     {"AT+SYS_RESTART",           AT_HandleRestartSys,    0,                                 "AT+SYS_RESTART - Restart the system",             ""},
     {"AT+LED_BLUE",              NULL,                   SYS_LED_BLUE,                      "AT+LED_BLUE - Set LED blue state",                "=ON, =OFF"},
 
-    /* LoRa RF settings for SX1262 */
-    {"AT+LR_TXFREQ",                NULL,               SYS_CMD_TX_FREQ,                     "AT+LR_TXFREQ - Set TX frequency",                "=<frequency_in_Hz>, ?"},
-    {"AT+LR_RXFREQ",                NULL,               SYS_CMD_RX_FREQ,                     "AT+LR_RXFREQ - Set RX frequency",                "=<frequency_in_Hz>, ?"},
-    {"AT+LR_TXPOWER",               NULL,               SYS_CMD_TX_POWER,                    "AT+LR_TXPOWER - Set TX power",                   "=<power_in_dBm>, ?"},
-    {"AT+LR_TXSF",                  NULL,               SYS_CMD_TX_SF,                       "AT+LR_TXSF - Set TX spreading factor",           "=5 to 12, ?"},
-    {"AT+LR_RXSF",                  NULL,               SYS_CMD_RX_SF,                       "AT+LR_RXSF - Set RX spreading factor",           "=5 to 12, ?"},
-    {"AT+LR_TXBW",                  NULL,               SYS_CMD_TX_BW,                       "AT+LR_TXBW - Set TX bandwidth",                  "=7810 to 500000 Hz, ?"},
-    {"AT+LR_RXBW",                  NULL,               SYS_CMD_RX_BW,                       "AT+LR_RXBW - Set RX bandwidth",                  "=7810 to 500000 Hz, ?"},
-    {"AT+LR_TXIQ_INV",              NULL,               SYS_CMD_TX_IQ,                       "AT+LR_TXIQ_INV - Set TX IQ inversion",           "=TRUE, =FALSE, ?"},
-    {"AT+LR_RXIQ_INV",              NULL,               SYS_CMD_RX_IQ,                       "AT+LR_RXIQ_INV - Set RX IQ inversion",           "=TRUE, =FALSE, ?"},
-    {"AT+LR_TXCR",                  NULL,               SYS_CMD_TX_CR,                       "AT+LR_TXCR - Set TX coding rate",                "=45, =46, =47, =48, ?"},
-    {"AT+LR_RXCR",                  NULL,               SYS_CMD_RX_CR,                       "AT+LR_RXCR - Set RX coding rate",                "=45, =46, =47, =48, ?"},
-    {"AT+LR_HEADERMODE_TX",         NULL,               SYS_CMD_HEADERMODE_TX,               "AT+LR_HEADERMODE_TX - Enable TX header mode",    "=TRUE, =FALSE, ?"},
-    {"AT+LR_HEADERMODE_RX",         NULL,               SYS_CMD_HEADERMODE_RX,               "AT+LR_HEADERMODE_RX - Enable RX header mode",    "=TRUE, =FALSE, ?"},
-    {"AT+LR_CRC_TX",                NULL,               SYS_CMD_CRC_TX,                      "AT+LR_CRC_TX - Set TX CRC check",                "=TRUE, =FALSE, ?"},
-    {"AT+LR_CRC_RX",                NULL,               SYS_CMD_CRC_RX,                      "AT+LR_CRC_RX - Set RX CRC check",                "=TRUE, =FALSE, ?"},
-    {"AT+LR_PREAMBLE_SIZE_TX",      NULL,               SYS_CMD_PREAM_SIZE_TX,               "AT+LR_PREAMBLE_SIZE_TX",                         "=<1 to 65535>, ?"  },
-    {"AT+LR_PREAMBLE_SIZE_RX",      NULL,               SYS_CMD_PREAM_SIZE_RX,               "AT+LR_PREAMBLE_SIZE_RX",                         "=<1 to 65535> should be >= TX side,?"},
+
+    {"AT+LR_TX_FREQ",                NULL,               SYS_CMD_TX_FREQ,                     "AT+LR_TX_FREQ - Set TX frequency",                "=<frequency_in_Hz>, ?"},
+    {"AT+LR_RX_FREQ",                NULL,               SYS_CMD_RX_FREQ,                     "AT+LR_RX_FREQ - Set RX frequency",                "=<frequency_in_Hz>, ?"},
+    {"AT+LR_TX_POWER",               NULL,               SYS_CMD_TX_POWER,                    "AT+LR_TX_POWER - Set TX power",                   "=<power_in_dBm>, ?"},
+    {"AT+LR_TX_SF",                  NULL,               SYS_CMD_TX_SF,                       "AT+LR_TX_SF - Set TX spreading factor",           "=5 to 12, ?"},
+    {"AT+LR_RX_SF",                  NULL,               SYS_CMD_RX_SF,                       "AT+LR_RX_SF - Set RX spreading factor",           "=5 to 12, ?"},
+    {"AT+LR_TX_BW",                  NULL,               SYS_CMD_TX_BW,                       "AT+LR_TX_BW - Set TX bandwidth",                  "=7810 (BW 0) to 500000 Hz (BW 9): {7.81, 10.42, 15.63, 20.83, 31.25, 41.67, 62.5, 125, 250, 500 kHz}"},
+    {"AT+LR_RX_BW",                  NULL,               SYS_CMD_RX_BW,                       "AT+LR_RX_BW - Set RX bandwidth",                  "=7810 (BW 0) to 500000 Hz (BW 9): {7.81, 10.42, 15.63, 20.83, 31.25, 41.67, 62.5, 125, 250, 500 kHz}"},
+    {"AT+LR_TX_IQ_INV",              NULL,               SYS_CMD_TX_IQ,                       "AT+LR_TX_IQ_INV - Set TX IQ inversion",           "=1, =0, ?"},
+    {"AT+LR_RX_IQ_INV",              NULL,               SYS_CMD_RX_IQ,                       "AT+LR_RX_IQ_INV - Set RX IQ inversion",           "=1, =0, ?"},
+    {"AT+LR_TX_CR",                  NULL,               SYS_CMD_TX_CR,                       "AT+LR_TX_CR - Set TX coding rate",                "=45, =46, =47, =48, ?"},
+    {"AT+LR_RX_CR",                  NULL,               SYS_CMD_RX_CR,                       "AT+LR_RX_CR - Set RX coding rate",                "=45, =46, =47, =48, ?"},
+    {"AT+LR_TX_HEADERMODE",         NULL,               SYS_CMD_HEADERMODE_TX,               "AT+LR_TX_HEADERMODE - Enable TX header mode",    "=1, =0, ?"},
+    {"AT+LR_RX_HEADERMODE",         NULL,               SYS_CMD_HEADERMODE_RX,               "AT+LR_RX_HEADERMODE - Enable RX header mode",    "=1, =0, ?"},
+    {"AT+LR_TX_CRC",                NULL,               SYS_CMD_CRC_TX,                      "AT+LR_TX_CRC - Set TX CRC check",                "=1, =0, ?"},
+    {"AT+LR_RX_CRC",                NULL,               SYS_CMD_CRC_RX,                      "AT+LR_RX_CRC - Set RX CRC check",                "=1, =0, ?"},
+    {"AT+LR_TX_PREAMBLE_SIZE",      NULL,               SYS_CMD_PREAM_SIZE_TX,               "AT+LR_TX_PREAMBLE_SIZE",                         "=<1 to 65535>, ?"  },
+    {"AT+LR_RX_PREAMBLE_SIZE",      NULL,               SYS_CMD_PREAM_SIZE_RX,               "AT+LR_RX_PREAMBLE_SIZE",                         "=<1 to 65535> should be >= TX side,?"},
+    {"AT+LR_TX_SET",                NULL,               SYS_CMD_TX_COMPLETE_SET,             "AT+LR_TX_SET - Set multiple TX parameters",      "=SF:<value>,BW:<value>,CR:<value>,Freq:<value>,IQ:<value>,Header:<value>,CRC:<value>,Power:<value>, ?"},
+    {"AT+LR_RX_SET",                NULL,               SYS_CMD_RX_COMPLETE_SET,             "AT+LR_RX_SET - Set multiple RX parameters",      "=SF:<value>,BW:<value>,CR:<value>,Freq:<value>,IQ:<value>,Header:<value>,CRC:<value>, ?"},
+
     {"AT+RF_TX_HEX",                NULL,               SYS_CMD_RF_TX_HEX,                   "AT+RF_TX_HEX - Transmit data via RF in HEX format",  "=<HEX data>"},
     {"AT+RF_TX_TXT",                NULL,               SYS_CMD_RF_TX_TXT,                   "AT+RF_TX_TXT - Transmit data via RF in text format", "=<Text data>"},
     {"AT+RF_TX_FROM_NVM",           NULL,               SYS_CMD_RF_TX_FROM_NVM,              "Transmit saved RF packet from NVM",                   ""},
@@ -199,19 +202,19 @@ void AT_HandleATCommand(uint16_t size)
             {      
                 if (noParam == true)
                 {
-                    AT_SendResponse("ERROR - Missing parameters\r\n");
+                    AT_SendStringResponse("ERROR - Missing parameters\r\n");
                     break;
                 }
 
                 if(at_ctx.onDataReceivedFromISR == NULL)
                 {
-                    AT_SendResponse("ERROR - No handler for this command\r\n");
+                    AT_SendStringResponse("ERROR - No handler for this command\r\n");
                     break;
                 }
                 
                 if(at_ctx.onDataReceivedFromISR(params,(uint8_t) AT_Commands[i].cmdtoCore,size) == false)
                 {
-                    AT_SendResponse("ERROR - Previous data was not processed yet!\r\n");
+                    AT_SendStringResponse("ERROR - Previous data was not processed yet!\r\n");
                 }
                 
                 //AT_Commands[i].handler(params,AT_Commands[i].cmdtoCore,size);
@@ -225,7 +228,7 @@ void AT_HandleATCommand(uint16_t size)
     }
     if(isCommand == false)
     {
-        AT_SendResponse("ERROR - Unknown command\r\n");
+        AT_SendStringResponse("ERROR - Unknown command\r\n");
     }
 
     memset(data,0,size);
@@ -240,7 +243,7 @@ void AT_HandleATCommand(uint16_t size)
 void AT_HandleUartError(void)
 {   
     SP_HandleUARTError(&at_ctx.sp_ctx);
-    AT_SendResponse("ERROR - UART error\r\n");
+    AT_SendStringResponse("ERROR - UART error\r\n");
 }
 
 /**
@@ -252,15 +255,15 @@ static  void AT_HandleFactorMode(char *params)
 {   
     if(memcmp(params,"ON",2) == 0)
     {
-        AT_SendResponse("Factory mode UI enabled\r\n");
+        AT_SendStringResponse("Factory mode UI enabled\r\n");
     }
     else if(memcmp(params,"OFF",3) == 0)
     {
-        AT_SendResponse("Factory mode UI disabled\r\n");
+        AT_SendStringResponse("Factory mode UI disabled\r\n");
     }
     else
     {
-        AT_SendResponse("ERROR\r\n");
+        AT_SendStringResponse("ERROR\r\n");
     }
     
 }
@@ -274,23 +277,23 @@ static void AT_HandleHelp(char *params)
 {   
     UNUSED(params);
 
-    AT_SendResponse("\r\n");
-    AT_SendResponse("Supported AT commands:\r\n");
+    AT_SendStringResponse("\r\n");
+    AT_SendStringResponse("Supported AT commands:\r\n");
 
     for (uint16_t i = 0; i < sizeof(AT_Commands) / sizeof(AT_Command_Struct); i++)
     {
        // AT_SendResponse(AT_Commands[i].command);
        // AT_SendResponse((char *)" - ");
-        AT_SendResponse((char*)AT_Commands[i].usage);
+        AT_SendStringResponse((char*)AT_Commands[i].usage);
 
         if (strlen(AT_Commands[i].parameters) > 0)
         {
-            AT_SendResponse(" (Par: ");
-            AT_SendResponse((char*)AT_Commands[i].parameters);
-            AT_SendResponse(")");
+            AT_SendStringResponse(" (Par: ");
+            AT_SendStringResponse((char*)AT_Commands[i].parameters);
+            AT_SendStringResponse(")");
         }
 
-        AT_SendResponse("\r\n");
+        AT_SendStringResponse("\r\n");
     }
 }
 
@@ -312,7 +315,7 @@ static void AT_HandleRestartSys(char *params)
  * 
  * @param response 
  */
-void AT_SendResponse(char *response)
+void AT_SendStringResponse(char *response)
 {   
     BaseType_t xHigherPriorityTaskWoken = pdFALSE;
 

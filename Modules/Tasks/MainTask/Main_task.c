@@ -97,6 +97,62 @@ bool AT_CustomCommandHandler(char *data,eATCommands atCmd, uint16_t size)
 	return true;
 }
 
+
+void AT_SendRfPacketResponse(uint8_t *packet, int16_t rssi, uint16_t length)
+{
+    uint8_t response[256]={0}; // Buffer pro odpověď
+
+    uint16_t response_size = 0;
+    int ret;
+
+    // Přidání prefixu a délky
+    ret = snprintf((char *)&response[response_size], sizeof(response) - response_size, "+RF_RX:%u,", length);
+    if (ret < 0 || ret >= (int)(sizeof(response) - response_size))
+    {
+        // Chyba při formátování nebo nedostatek místa v bufferu
+        return;
+    }
+    response_size += ret;
+
+    // Převod dat na HEX bez použití sprintf v cyklu
+    static const char hex_digits[] = "0123456789ABCDEF";
+    for (uint16_t i = 0; i < length; i++)
+    {
+        if (response_size + 2 >= sizeof(response))
+        {
+            // Není dostatek místa v bufferu
+            return;
+        }
+        uint8_t byte = packet[i];
+        response[response_size++] = hex_digits[(byte >> 4) & 0x0F];
+        response[response_size++] = hex_digits[byte & 0x0F];
+    }
+
+    // Přidání RSSI na konec
+    ret = snprintf((char *)&response[response_size], sizeof(response) - response_size, ",RSSI:%d", rssi);
+    if (ret < 0 || ret >= (int)(sizeof(response) - response_size))
+    {
+        // Chyba nebo nedostatek místa v bufferu
+        return;
+    }
+    response_size += ret;
+
+    // Přidání odřádkování
+    if (response_size + 2 >= sizeof(response))
+    {
+        // Nedostatek místa v bufferu
+        return;
+    }
+    response[response_size++] = '\r';
+    response[response_size++] = '\n';
+
+    // Odeslání odpovědi
+    AT_SendStringResponse((char *)response);
+}
+
+
+
+
 /**
  * @brief 
  * 
@@ -126,8 +182,8 @@ void main_task_on(main_ctx_t *ctx, dataQueue_t *rxd)
 	{
 		case CMD_MAIN_RF_RX_PACKET:
 			rx_pkt = rxd->ptr;
-			//prt_decode_rx_data(rx_pkt->packet, rx_pkt->size, ctx);
-
+			
+			AT_SendRfPacketResponse(rx_pkt->packet, rx_pkt->rx_rssi,rx_pkt->size);
 			vPortFree(rx_pkt->packet);
 			rx_pkt->packet=NULL;
 
@@ -222,7 +278,6 @@ void main_task(void)
 	osTimerStart(ctx.timers.LED_alive.timer, pdMS_TO_TICKS(100));
 
 	/* init and start recieve*/
-
 	if (xBinarySemaphore_USART == NULL)
     {
         // Vytvoření semaforu

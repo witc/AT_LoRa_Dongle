@@ -50,6 +50,7 @@
 
 /* Private variables ---------------------------------------------------------*/
 
+extern osMessageQId queueRadioHandle;
 /* USER CODE BEGIN PV */
 /* USER CODE END PV */
 
@@ -88,6 +89,27 @@ void HAL_UART_ErrorCallback(UART_HandleTypeDef *huart)
     AT_HandleUartError();
 }
 
+
+void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
+{ 
+  dataQueue_t txm;
+	txm.ptr = NULL;
+  BaseType_t xHigherPriorityTaskWoken;
+
+
+  if(GPIO_Pin == SX1262_DIO1_Pin)
+  {
+      txm.cmd = CMD_RF_IRQ_FIRED;
+
+      xQueueSendFromISR(queueRadioHandle,&txm,&xHigherPriorityTaskWoken );
+  }
+
+  if( xHigherPriorityTaskWoken )
+  {
+      /* Actual macro used here is port specific. */
+      portYIELD_FROM_ISR (xHigherPriorityTaskWoken);
+  }
+}
 
 static void PrintAppInfo(void)
 {

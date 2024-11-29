@@ -51,6 +51,8 @@ typedef enum
     SYS_CMD_CRC_RX          = 34,
     SYS_CMD_PREAM_SIZE_TX   = 35,
     SYS_CMD_PREAM_SIZE_RX   = 36,
+    SYS_CMD_TX_COMPLETE_SET = 37,
+    SYS_CMD_RX_COMPLETE_SET = 38,
 
 } eATCommands;
 
@@ -66,7 +68,7 @@ typedef struct AT_cmd
 
 } __attribute__((packed)) AT_cmd_t;
 
-void AT_SendResponse(char *response);
+void AT_SendStringResponse(char *response);
 void AT_HandleATCommand(uint16_t size);
 void AT_Init(AT_cmd_t *atCmd);
 

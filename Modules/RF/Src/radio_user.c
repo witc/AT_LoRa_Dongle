@@ -37,6 +37,14 @@ static const ral_lora_bw_t BW_MAP[] = {
     RAL_LORA_BW_500_KHZ    // BW 9 -> 500 kHz
 };
 
+static const ral_lora_cr_t CR_MAP[] = {
+   	RAL_LORA_CR_4_5,
+    RAL_LORA_CR_4_6,
+    RAL_LORA_CR_4_7,
+    RAL_LORA_CR_4_8,
+};
+
+
 /**
  * @brief Get the lora bw from user value object
  * 
@@ -51,6 +59,17 @@ ral_lora_bw_t get_lora_bw_from_user_value(uint8_t user_value)
     }
 
     return BW_MAP[user_value];
+}
+
+
+ral_lora_bw_t get_lora_cr_from_user_value(uint8_t user_value)
+{
+    if (user_value >= sizeof(CR_MAP) / sizeof(CR_MAP[0]))
+    {
+        return RAL_LORA_CR_4_5;
+    }
+
+    return CR_MAP[user_value];
 }
 
 
@@ -166,13 +185,12 @@ bool ru_radioInit(radio_context_t *ctx)
 	// enable irq
 	SET_BIT(EXTI->IMR, RF_DIO1_EXTI_LINE);
 
+	HAL_NVIC_EnableIRQ(RF_DIO1_NVIC);
+
 	ctx->rfConfig.lastMode = RF_MODE_IDLE;
 	return true;
 
 }
-
-#include <stdint.h>
-
 
 
 
@@ -186,17 +204,22 @@ bool ru_radioInit(radio_context_t *ctx)
 bool ru_load_radio_config_tx(ralf_params_lora_t *loraParam)
 {	
 	uint8_t bw;
+	uint8_t cr;
 	NVMA_Get_LR_CRC_TX((uint8_t*)&loraParam->pkt_params.crc_is_on);
 	NVMA_Get_LR_HeaderMode_TX(&loraParam->pkt_params.header_type);
 	NVMA_Get_LR_TX_IQ((uint8_t*)&loraParam->pkt_params.invert_iq_is_on);
 	NVMA_Get_LR_PreamSize_TX(&loraParam->pkt_params.preamble_len_in_symb);
-	NVMA_Get_LR_TX_SF(&loraParam->mod_params.sf);	
-	NVMA_Get_LR_TX_CR(&loraParam->mod_params.cr);
+	NVMA_Get_LR_TX_SF(&loraParam->mod_params.sf);
+
+	NVMA_Get_LR_TX_CR(&cr);
+	cr = get_lora_cr_from_user_value(cr);
+	loraParam->mod_params.cr = cr;
+
 	NVMA_Get_LR_Freq_TX(&loraParam->rf_freq_in_hz);
 	NVMA_Get_LR_TX_Power((uint8_t *)&loraParam->output_pwr_in_dbm);
 
 	NVMA_Get_LR_TX_BW(&bw);
-	get_lora_bw_from_user_value(bw);
+	bw = get_lora_bw_from_user_value(bw);
 	loraParam->mod_params.bw = bw;
 
 	//NVMA_Get_LR_(&loraParam->sync_word);
@@ -207,13 +230,18 @@ bool ru_load_radio_config_tx(ralf_params_lora_t *loraParam)
 bool ru_load_radio_config_rx(ralf_params_lora_t *loraParam)
 {	
 	uint8_t bw;
-	
+	uint8_t cr;
+
 	NVMA_Get_LR_CRC_RX((uint8_t*)&loraParam->pkt_params.crc_is_on);
 	NVMA_Get_LR_HeaderMode_RX(&loraParam->pkt_params.header_type);
 	NVMA_Get_LR_RX_IQ((uint8_t*)&loraParam->pkt_params.invert_iq_is_on);
 	NVMA_Get_LR_PreamSize_RX(&loraParam->pkt_params.preamble_len_in_symb);
 	NVMA_Get_LR_RX_SF(&loraParam->mod_params.sf);
-	NVMA_Get_LR_RX_CR(&loraParam->mod_params.cr);
+	
+	NVMA_Get_LR_TX_CR(&cr);
+	cr = get_lora_cr_from_user_value(cr);
+	loraParam->mod_params.cr = cr;
+
 	NVMA_Get_LR_Freq_RX(&loraParam->rf_freq_in_hz);
 
 	NVMA_Get_LR_RX_BW(&bw);
@@ -479,13 +507,13 @@ void ru_radio_process_IRQ(radio_context_t *ctx)
 	switch (mode)
 	{
 		case RF_MODE_RX:
-			LOG_INFO("SX1262: IRQ during RX mode");
+	
 		    if (((irqSet & RAL_IRQ_RX_DONE) == RAL_IRQ_RX_DONE) && ((irqSet & RAL_IRQ_RX_CRC_ERROR) != RAL_IRQ_RX_CRC_ERROR))
 		    {
 		    	if(ral_get_pkt_payload(ral,255,rxPayload,&rxSize) == RAL_STATUS_OK)
 		    	{
 					ral_get_rssi_inst(ral, &RSSI);	
-					LOG_INFO("RX: %d B, RSSI: %d dBm", rxSize, RSSI);
+					LOG_INFO("RX: %d B, RSSI: %d dBm", rxSize, (int16_t)RSSI);
 
 					rx_raw_data =  pvPortMalloc(rxSize);
 					if (rx_raw_data == NULL)
@@ -511,7 +539,7 @@ void ru_radio_process_IRQ(radio_context_t *ctx)
 				LOG_DEBUG("Semtech CRC Error");
 			}
 
-			ru_radioCleanAndStandby(RAL_STANDBY_CFG_XOSC, ctx);
+		//	ru_radioCleanAndStandby(RAL_STANDBY_CFG_XOSC, ctx);
 		    ru_radio_start_rx(ctx);
 
 			break;
