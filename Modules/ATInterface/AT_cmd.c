@@ -55,8 +55,10 @@ const AT_Command_Struct AT_Commands[] = {
     {"AT+FACTORY_MODE",          AT_HandleFactorMode,    0,                                 "AT+FACTORY_MODE - Enable factory mode",           "=ON, =OFF"},
     {"AT+SYS_RESTART",           AT_HandleRestartSys,    0,                                 "AT+SYS_RESTART - Restart the system",             ""},
     {"AT+LED_BLUE",              NULL,                   SYS_LED_BLUE,                      "AT+LED_BLUE - Set LED blue state",                "=ON, =OFF"},
-
-
+    /* multiple LoRa params*/
+    {"AT+LR_TX_SET",                NULL,               SYS_CMD_TX_COMPLETE_SET,             "AT+LR_TX_SET - Set multiple TX parameters",      "=SF:<value>,BW:<value>,CR:<value>,Freq:<value>,IQ:<value>,Header:<value>,CRC:<value>,Power:<value>, ?"},
+    {"AT+LR_RX_SET",                NULL,               SYS_CMD_RX_COMPLETE_SET,             "AT+LR_RX_SET - Set multiple RX parameters",      "=SF:<value>,BW:<value>,CR:<value>,Freq:<value>,IQ:<value>,Header:<value>,CRC:<value>, ?"},
+    /* single LoRa params*/
     {"AT+LR_TX_FREQ",                NULL,               SYS_CMD_TX_FREQ,                     "AT+LR_TX_FREQ - Set TX frequency",                "=<frequency_in_Hz>, ?"},
     {"AT+LR_RX_FREQ",                NULL,               SYS_CMD_RX_FREQ,                     "AT+LR_RX_FREQ - Set RX frequency",                "=<frequency_in_Hz>, ?"},
     {"AT+LR_TX_POWER",               NULL,               SYS_CMD_TX_POWER,                    "AT+LR_TX_POWER - Set TX power",                   "=<power_in_dBm>, ?"},
@@ -68,15 +70,13 @@ const AT_Command_Struct AT_Commands[] = {
     {"AT+LR_RX_IQ_INV",              NULL,               SYS_CMD_RX_IQ,                       "AT+LR_RX_IQ_INV - Set RX IQ inversion",           "=1, =0, ?"},
     {"AT+LR_TX_CR",                  NULL,               SYS_CMD_TX_CR,                       "AT+LR_TX_CR - Set TX coding rate",                "=45, =46, =47, =48, ?"},
     {"AT+LR_RX_CR",                  NULL,               SYS_CMD_RX_CR,                       "AT+LR_RX_CR - Set RX coding rate",                "=45, =46, =47, =48, ?"},
-    {"AT+LR_TX_HEADERMODE",         NULL,               SYS_CMD_HEADERMODE_TX,               "AT+LR_TX_HEADERMODE - Enable TX header mode",    "=1, =0, ?"},
-    {"AT+LR_RX_HEADERMODE",         NULL,               SYS_CMD_HEADERMODE_RX,               "AT+LR_RX_HEADERMODE - Enable RX header mode",    "=1, =0, ?"},
+    {"AT+LR_TX_HEADERMODE",         NULL,               SYS_CMD_HEADERMODE_TX,               "AT+LR_TX_HEADERMODE - Enable TX header mode, explicit = 0",    "=1, =0, ?"},
+    {"AT+LR_RX_HEADERMODE",         NULL,               SYS_CMD_HEADERMODE_RX,               "AT+LR_RX_HEADERMODE - Enable RX header mode, explicit = 0",    "=1, =0, ?"},
     {"AT+LR_TX_CRC",                NULL,               SYS_CMD_CRC_TX,                      "AT+LR_TX_CRC - Set TX CRC check",                "=1, =0, ?"},
     {"AT+LR_RX_CRC",                NULL,               SYS_CMD_CRC_RX,                      "AT+LR_RX_CRC - Set RX CRC check",                "=1, =0, ?"},
     {"AT+LR_TX_PREAMBLE_SIZE",      NULL,               SYS_CMD_PREAM_SIZE_TX,               "AT+LR_TX_PREAMBLE_SIZE",                         "=<1 to 65535>, ?"  },
     {"AT+LR_RX_PREAMBLE_SIZE",      NULL,               SYS_CMD_PREAM_SIZE_RX,               "AT+LR_RX_PREAMBLE_SIZE",                         "=<1 to 65535> should be >= TX side,?"},
-    {"AT+LR_TX_SET",                NULL,               SYS_CMD_TX_COMPLETE_SET,             "AT+LR_TX_SET - Set multiple TX parameters",      "=SF:<value>,BW:<value>,CR:<value>,Freq:<value>,IQ:<value>,Header:<value>,CRC:<value>,Power:<value>, ?"},
-    {"AT+LR_RX_SET",                NULL,               SYS_CMD_RX_COMPLETE_SET,             "AT+LR_RX_SET - Set multiple RX parameters",      "=SF:<value>,BW:<value>,CR:<value>,Freq:<value>,IQ:<value>,Header:<value>,CRC:<value>, ?"},
-
+ 
     {"AT+RF_TX_HEX",                NULL,               SYS_CMD_RF_TX_HEX,                   "AT+RF_TX_HEX - Transmit data via RF in HEX format",  "=<HEX data>"},
     {"AT+RF_TX_TXT",                NULL,               SYS_CMD_RF_TX_TXT,                   "AT+RF_TX_TXT - Transmit data via RF in text format", "=<Text data>"},
     {"AT+RF_TX_FROM_NVM",           NULL,               SYS_CMD_RF_TX_FROM_NVM,              "Transmit saved RF packet from NVM",                   ""},

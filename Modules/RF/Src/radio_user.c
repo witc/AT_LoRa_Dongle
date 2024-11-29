@@ -37,12 +37,6 @@ static const ral_lora_bw_t BW_MAP[] = {
     RAL_LORA_BW_500_KHZ    // BW 9 -> 500 kHz
 };
 
-static const ral_lora_cr_t CR_MAP[] = {
-   	RAL_LORA_CR_4_5,
-    RAL_LORA_CR_4_6,
-    RAL_LORA_CR_4_7,
-    RAL_LORA_CR_4_8,
-};
 
 
 /**
@@ -62,14 +56,21 @@ ral_lora_bw_t get_lora_bw_from_user_value(uint8_t user_value)
 }
 
 
-ral_lora_bw_t get_lora_cr_from_user_value(uint8_t user_value)
+ral_lora_cr_t get_lora_cr_from_user_value(uint8_t user_value)
 {
-    if (user_value >= sizeof(CR_MAP) / sizeof(CR_MAP[0]))
-    {
-        return RAL_LORA_CR_4_5;
-    }
-
-    return CR_MAP[user_value];
+	switch (user_value)
+	{
+		case 45:
+			return RAL_LORA_CR_4_5;
+		case 46:
+			return RAL_LORA_CR_4_6;
+		case 47:
+			return RAL_LORA_CR_4_7;
+		case 48:
+			return RAL_LORA_CR_4_8;
+		default:
+			return RAL_LORA_CR_4_5; // Default to 4/5 if invalid value
+	}
 }
 
 
@@ -238,7 +239,7 @@ bool ru_load_radio_config_rx(ralf_params_lora_t *loraParam)
 	NVMA_Get_LR_PreamSize_RX(&loraParam->pkt_params.preamble_len_in_symb);
 	NVMA_Get_LR_RX_SF(&loraParam->mod_params.sf);
 	
-	NVMA_Get_LR_TX_CR(&cr);
+	NVMA_Get_LR_RX_CR(&cr);
 	cr = get_lora_cr_from_user_value(cr);
 	loraParam->mod_params.cr = cr;
 

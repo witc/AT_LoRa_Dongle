@@ -100,7 +100,7 @@ bool AT_CustomCommandHandler(char *data,eATCommands atCmd, uint16_t size)
 
 void AT_SendRfPacketResponse(uint8_t *packet, int16_t rssi, uint16_t length)
 {
-    uint8_t response[256]={0}; // Buffer pro odpověď
+    uint8_t response[600]={0}; 
 
     uint16_t response_size = 0;
     int ret;
@@ -118,7 +118,7 @@ void AT_SendRfPacketResponse(uint8_t *packet, int16_t rssi, uint16_t length)
     static const char hex_digits[] = "0123456789ABCDEF";
     for (uint16_t i = 0; i < length; i++)
     {
-        if (response_size + 2 >= sizeof(response))
+        if (response_size + 2 >= (uint16_t)sizeof(response))
         {
             // Není dostatek místa v bufferu
             return;

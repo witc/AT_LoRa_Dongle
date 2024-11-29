@@ -14,12 +14,13 @@
 #define CONSTRAIN_H
 
 #include <stdint.h>
+#include "stdbool.h"
 
 // Funkce pro omezení hodnot pro různé datové typy
-uint8_t Constrain_u8(uint8_t value, uint8_t min, uint8_t max);
-uint16_t Constrain_u16(uint16_t value, uint16_t min, uint16_t max);
-int32_t Constrain_s32(int32_t value, int32_t min, int32_t max);
-float Constrain_f(float value, float min, float max);
-uint32_t Constrain_u32(uint32_t value, uint32_t min, uint32_t max);
+uint8_t Constrain_u8(uint8_t value, uint8_t min, uint8_t max, bool *wasConstrained);
+uint16_t Constrain_u16(uint16_t value, uint16_t min, uint16_t max, bool *wasConstrained);
+int32_t Constrain_s32(int32_t value, int32_t min, int32_t max, bool *wasConstrained);
+float Constrain_f(float value, float min, float max, bool *wasConstrained);
+uint32_t Constrain_u32(uint32_t value, uint32_t min, uint32_t max, bool *wasConstrained);
 
 #endif // CONSTRAIN_H
