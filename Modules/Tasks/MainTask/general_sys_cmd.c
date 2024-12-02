@@ -143,7 +143,50 @@ bool AT_ParseUint8(const uint8_t *data, uint8_t *value)
  * @param params 
  */
 void ProcessRFMultiSetCommand(bool tx, char *params)
-{
+{      
+   bool isQuery = (params[0] == '?' && params[1] == '\0');
+
+    // Seznam příkazů k iteraci
+    eATCommands commands[] = {
+        tx ? SYS_CMD_TX_SF : SYS_CMD_RX_SF,
+        tx ? SYS_CMD_TX_BW : SYS_CMD_RX_BW,
+        tx ? SYS_CMD_TX_CR : SYS_CMD_RX_CR,
+        tx ? SYS_CMD_TX_FREQ : SYS_CMD_RX_FREQ,
+        tx ? SYS_CMD_TX_IQ : SYS_CMD_RX_IQ,
+        tx ? SYS_CMD_HEADERMODE_TX : SYS_CMD_HEADERMODE_RX,
+        tx ? SYS_CMD_CRC_TX : SYS_CMD_CRC_RX,
+        tx ? SYS_CMD_TX_POWER : SYS_CMD_TX_POWER
+    };
+
+    const char *keys[] = {
+        "SF", "BW", "CR", "Freq", "IQ", "Header", "CRC", "Power"
+    };
+
+
+    // Pokud jde o dotaz
+    if (isQuery)
+    {
+        // Iteruj přes všechny příkazy a volej `GSC_ProcessCommand`
+        for (size_t i = 0; i < sizeof(commands) / sizeof(commands[0]); i++)
+        {   
+            AT_SendStringResponse(keys[i]);
+            AT_SendStringResponse(":");
+
+             // Získej hodnotu pomocí `GSC_ProcessCommand`
+            if (GSC_ProcessCommand(commands[i], (uint8_t *)"?", 1))
+            {
+                // Hodnota už je vypsána přímo v `GSC_ProcessCommand`
+            }
+            else
+            {
+                AT_SendStringResponse("ERROR");
+            }
+
+            AT_SendStringResponse("\r\n"); // Přidání nového řádku pro čitelnost
+        }
+        return;
+    }
+
     bool success = true;
     char *token = strtok(params, ",");
 
