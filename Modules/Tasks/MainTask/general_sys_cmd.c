@@ -57,7 +57,6 @@ const size_t AllowedBandwidthCount = sizeof(AllowedBandwidths) / sizeof(AllowedB
 static bool _GSC_Handle_BlueLED(uint8_t *data);
 static void _GSC_Handle_TX(uint8_t *data, uint8_t size);
 static bool GetCommandLimits(eATCommands cmd, int32_t *minValue, int32_t *maxValue, size_t *maxLength);
-static bool IsValidBandwidth(uint32_t bandwidth);
 static uint8_t HexStringToByteArray(const char *hexStr, uint8_t *byteArray, size_t byteArraySize);
  
 /**
@@ -134,7 +133,7 @@ size_t AT_ParseUint8(const uint8_t *data, uint8_t *value, size_t maxLength)
 
         uint8_t digit = *ptr - '0';
 
-        if (result > (UINT8_MAX - digit) / 10)
+        if (result > ((uint32_t)UINT8_MAX - digit) / 10)
         {
             return 0; // Přetečení
         }
@@ -187,7 +186,7 @@ void ProcessRFMultiSetCommand(bool tx, char *params)
         // Iteruj přes všechny příkazy a volej `GSC_ProcessCommand`
         for (size_t i = 0; i < sizeof(commands) / sizeof(commands[0]); i++)
         {   
-            AT_SendStringResponse(keys[i]);
+            AT_SendStringResponse((char *)keys[i]);
             AT_SendStringResponse(":");
 
              // Získej hodnotu pomocí `GSC_ProcessCommand`
@@ -205,10 +204,8 @@ void ProcessRFMultiSetCommand(bool tx, char *params)
         return;
     }
 
-    bool success = true;
     char *token = strtok(params, ",");
 
-    bool errorOccurred = false;
     char errorMessages[256] = ""; // Pole pro chybové zprávy
     size_t errorMessagesLen = 0;
 
@@ -223,7 +220,6 @@ void ProcessRFMultiSetCommand(bool tx, char *params)
         }
         else
         {
-            success = false;
             break;
         }
 
@@ -278,7 +274,6 @@ void ProcessRFMultiSetCommand(bool tx, char *params)
         }
         else
         {
-            success = false;
             AT_SendStringResponse("ERROR: Unknown parameter\r\n");
             break;
         }
@@ -286,7 +281,6 @@ void ProcessRFMultiSetCommand(bool tx, char *params)
         // Předáme value_str přímo do GSC_ProcessCommand
         if (!GSC_ProcessCommand(cmd, (uint8_t *)value_str, strlen(value_str)))
         {   
-            errorOccurred = true;
             if (errorMessagesLen < sizeof(errorMessages) - 1)
             {
                 strncat(errorMessages, "Failed to set parameter: ", sizeof(errorMessages) - errorMessagesLen - 1);
@@ -294,20 +288,12 @@ void ProcessRFMultiSetCommand(bool tx, char *params)
                 strncat(errorMessages, "; ", sizeof(errorMessages) - errorMessagesLen - 1);
                 errorMessagesLen = strlen(errorMessages);
             }
-
-            success = false;
-            //AT_SendStringResponse("ERROR: Failed to set parameter\r\n");
-           // break;
         }
 
         // Další token
         token = strtok(NULL, ",");
     }
 
-    // if (success == false)
-    // {
-    //    AT_SendStringResponse("ERROR: Invalid parameter format\r\n");
-    // }
 }
 
 
@@ -362,24 +348,6 @@ static bool GetCommandLimits(eATCommands cmd, int32_t *minValue, int32_t *maxVal
     return false; // Pokud nebyl příkaz nalezen
 }
 
-
-/**
- * @brief 
- * 
- * @param bandwidth 
- * @return staic 
- */
-static bool IsValidBandwidth(uint32_t bandwidth)
-{
-    for (size_t i = 0; i < AllowedBandwidthCount; i++)
-    {
-        if (AllowedBandwidths[i] == bandwidth)
-        {
-            return true;
-        }
-    }
-    return false;
-}
 
 /**
  * @brief Convert hex string to uint8_t array
@@ -1010,10 +978,10 @@ bool GSC_ProcessCommand(eATCommands cmd, uint8_t *data, uint16_t size)
 
         case SYS_CMD_PREAM_SIZE_TX:
         {   
-            uint16_t size;
+            uint32_t size;
             if (isQuery)
             {
-                NVMA_Get_LR_PreamSize_TX(&size);
+                NVMA_Get_LR_PreamSize_TX((uint16_t*)&size);
                 AT_FormatUint32Response(size, (uint8_t *)response, &response_size);
                 hasResponse = true;
             }
@@ -1048,10 +1016,10 @@ bool GSC_ProcessCommand(eATCommands cmd, uint8_t *data, uint16_t size)
 
         case SYS_CMD_PREAM_SIZE_RX:
         {   
-            uint16_t size;
+            uint32_t size;
             if (isQuery)
             {
-                NVMA_Get_LR_PreamSize_RX(&size);
+                NVMA_Get_LR_PreamSize_RX((uint16_t*)&size);
                 AT_FormatUint32Response(size, (uint8_t *)response, &response_size);
                 hasResponse = true;
             }
@@ -1310,6 +1278,8 @@ static void _GSC_Handle_TX(uint8_t *data, uint8_t size)
     {
         _exit(313513);
     }
+
+    memcpy(tx_raw_data, data, size);
 
     tx_pkt = pvPortMalloc(sizeof(packet_info_t));
     if (tx_pkt == NULL)
