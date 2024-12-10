@@ -24,6 +24,7 @@
 static void AT_HandleFactorMode(char *params);
 static void AT_HandleHelp(char *params);
 static void AT_HandleRestartSys(char *params);
+static void AT_HandleIdentify(char *params);
 static void AT_HandleRF_TX_HEX(char *params);
 
 extern UART_HandleTypeDef huart1;
@@ -52,6 +53,7 @@ typedef struct
 const AT_Command_Struct AT_Commands[] = {
     {"AT",                       AT_HandleHelp,          0,                                 "AT - Basic test command",                         ""},
     {"AT+HELP",                  AT_HandleHelp,          0,                                 "AT+HELP - List all supported commands",           ""},
+    {"AT+IDENTIFY",              AT_HandleIdentify,      0,                                 "AT+IDENTIFY - Identify the device",               ""},
     {"AT+FACTORY_MODE",          AT_HandleFactorMode,    0,                                 "AT+FACTORY_MODE - Enable factory mode",           "=ON, =OFF"},
     {"AT+SYS_RESTART",           AT_HandleRestartSys,    0,                                 "AT+SYS_RESTART - Restart the system",             ""},
     {"AT+LED_BLUE",              NULL,                   SYS_LED_BLUE,                      "AT+LED_BLUE - Set LED blue state",                "=ON, =OFF"},
@@ -74,15 +76,15 @@ const AT_Command_Struct AT_Commands[] = {
     {"AT+LR_RX_HEADERMODE",         NULL,               SYS_CMD_HEADERMODE_RX,               "AT+LR_RX_HEADERMODE - Enable RX header mode, explicit = 0",    "=1, =0, ?"},
     {"AT+LR_TX_CRC",                NULL,               SYS_CMD_CRC_TX,                      "AT+LR_TX_CRC - Set TX CRC check",                "=1, =0, ?"},
     {"AT+LR_RX_CRC",                NULL,               SYS_CMD_CRC_RX,                      "AT+LR_RX_CRC - Set RX CRC check",                "=1, =0, ?"},
-    {"AT+LR_TX_PREAMBLE_SIZE",      NULL,               SYS_CMD_PREAM_SIZE_TX,               "AT+LR_TX_PREAMBLE_SIZE",                         "=<1 to 65535>, ?"  },
+    {"AT+LR_TX_PREAMBLE_SIZE",      NULL,               SYS_CMD_PREAM_SIZE_TX,               "AT+LR_TX_PREAMBLE_SIZE",                         "=<1 to 65535>, optimum >=8, ?"  },
     {"AT+LR_RX_PREAMBLE_SIZE",      NULL,               SYS_CMD_PREAM_SIZE_RX,               "AT+LR_RX_PREAMBLE_SIZE",                         "=<1 to 65535> should be >= TX side,?"},
  
     {"AT+RF_TX_HEX",                NULL,               SYS_CMD_RF_TX_HEX,                   "AT+RF_TX_HEX - Transmit data via RF in HEX format",  "=<HEX data>"},
     {"AT+RF_TX_TXT",                NULL,               SYS_CMD_RF_TX_TXT,                   "AT+RF_TX_TXT - Transmit data via RF in text format", "=<Text data>"},
-    {"AT+RF_TX_FROM_NVM",           NULL,               SYS_CMD_RF_TX_FROM_NVM,              "Transmit saved RF packet from NVM",                   ""},
     {"AT+RF_TX_PERIOD",             NULL,               SYS_CMD_RF_PERIOD_SET,               "AT+RF_PERIOD - Set TX period",                "=<period_ms>, ?"},
     {"AT+RF_TX_PERIOD_CTRL",        NULL,               SYS_CMD_RF_PERIOD_CTRL,              "AT+RF_PERIOD_CTRL - Start/Stop periodic TX",      "=<ON|OFF>, ?"},
     {"AT+RF_TX_SAVE_PCKT",          NULL,               SYS_CMD_RF_SAVE_PCKT_NVM,            "AT+RF_TX_SAVE_PCKT - Save packet to NVM",         "=<HEX data>, ?"},
+    {"AT+RF_TX_FROM_NVM",           NULL,               SYS_CMD_RF_TX_FROM_NVM,              "AT+RF_TX_FROM_NVM - Transmit saved RF packet from NVM",                   ""},
     {"AT+RF_TX_PERIOD_STATUS",      NULL,               SYS_CMD_RF_PERIOD_STATUS,            "AT+RF_PERIOD_STATUS - Get periodic TX status",     "?"}
 };
 
@@ -282,8 +284,6 @@ static void AT_HandleHelp(char *params)
 
     for (uint16_t i = 0; i < sizeof(AT_Commands) / sizeof(AT_Command_Struct); i++)
     {
-       // AT_SendResponse(AT_Commands[i].command);
-       // AT_SendResponse((char *)" - ");
         AT_SendStringResponse((char*)AT_Commands[i].usage);
 
         if (strlen(AT_Commands[i].parameters) > 0)
@@ -295,6 +295,22 @@ static void AT_HandleHelp(char *params)
 
         AT_SendStringResponse("\r\n");
     }
+
+    // Add examples for complex commands
+    AT_SendStringResponse("\r\nExamples for complex commands:\r\n");
+    AT_SendStringResponse("  AT+LR_TX_SET=SF:9,BW:7,CR:45,Freq:869525000,IQ:0,Header:0,CRC:1,Power:22\r\n");
+    AT_SendStringResponse("  AT+LR_RX_SET=SF:9,BW:7,CR:45,Freq:869525000,IQ:1,Header:0,CRC:1\r\n");
+}
+
+/**
+ * @brief 
+ * 
+ * @param params 
+ */
+static void AT_HandleIdentify(char *params)
+{
+    UNUSED(params);
+    AT_SendStringResponse("AT-LoRa_Dongle v1.0\r\n");
 }
 
 

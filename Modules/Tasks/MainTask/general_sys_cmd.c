@@ -162,8 +162,7 @@ void ProcessRFMultiSetCommand(bool tx, char *params)
         "SF", "BW", "CR", "Freq", "IQ", "Header", "CRC", "Power"
     };
 
-
-    // Pokud jde o dotaz
+    //Pokud jde o dotaz
     if (isQuery)
     {
         // Iteruj přes všechny příkazy a volej `GSC_ProcessCommand`

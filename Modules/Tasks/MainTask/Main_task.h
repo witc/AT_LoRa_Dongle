@@ -27,6 +27,7 @@ typedef enum
 typedef struct
 {
 	TimerResource_t	LED_alive;
+	TimerResource_t	LED_RX_done;
 
 }main_timers_t;
 

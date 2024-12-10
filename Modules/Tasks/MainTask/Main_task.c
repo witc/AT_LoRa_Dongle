@@ -62,6 +62,16 @@ static void _Main_Alive_Callback(TimerHandle_t xTimer)
     pattern_cnt = (pattern_cnt + 1) % pattern_length;
 }
 
+/**
+ * @brief Construct a new main rx done callback object
+ * 
+ * @param xTimer 
+ */
+static _Main_Rx_done_Callback(TimerHandle_t xTimer)
+{
+    HAL_GPIO_WritePin(LED_BLUE_GPIO_Port, LED_BLUE_Pin, GPIO_PIN_RESET);
+}
+
 
 /**
  * @brief 
@@ -191,6 +201,12 @@ void main_task_on(main_ctx_t *ctx, dataQueue_t *rxd)
 
 		case CMD_MAIN_AT_RX_PACKET:
 			AtCmdProcessed = GSC_ProcessCommand((eATCommands) rxd->tmp_8, rxShadowBuffer_USART, rxd->tmp_16);
+            if(AtCmdProcessed)
+            {
+                HAL_GPIO_WritePin(LED_BLUE_GPIO_Port, LED_BLUE_Pin, GPIO_PIN_SET);
+                osTimerStart(ctx->timers.LED_RX_done.timer, pdMS_TO_TICKS(100));
+            }
+            
 			xSemaphoreGive(xBinarySemaphore_USART);
 
 			break;
@@ -272,8 +288,11 @@ void main_task(void)
 
 	_Main_QueueSemaphore = xSemaphoreCreateMutexStatic(&_Main_QueueSemaphoreBuffer);
 
-	ctx.timers.LED_alive.timer = xTimerCreateStatic("LED alive timer", pdMS_TO_TICKS(100), pdFALSE, NULL, 
-														 _Main_Alive_Callback,  &ctx.timers.LED_alive.timerPlace);
+    ctx.timers.LED_alive.timer = xTimerCreateStatic("LED alive timer", pdMS_TO_TICKS(100), pdFALSE, NULL, 
+                                                         _Main_Alive_Callback,  &ctx.timers.LED_alive.timerPlace);
+
+    ctx.timers.LED_RX_done.timer = xTimerCreateStatic("LED RX done", pdMS_TO_TICKS(100), pdFALSE, NULL, 
+                                                        _Main_Rx_done_Callback,  &ctx.timers.LED_RX_done.timerPlace);
 
 	osTimerStart(ctx.timers.LED_alive.timer, pdMS_TO_TICKS(100));
 
