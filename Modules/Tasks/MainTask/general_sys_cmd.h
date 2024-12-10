@@ -19,6 +19,7 @@ typedef struct {
     eATCommands cmd;  // Typ příkazu
     int32_t minValue; // Minimální povolená hodnota
     int32_t maxValue; // Maximální povolená hodnota
+    size_t maxLength;   // Maximální délka vstupu (počet znaků)
 } AT_CommandLimit_t;
 
 

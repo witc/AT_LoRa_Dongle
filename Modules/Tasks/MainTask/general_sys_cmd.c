@@ -22,24 +22,32 @@
 #define RESPONSE_BUFF_SIZE  32
 
 const AT_CommandLimit_t AT_CommandLimits[] = {
-    {SYS_CMD_TX_FREQ, 150000000, 960000000},        // TX frequency in Hz (100 MHz to 960 MHz)
-    {SYS_CMD_RX_FREQ, 150000000, 960000000},        // RX frequency in Hz (100 MHz to 960 MHz)
-    {SYS_CMD_TX_POWER, 0, 22},                     // TX power in dBm (0 to 22 dBm)
-    {SYS_CMD_TX_SF, 5, 12},                         // TX spreading factor (5 to 12)
-    {SYS_CMD_RX_SF, 5, 12},                         // RX spreading factor (5 to 12)
-    {SYS_CMD_TX_BW, 0, 9},                          // TX bandwidth 0-9
-    {SYS_CMD_RX_BW, 0, 9},                          // RX bandwidth 0-9
-    {SYS_CMD_TX_IQ, 0, 1},                          // TX IQ inversion (0 = FALSE, 1 = TRUE)
-    {SYS_CMD_RX_IQ, 0, 1},                          // RX IQ inversion (0 = FALSE, 1 = TRUE)
-    {SYS_CMD_TX_CR, 45, 48},                        // TX coding rate (45 to 48, corresponds to different CR values)
-    {SYS_CMD_RX_CR, 45, 48},                        // RX coding rate (45 to 48)
-    {SYS_CMD_HEADERMODE_TX, 0, 1},                  // TX header mode (0 = FALSE, 1 = TRUE)
-    {SYS_CMD_HEADERMODE_RX, 0, 1},                  // RX header mode (0 = FALSE, 1 = TRUE)
-    {SYS_CMD_CRC_TX, 0, 1},                         // TX CRC check (0 = FALSE, 1 = TRUE)
-    {SYS_CMD_CRC_RX, 0, 1},                         // RX CRC check (0 = FALSE, 1 = TRUE)
-    {SYS_CMD_PREAM_SIZE_TX, 1, 65535},              // TX preamble size (1 to 65535)
-    {SYS_CMD_PREAM_SIZE_RX, 1, 65535},              // RX preamble size (1 to 65535, should be >= TX)
+    {SYS_CMD_TX_FREQ, 150000000, 960000000, 9},    // TX frequency in Hz (100 MHz to 960 MHz, max 9 znaků)
+    {SYS_CMD_RX_FREQ, 150000000, 960000000, 9},    // RX frequency in Hz (100 MHz to 960 MHz, max 9 znaků)
+    {SYS_CMD_TX_POWER, 0, 22, 2},                 // TX power in dBm (0 to 22, max 2 znaky)
+    {SYS_CMD_TX_SF, 5, 12, 2},                     // TX spreading factor (5 to 12, max 2 znaky)
+    {SYS_CMD_RX_SF, 5, 12, 2},                     // RX spreading factor (5 to 12, max 2 znaky)
+    {SYS_CMD_TX_BW, 0, 9, 1},                      // TX bandwidth (0-9, max 1 znak)
+    {SYS_CMD_RX_BW, 0, 9, 1},                      // RX bandwidth (0-9, max 1 znak)
+    {SYS_CMD_TX_IQ, 0, 1, 1},                      // TX IQ inversion (0 = FALSE, 1 = TRUE, max 1 znak)
+    {SYS_CMD_RX_IQ, 0, 1, 1},                      // RX IQ inversion (0 = FALSE, 1 = TRUE, max 1 znak)
+    {SYS_CMD_TX_CR, 45, 48, 2},                    // TX coding rate (45 to 48, max 2 znaky)
+    {SYS_CMD_RX_CR, 45, 48, 2},                    // RX coding rate (45 to 48, max 2 znaky)
+    {SYS_CMD_HEADERMODE_TX, 0, 1, 1},              // TX header mode (0 = FALSE, 1 = TRUE, max 1 znak)
+    {SYS_CMD_HEADERMODE_RX, 0, 1, 1},              // RX header mode (0 = FALSE, 1 = TRUE, max 1 znak)
+    {SYS_CMD_CRC_TX, 0, 1, 1},                     // TX CRC check (0 = FALSE, 1 = TRUE, max 1 znak)
+    {SYS_CMD_CRC_RX, 0, 1, 1},                     // RX CRC check (0 = FALSE, 1 = TRUE, max 1 znak)
+    {SYS_CMD_PREAM_SIZE_TX, 1, 65535, 5},          // TX preamble size (1 to 65535, max 5 znaků)
+    {SYS_CMD_PREAM_SIZE_RX, 1, 65535, 5},          // RX preamble size (1 to 65535, max 5 znaků)
+    {SYS_CMD_RF_TX_HEX, 0, 255, 512},              // RF TX HEX (max 512 znaků pro HEX data)
+    {SYS_CMD_RF_TX_TXT, 0, 255, 512},              // RF TX TXT (max 512 znaků pro textová data)
+    {SYS_CMD_RF_PERIOD_SET, 1, 65535, 5},          // RF periodic TX set (1 to 65535 ms, max 5 znaků)
+    {SYS_CMD_RF_PERIOD_CTRL, 0, 1, 1},             // RF periodic TX control (0 = OFF, 1 = ON, max 1 znak)
+    {SYS_CMD_RF_SAVE_PCKT_NVM, 0, 255, 512},       // Save RF packet to NVM (max 512 znaků pro HEX data)
+    {SYS_CMD_RF_TX_FROM_NVM, 1, 1, 1},             // Transmit saved RF packet from NVM (1, max 1 znak)
+    {SYS_CMD_RF_PERIOD_STATUS, 0, 1, 1}            // Get periodic TX status (0 = FALSE, 1 = TRUE, max 1 znak)
 };
+
 
 extern osMessageQueueId_t queueRadioHandle;
 
@@ -48,7 +56,7 @@ const size_t AllowedBandwidthCount = sizeof(AllowedBandwidths) / sizeof(AllowedB
 
 static bool _GSC_Handle_BlueLED(uint8_t *data);
 static void _GSC_Handle_TX(uint8_t *data, uint8_t size);
-static bool GetCommandLimits(eATCommands cmd, int32_t *minValue, int32_t *maxValue);
+static bool GetCommandLimits(eATCommands cmd, int32_t *minValue, int32_t *maxValue, size_t *maxLength);
 static bool IsValidBandwidth(uint32_t bandwidth);
 static uint8_t HexStringToByteArray(const char *hexStr, uint8_t *byteArray, size_t byteArraySize);
  
@@ -58,41 +66,46 @@ static uint8_t HexStringToByteArray(const char *hexStr, uint8_t *byteArray, size
  * @param data 
  * @return uint32_t 
  */
-bool AT_ParseUint32(const uint8_t *data, uint32_t *value)
+size_t AT_ParseUint32(const uint8_t *data, uint32_t *value, size_t maxLength)
 {
     uint32_t result = 0;
     const uint8_t *ptr = data;
 
     if (*ptr == '\0')
     {
-        // Prázdný řetězec
-        return false;
+        return 0; // Prázdný řetězec
     }
+
+    size_t len = 0;
 
     while (*ptr != '\0')
     {
         if (*ptr < '0' || *ptr > '9')
         {
-            // Nenarazili jsme na číslici
-            return false;
+            return 0; // Nečíselný znak
         }
 
         uint8_t digit = *ptr - '0';
 
-        // Kontrola přetečení
         if (result > (UINT32_MAX - digit) / 10)
         {
-            // Došlo by k přetečení
-            return false;
+            return 0; // Přetečení
         }
 
         result = result * 10 + digit;
         ptr++;
+        len++;
+    }
+
+    if (len > maxLength)
+    {
+        return 0; // Délka přesáhla limit
     }
 
     *value = result;
-    return true;
+    return len;
 }
+
 
 /**
  * @brief Parse data to uint8_t
@@ -100,41 +113,47 @@ bool AT_ParseUint32(const uint8_t *data, uint32_t *value)
  * @param data 
  * @return uint8_t 
  */
-bool AT_ParseUint8(const uint8_t *data, uint8_t *value)
+size_t AT_ParseUint8(const uint8_t *data, uint8_t *value, size_t maxLength)
 {
     uint32_t result = 0;
     const uint8_t *ptr = data;
 
     if (*ptr == '\0')
     {
-        // Prázdný řetězec
-        return false;
+        return 0; // Prázdný řetězec
     }
+
+    size_t len = 0;
 
     while (*ptr != '\0')
     {
         if (*ptr < '0' || *ptr > '9')
         {
-            // Nenarazili jsme na číslici
-            return false;
+            return 0; // Nečíselný znak
         }
 
         uint8_t digit = *ptr - '0';
 
-        // Kontrola přetečení pro uint8_t
-        if (result > ((uint32_t)UINT8_MAX - digit) / 10)
+        if (result > (UINT8_MAX - digit) / 10)
         {
-            // Došlo by k přetečení
-            return false;
+            return 0; // Přetečení
         }
 
         result = result * 10 + digit;
         ptr++;
+        len++;
+    }
+
+    if (len > maxLength)
+    {
+        return 0; // Délka přesáhla limit
     }
 
     *value = (uint8_t)result;
-    return true;
+    return len;
 }
+
+
 
 /**
  * @brief 
@@ -328,19 +347,21 @@ static void AT_FormatUint8Response(uint8_t value, uint8_t *response, uint16_t *r
  * @return true 
  * @return false 
  */
-static bool GetCommandLimits(eATCommands cmd, int32_t *minValue, int32_t *maxValue)
+static bool GetCommandLimits(eATCommands cmd, int32_t *minValue, int32_t *maxValue, size_t *maxLength)
 {
     for (uint16_t i = 0; i < sizeof(AT_CommandLimits) / sizeof(AT_CommandLimits[0]); i++)
     {
         if (AT_CommandLimits[i].cmd == cmd)
         {
-            *minValue = AT_CommandLimits[i].minValue;
-            *maxValue = AT_CommandLimits[i].maxValue;
+            if (minValue) *minValue = AT_CommandLimits[i].minValue;
+            if (maxValue) *maxValue = AT_CommandLimits[i].maxValue;
+            if (maxLength) *maxLength = AT_CommandLimits[i].maxLength;
             return true;
         }
     }
-    return false; // If the command was not found
+    return false; // Pokud nebyl příkaz nalezen
 }
+
 
 /**
  * @brief 
@@ -404,6 +425,7 @@ bool GSC_ProcessCommand(eATCommands cmd, uint8_t *data, uint16_t size)
     bool hasResponse = false;
     bool commandHandled = true;
     bool constrained = false;
+    size_t maxLength;
 
     int32_t minValue, maxValue;
 
@@ -426,22 +448,29 @@ bool GSC_ProcessCommand(eATCommands cmd, uint8_t *data, uint16_t size)
             }
             else
             {
-                if (!AT_ParseUint32(data, &freq))
+                if (!GetCommandLimits(cmd, &minValue, &maxValue, &maxLength))
+                {
+                     AT_SendStringResponse("ERROR: Command not found\r\n");
+                    commandHandled = false;
+                    break;
+                }
+
+                if (AT_ParseUint32(data, &freq,maxLength) == 0)
                 {
                     AT_SendStringResponse("ERROR: Invalid TX_FREQ value\r\n");
                     commandHandled = false;
                     break;
                 }
-                if (GetCommandLimits(cmd, &minValue, &maxValue))
+
+               
+                freq = Constrain_u32(freq, minValue, maxValue,&constrained);
+                if(constrained)
                 {
-                    freq = Constrain_u32(freq, minValue, maxValue,&constrained);
-                    if(constrained)
-                    {
-                        AT_SendStringResponse("ERROR: TX_FREQ value out of limit\r\n");
-                        commandHandled = false;
-                        break;
-                    }
+                    AT_SendStringResponse("ERROR: TX_FREQ value out of limit\r\n");
+                    commandHandled = false;
+                    break;
                 }
+                
                 NVMA_Set_LR_Freq_TX(freq);
             }
             break;
@@ -457,23 +486,29 @@ bool GSC_ProcessCommand(eATCommands cmd, uint8_t *data, uint16_t size)
                 hasResponse = true;
             }
             else
-            {
-                if (!AT_ParseUint32(data, &freq))
+            {   
+                if (!GetCommandLimits(cmd, &minValue, &maxValue, &maxLength))
+                {
+                     AT_SendStringResponse("ERROR: Command not found\r\n");
+                    commandHandled = false;
+                    break;
+                }
+
+                if (!AT_ParseUint32(data, &freq,maxLength))
                 {
                     AT_SendStringResponse("ERROR: Invalid RX_FREQ value\r\n");
                     commandHandled = false;
                     break;
                 }
-                if (GetCommandLimits(cmd, &minValue, &maxValue))
+              
+                freq = Constrain_u32(freq, minValue, maxValue,&constrained);
+                if(constrained)
                 {
-                    freq = Constrain_u32(freq, minValue, maxValue,&constrained);
-                    if(constrained)
-                    {
-                        AT_SendStringResponse("ERROR: RX_FREQ value out of limit\r\n");
-                        commandHandled = false;
-                        break;
-                    }
+                    AT_SendStringResponse("ERROR: RX_FREQ value out of limit\r\n");
+                    commandHandled = false;
+                    break;
                 }
+
                 NVMA_Set_LR_Freq_RX(freq);
             }
             break;
@@ -489,23 +524,29 @@ bool GSC_ProcessCommand(eATCommands cmd, uint8_t *data, uint16_t size)
                 hasResponse = true;
             }
             else
-            {
-                if (!AT_ParseUint8(data, &power))
+            {   
+                if (!GetCommandLimits(cmd, &minValue, &maxValue, &maxLength))
+                {
+                     AT_SendStringResponse("ERROR: Command not found\r\n");
+                    commandHandled = false;
+                    break;
+                }
+
+                if (!AT_ParseUint8(data, &power,maxLength))
                 {
                     AT_SendStringResponse("ERROR: Invalid TX_POWER value\r\n");
                     commandHandled = false;
                     break;
                 }
-                if (GetCommandLimits(cmd, &minValue, &maxValue))
+                
+                power = Constrain_u8(power, minValue, maxValue, &constrained);
+                if(constrained)
                 {
-                    power = Constrain_u8(power, minValue, maxValue, &constrained);
-                    if(constrained)
-                    {
-                        AT_SendStringResponse("ERROR: TX_POWER value out of limit\r\n");
-                        commandHandled = false;
-                        break;
-                    }
+                    AT_SendStringResponse("ERROR: TX_POWER value out of limit\r\n");
+                    commandHandled = false;
+                    break;
                 }
+                
                 NVMA_Set_LR_TX_Power(power);
             }
             break;
@@ -521,23 +562,29 @@ bool GSC_ProcessCommand(eATCommands cmd, uint8_t *data, uint16_t size)
                 hasResponse = true;
             }
             else
-            {
-                if (!AT_ParseUint8(data, &sf))
+            {   
+                if (!GetCommandLimits(cmd, &minValue, &maxValue, &maxLength))
+                {
+                     AT_SendStringResponse("ERROR: Command not found\r\n");
+                    commandHandled = false;
+                    break;
+                }
+
+                if (!AT_ParseUint8(data, &sf,maxLength))
                 {
                     AT_SendStringResponse("ERROR: Invalid TX_SF value\r\n");
                     commandHandled = false;
                     break;
                 }
-                if (GetCommandLimits(cmd, &minValue, &maxValue))
+              
+                sf = Constrain_u8(sf, minValue, maxValue,&constrained);
+                if(constrained)
                 {
-                    sf = Constrain_u8(sf, minValue, maxValue,&constrained);
-                    if(constrained)
-                    {
-                        AT_SendStringResponse("ERROR: TX_SF value out of limit\r\n");
-                        commandHandled = false;
-                        break;
-                    }
+                    AT_SendStringResponse("ERROR: TX_SF value out of limit\r\n");
+                    commandHandled = false;
+                    break;
                 }
+                
                 NVMA_Set_LR_TX_SF(sf);
             }
             break;
@@ -553,23 +600,29 @@ bool GSC_ProcessCommand(eATCommands cmd, uint8_t *data, uint16_t size)
                 hasResponse = true;
             }
             else
-            {
-                if (!AT_ParseUint8(data, &sf))
+            {   
+                if (!GetCommandLimits(cmd, &minValue, &maxValue, &maxLength))
+                {
+                     AT_SendStringResponse("ERROR: Command not found\r\n");
+                    commandHandled = false;
+                    break;
+                }
+
+                if (!AT_ParseUint8(data, &sf,maxLength))
                 {
                     AT_SendStringResponse("ERROR: Invalid RX_SF value\r\n");
                     commandHandled = false;
                     break;
                 }
-                if (GetCommandLimits(cmd, &minValue, &maxValue))
+                
+                sf = Constrain_u8(sf, minValue, maxValue,&constrained);
+                if(constrained)
                 {
-                    sf = Constrain_u8(sf, minValue, maxValue,&constrained);
-                    if(constrained)
-                    {
-                        AT_SendStringResponse("ERROR: RX_SF value out of limit\r\n");
-                        commandHandled = false;
-                        break;
-                    }
+                    AT_SendStringResponse("ERROR: RX_SF value out of limit\r\n");
+                    commandHandled = false;
+                    break;
                 }
+                
                 NVMA_Set_LR_RX_SF(sf);
             }
             break;
@@ -585,23 +638,29 @@ bool GSC_ProcessCommand(eATCommands cmd, uint8_t *data, uint16_t size)
                 hasResponse = true;
             }
             else
-            {
-                if (!AT_ParseUint8(data, &bw))
+            {   
+                if (!GetCommandLimits(cmd, &minValue, &maxValue, &maxLength))
+                {
+                     AT_SendStringResponse("ERROR: Command not found\r\n");
+                    commandHandled = false;
+                    break;
+                }
+
+                if (!AT_ParseUint8(data, &bw,maxLength))
                 {
                     AT_SendStringResponse("ERROR: Invalid TX_BW value\r\n");
                     commandHandled = false;
                     break;
                 }
-                if (GetCommandLimits(cmd, &minValue, &maxValue))
+               
+                bw = Constrain_u8(bw, minValue, maxValue,&constrained);
+                if(constrained)
                 {
-                    bw = Constrain_u8(bw, minValue, maxValue,&constrained);
-                    if(constrained)
-                    {
-                        AT_SendStringResponse("ERROR: TX_BW value out of limit\r\n");
-                        commandHandled = false;
-                        break;
-                    }
+                    AT_SendStringResponse("ERROR: TX_BW value out of limit\r\n");
+                    commandHandled = false;
+                    break;
                 }
+                
                 NVMA_Set_LR_TX_BW(bw);
             }
             break;
@@ -617,23 +676,29 @@ bool GSC_ProcessCommand(eATCommands cmd, uint8_t *data, uint16_t size)
                 hasResponse = true;
             }
             else
-            {
-                if (!AT_ParseUint8(data, &bw))
+            {   
+                if (!GetCommandLimits(cmd, &minValue, &maxValue, &maxLength))
+                {
+                     AT_SendStringResponse("ERROR: Command not found\r\n");
+                    commandHandled = false;
+                    break;
+                }
+
+                if (!AT_ParseUint8(data, &bw,maxLength))
                 {
                     AT_SendStringResponse("ERROR: Invalid RX_BW value\r\n");
                     commandHandled = false;
                     break;
                 }
-                if (GetCommandLimits(cmd, &minValue, &maxValue))
+                
+                bw = Constrain_u8(bw, minValue, maxValue,&constrained);
+                if(constrained)
                 {
-                    bw = Constrain_u8(bw, minValue, maxValue,&constrained);
-                    if(constrained)
-                    {
-                        AT_SendStringResponse("ERROR: RX_BW value out of limit\r\n");
-                        commandHandled = false;
-                        break;
-                    }
+                    AT_SendStringResponse("ERROR: RX_BW value out of limit\r\n");
+                    commandHandled = false;
+                    break;
                 }
+                
                 NVMA_Set_LR_RX_BW(bw);
             }
             break;
@@ -649,23 +714,29 @@ bool GSC_ProcessCommand(eATCommands cmd, uint8_t *data, uint16_t size)
                 hasResponse = true;
             }
             else
-            {
-                if (!AT_ParseUint8(data, &iq))
+            {   
+                if (!GetCommandLimits(cmd, &minValue, &maxValue, &maxLength))
+                {
+                     AT_SendStringResponse("ERROR: Command not found\r\n");
+                    commandHandled = false;
+                    break;
+                }
+
+                if (!AT_ParseUint8(data, &iq,maxLength))
                 {
                     AT_SendStringResponse("ERROR: Invalid TX_IQ value\r\n");
                     commandHandled = false;
                     break;
                 }
-                if (GetCommandLimits(cmd, &minValue, &maxValue))
+               
+                iq = Constrain_u8(iq, minValue, maxValue,&constrained);
+                if(constrained)
                 {
-                    iq = Constrain_u8(iq, minValue, maxValue,&constrained);
-                    if(constrained)
-                    {
-                        AT_SendStringResponse("ERROR: TX_IQ value out of limit\r\n");
-                        commandHandled = false;
-                        break;
-                    }
+                    AT_SendStringResponse("ERROR: TX_IQ value out of limit\r\n");
+                    commandHandled = false;
+                    break;
                 }
+                
                 NVMA_Set_LR_TX_IQ(iq);
             }
             break;
@@ -682,22 +753,28 @@ bool GSC_ProcessCommand(eATCommands cmd, uint8_t *data, uint16_t size)
             }
             else
             {
-                if (!AT_ParseUint8(data, &iq))
+                if (!GetCommandLimits(cmd, &minValue, &maxValue, &maxLength))
+                {
+                     AT_SendStringResponse("ERROR: Command not found\r\n");
+                    commandHandled = false;
+                    break;
+                }
+
+                if (!AT_ParseUint8(data, &iq,maxLength))
                 {
                     AT_SendStringResponse("ERROR: Invalid RX_IQ value\r\n");
                     commandHandled = false;
                     break;
                 }
-                if (GetCommandLimits(cmd, &minValue, &maxValue))
+                
+                iq = Constrain_u8(iq, minValue, maxValue,&constrained);
+                if(constrained)
                 {
-                    iq = Constrain_u8(iq, minValue, maxValue,&constrained);
-                    if(constrained)
-                    {
-                        AT_SendStringResponse("ERROR: RX_IQ value out of limit\r\n");
-                        commandHandled = false;
-                        break;
-                    }
+                    AT_SendStringResponse("ERROR: RX_IQ value out of limit\r\n");
+                    commandHandled = false;
+                    break;
                 }
+                
                 NVMA_Set_LR_RX_IQ(iq);
             }
             break;
@@ -714,22 +791,28 @@ bool GSC_ProcessCommand(eATCommands cmd, uint8_t *data, uint16_t size)
             }
             else
             {
-                if (!AT_ParseUint8(data, &cr))
+                if (!GetCommandLimits(cmd, &minValue, &maxValue, &maxLength))
+                {
+                     AT_SendStringResponse("ERROR: Command not found\r\n");
+                    commandHandled = false;
+                    break;
+                }
+
+                if (!AT_ParseUint8(data, &cr,maxLength))
                 {
                     AT_SendStringResponse("ERROR: Invalid TX_CR value\r\n");
                     commandHandled = false;
                     break;
                 }
-                if (GetCommandLimits(cmd, &minValue, &maxValue))
+               
+                cr = Constrain_u8(cr, minValue, maxValue,&constrained);
+                if(constrained)
                 {
-                    cr = Constrain_u8(cr, minValue, maxValue,&constrained);
-                    if(constrained)
-                    {
-                        AT_SendStringResponse("ERROR: TX_CR value out of limit\r\n");
-                        commandHandled = false;
-                        break;
-                    }
+                    AT_SendStringResponse("ERROR: TX_CR value out of limit\r\n");
+                    commandHandled = false;
+                    break;
                 }
+                
                 NVMA_Set_LR_TX_CR(cr);
             }
             break;
@@ -745,23 +828,29 @@ bool GSC_ProcessCommand(eATCommands cmd, uint8_t *data, uint16_t size)
                 hasResponse = true;
             }
             else
-            {
-                if (!AT_ParseUint8(data, &cr))
+            {   
+                if (!GetCommandLimits(cmd, &minValue, &maxValue, &maxLength))
+                {
+                     AT_SendStringResponse("ERROR: Command not found\r\n");
+                    commandHandled = false;
+                    break;
+                }
+
+                if (!AT_ParseUint8(data, &cr,maxLength))
                 {
                     AT_SendStringResponse("ERROR: Invalid RX_CR value\r\n");
                     commandHandled = false;
                     break;
                 }
-                if (GetCommandLimits(cmd, &minValue, &maxValue))
+                    
+                cr = Constrain_u8(cr, minValue, maxValue,&constrained);
+                if(constrained)
                 {
-                    cr = Constrain_u8(cr, minValue, maxValue,&constrained);
-                    if(constrained)
-                    {
-                        AT_SendStringResponse("ERROR: RX_CR value out of limit\r\n");
-                        commandHandled = false;
-                        break;
-                    }
+                    AT_SendStringResponse("ERROR: RX_CR value out of limit\r\n");
+                    commandHandled = false;
+                    break;
                 }
+                
                 NVMA_Set_LR_RX_CR(cr);
             }
             break;
@@ -777,23 +866,29 @@ bool GSC_ProcessCommand(eATCommands cmd, uint8_t *data, uint16_t size)
                 hasResponse = true;
             }
             else
-            {
-                if (!AT_ParseUint8(data, &mode))
+            {   
+                if (!GetCommandLimits(cmd, &minValue, &maxValue, &maxLength))
+                {
+                     AT_SendStringResponse("ERROR: Command not found\r\n");
+                    commandHandled = false;
+                    break;
+                }
+
+                if (!AT_ParseUint8(data, &mode,maxLength))
                 {
                     AT_SendStringResponse("ERROR: Invalid HEADERMODE_TX value\r\n");
                     commandHandled = false;
                     break;
                 }
-                if (GetCommandLimits(cmd, &minValue, &maxValue))
+               
+                mode = Constrain_u8(mode, minValue, maxValue,&constrained);
+                if(constrained)
                 {
-                    mode = Constrain_u8(mode, minValue, maxValue,&constrained);
-                    if(constrained)
-                    {
-                        AT_SendStringResponse("ERROR: HEADERMODE_TX value out of limit\r\n");
-                        commandHandled = false;
-                        break;
-                    }
+                    AT_SendStringResponse("ERROR: HEADERMODE_TX value out of limit\r\n");
+                    commandHandled = false;
+                    break;
                 }
+                
                 NVMA_Set_LR_HeaderMode_TX(mode);
             }
             break;
@@ -809,23 +904,29 @@ bool GSC_ProcessCommand(eATCommands cmd, uint8_t *data, uint16_t size)
                 hasResponse = true;
             }
             else
-            {
-                if (!AT_ParseUint8(data, &mode))
+            {   
+                if (!GetCommandLimits(cmd, &minValue, &maxValue, &maxLength))
+                {
+                     AT_SendStringResponse("ERROR: Command not found\r\n");
+                    commandHandled = false;
+                    break;
+                }
+
+                if (!AT_ParseUint8(data, &mode,maxLength))
                 {
                     AT_SendStringResponse("ERROR: Invalid HEADERMODE_RX value\r\n");
                     commandHandled = false;
                     break;
                 }
-                if (GetCommandLimits(cmd, &minValue, &maxValue))
+                
+                mode = Constrain_u8(mode, minValue, maxValue,&constrained);
+                if(constrained)
                 {
-                    mode = Constrain_u8(mode, minValue, maxValue,&constrained);
-                    if(constrained)
-                    {
-                        AT_SendStringResponse("ERROR: HEADERMODE_RX value out of limit\r\n");
-                        commandHandled = false;
-                        break;
-                    }
+                    AT_SendStringResponse("ERROR: HEADERMODE_RX value out of limit\r\n");
+                    commandHandled = false;
+                    break;
                 }
+                
                 NVMA_Set_LR_HeaderMode_RX(mode);
             }
             break;
@@ -841,23 +942,29 @@ bool GSC_ProcessCommand(eATCommands cmd, uint8_t *data, uint16_t size)
                 hasResponse = true;
             }
             else
-            {
-                if (!AT_ParseUint8(data, &crc))
+            {   
+                if (!GetCommandLimits(cmd, &minValue, &maxValue, &maxLength))
+                {
+                     AT_SendStringResponse("ERROR: Command not found\r\n");
+                    commandHandled = false;
+                    break;
+                }
+
+                if (!AT_ParseUint8(data, &crc,maxLength))
                 {
                     AT_SendStringResponse("ERROR: Invalid CRC_TX value\r\n");
                     commandHandled = false;
                     break;
                 }
-                if (GetCommandLimits(cmd, &minValue, &maxValue))
+               
+                crc = Constrain_u8(crc, minValue, maxValue,&constrained);
+                if(constrained)
                 {
-                    crc = Constrain_u8(crc, minValue, maxValue,&constrained);
-                    if(constrained)
-                    {
-                        AT_SendStringResponse("ERROR: CRC_TX value out of limit\r\n");
-                        commandHandled = false;
-                        break;
-                    }
+                    AT_SendStringResponse("ERROR: CRC_TX value out of limit\r\n");
+                    commandHandled = false;
+                    break;
                 }
+                
                 NVMA_Set_LR_CRC_TX(crc);
             }
             break;
@@ -873,23 +980,29 @@ bool GSC_ProcessCommand(eATCommands cmd, uint8_t *data, uint16_t size)
                 hasResponse = true;
             }
             else
-            {
-                if (!AT_ParseUint8(data, &crc))
+            {   
+                if (!GetCommandLimits(cmd, &minValue, &maxValue, &maxLength))
+                {
+                     AT_SendStringResponse("ERROR: Command not found\r\n");
+                    commandHandled = false;
+                    break;
+                }
+
+                if (!AT_ParseUint8(data, &crc,maxLength))
                 {
                     AT_SendStringResponse("ERROR: Invalid CRC_RX value\r\n");
                     commandHandled = false;
                     break;
                 }
-                if (GetCommandLimits(cmd, &minValue, &maxValue))
+               
+                crc = Constrain_u8(crc, minValue, maxValue,&constrained);
+                if(constrained)
                 {
-                    crc = Constrain_u8(crc, minValue, maxValue,&constrained);
-                    if(constrained)
-                    {
-                        AT_SendStringResponse("ERROR: CRC_RX value out of limit\r\n");
-                        commandHandled = false;
-                        break;
-                    }
+                    AT_SendStringResponse("ERROR: CRC_RX value out of limit\r\n");
+                    commandHandled = false;
+                    break;
                 }
+                
                 NVMA_Set_LR_CRC_RX(crc);
             }
             break;
@@ -905,23 +1018,29 @@ bool GSC_ProcessCommand(eATCommands cmd, uint8_t *data, uint16_t size)
                 hasResponse = true;
             }
             else
-            {
-                if (!AT_ParseUint32(data, &size))
+            {   
+                if (!GetCommandLimits(cmd, &minValue, &maxValue, &maxLength))
+                {
+                     AT_SendStringResponse("ERROR: Command not found\r\n");
+                    commandHandled = false;
+                    break;
+                }
+
+                if (!AT_ParseUint32(data, &size,maxLength))
                 {
                     AT_SendStringResponse("ERROR: Invalid PREAM_SIZE_TX value\r\n");
                     commandHandled = false;
                     break;
                 }
-                if (GetCommandLimits(cmd, &minValue, &maxValue))
+               
+                size = Constrain_u16(size, minValue, maxValue,&constrained);
+                if(constrained)
                 {
-                    size = Constrain_u16(size, minValue, maxValue,&constrained);
-                    if(constrained)
-                    {
-                        AT_SendStringResponse("ERROR: PREAM_SIZE_TX value out of limit\r\n");
-                        commandHandled = false;
-                        break;
-                    }
+                    AT_SendStringResponse("ERROR: PREAM_SIZE_TX value out of limit\r\n");
+                    commandHandled = false;
+                    break;
                 }
+                
                 NVMA_Set_LR_PreamSize_TX(size);
             }
             break;
@@ -937,23 +1056,29 @@ bool GSC_ProcessCommand(eATCommands cmd, uint8_t *data, uint16_t size)
                 hasResponse = true;
             }
             else
-            {
-                if (!AT_ParseUint32(data, &size))
+            {   
+                if (!GetCommandLimits(cmd, &minValue, &maxValue, &maxLength))
+                {
+                     AT_SendStringResponse("ERROR: Command not found\r\n");
+                    commandHandled = false;
+                    break;
+                }
+
+                if (!AT_ParseUint32(data, &size,maxLength))
                 {
                     AT_SendStringResponse("ERROR: Invalid PREAM_SIZE_RX value\r\n");
                     commandHandled = false;
                     break;
                 }
-                if (GetCommandLimits(cmd, &minValue, &maxValue))
+               
+                size = Constrain_u16(size, minValue, maxValue,&constrained);
+                if(constrained)
                 {
-                    size = Constrain_u16(size, minValue, maxValue,&constrained);
-                    if(constrained)
-                    {
-                        AT_SendStringResponse("ERROR: PREAM_SIZE_RX value out of limit\r\n");
-                        commandHandled = false;
-                        break;
-                    }
+                    AT_SendStringResponse("ERROR: PREAM_SIZE_RX value out of limit\r\n");
+                    commandHandled = false;
+                    break;
                 }
+                
                 NVMA_Set_LR_PreamSize_RX(size);
             }
             break;
@@ -981,8 +1106,42 @@ bool GSC_ProcessCommand(eATCommands cmd, uint8_t *data, uint16_t size)
         }
 
         case SYS_CMD_RF_TX_FROM_NVM:
-        {
+        {   
+            uint8_t tx;
+
+            if (!GetCommandLimits(cmd, &minValue, &maxValue, &maxLength))
+            {
+                AT_SendStringResponse("ERROR: Command not found\r\n");
+                commandHandled = false;
+                break;
+            }
+
             // Transmit saved RF packet from NVM
+            if (!AT_ParseUint8(data, &tx,maxLength))
+            {
+                AT_SendStringResponse("ERROR: Invalid TX_FROM_NVM value\r\n");
+                commandHandled = false;
+                break;
+            }
+            else
+            {   
+                if(tx == 1)
+                {
+                    uint8_t packet[256];
+                    uint16_t packetSize;
+                    NVMA_Get_LR_Saved_Pckt_Size(&packetSize);
+                    NVMA_Get_LR_TX_RF_PCKT(packet,packetSize);
+                    _GSC_Handle_TX(packet, packetSize);
+                }
+                else 
+                {
+                    AT_SendStringResponse("ERROR: Invalid TX_FROM_NVM value\r\n");
+                    commandHandled = false;
+                    break;
+                }
+                
+            }
+
             break;
         }
 
@@ -996,23 +1155,29 @@ bool GSC_ProcessCommand(eATCommands cmd, uint8_t *data, uint16_t size)
                 hasResponse = true;
             }
             else
-            {
-                if (!AT_ParseUint32(data, &period))
+            {   
+                 if (!GetCommandLimits(cmd, &minValue, &maxValue, &maxLength))
+                {
+                     AT_SendStringResponse("ERROR: Command not found\r\n");
+                    commandHandled = false;
+                    break;
+                }
+
+                if (!AT_ParseUint32(data, &period,maxLength))
                 {
                     AT_SendStringResponse("ERROR: Invalid TX_PERIOD value\r\n");
                     commandHandled = false;
                     break;
                 }
-                if (GetCommandLimits(cmd, &minValue, &maxValue))
+                
+                period = Constrain_u32(period, minValue, maxValue,&constrained);
+                if(constrained)
                 {
-                    period = Constrain_u32(period, minValue, maxValue,&constrained);
-                    if(constrained)
-                    {
-                        AT_SendStringResponse("ERROR: TX_PERIOD value out of limit\r\n");
-                        commandHandled = false;
-                        break;
-                    }
+                    AT_SendStringResponse("ERROR: TX_PERIOD value out of limit\r\n");
+                    commandHandled = false;
+                    break;
                 }
+                
                 NVMA_Set_LR_TX_Period_TX(period);
             }
             break;
@@ -1028,15 +1193,28 @@ bool GSC_ProcessCommand(eATCommands cmd, uint8_t *data, uint16_t size)
         {   
             if (isQuery)
             {      
-                uint16_t pcktSize;
-                NVMA_Get_LR_Saved_Pckt_Size(&pcktSize);
+                // uint16_t pcktSize;
+                // uint8_t packet[256];
+                // NVMA_Get_LR_Saved_Pckt_Size(&pcktSize);
                 // NVMA_Get_LR_TX_RF_PCKT(packet,pcktSize);
-                // AT_FormatUint32Response(period, (uint8_t *)response, &response_size);
+                // AT_FormatUint32Response(packet, (uint8_t *)response, &response_size);
                 // hasResponse = true;
             }
             else
             {
                 // Save packet to NVM
+                uint8_t packet[256];
+                uint8_t packetSize;
+                packetSize = HexStringToByteArray((char *)data, packet, sizeof(packet));
+                if (packetSize == 0)
+                {
+                    AT_SendStringResponse("ERROR: Invalid HEX data\r\n");
+                    commandHandled = false;
+                    break;
+                }
+                NVMA_Set_LR_Pckt_Size(packetSize);
+                NVMA_Set_LR_TX_RF_PCKT(packet,packetSize);
+
             }
             break;
         }
