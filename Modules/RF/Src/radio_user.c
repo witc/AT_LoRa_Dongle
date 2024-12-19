@@ -17,7 +17,7 @@
 extern osMessageQId queueMainHandle;
 
 #define LOG_TAG "[RADIO-USER]"
-#define LOG_LEVEL LOG_LEVEL_DEBUG
+#define LOG_LEVEL LOG_LEVEL_NONE
 #include "Log.h"
 
 extern SPI_HandleTypeDef hspi1;
@@ -188,6 +188,7 @@ bool ru_radioInit(radio_context_t *ctx)
 	HAL_NVIC_EnableIRQ(RF_DIO1_NVIC);
 
 	ctx->rfConfig.lastMode = RF_MODE_IDLE;
+	ctx->rx_to_uart = true;
 	return true;
 
 }
@@ -528,23 +529,27 @@ void ru_radio_process_IRQ(radio_context_t *ctx)
 					ral_get_rssi_inst(ral, &RSSI);	
 					LOG_INFO("RX: %d B, RSSI: %d dBm", rxSize, (int16_t)RSSI);
 
-					rx_raw_data =  pvPortMalloc(rxSize);
-					if (rx_raw_data == NULL)
+					if(ctx->rx_to_uart == true)
 					{
-						_exit(313513);
+						rx_raw_data =  pvPortMalloc(rxSize);
+						if (rx_raw_data == NULL)
+						{
+							_exit(313513);
+						}
+
+						memcpy(rx_raw_data,&rxPayload,rxSize);
+
+						rx_pkt = pvPortMalloc(sizeof(packet_info_t));
+						rx_pkt->packet = rx_raw_data;
+						rx_pkt->size = rxSize;
+						rx_pkt->rx_rssi = RSSI;
+
+						txm.cmd = CMD_MAIN_RF_RX_PACKET;
+						txm.ptr = rx_pkt;
+
+						xQueueSend(queueMainHandle,&txm,portMAX_DELAY);
 					}
-
-					memcpy(rx_raw_data,&rxPayload,rxSize);
-
-					rx_pkt = pvPortMalloc(sizeof(packet_info_t));
-					rx_pkt->packet = rx_raw_data;
-					rx_pkt->size = rxSize;
-					rx_pkt->rx_rssi = RSSI;
-
-					txm.cmd = CMD_MAIN_RF_RX_PACKET;
-					txm.ptr = rx_pkt;
-
-					xQueueSend(queueMainHandle,&txm,portMAX_DELAY);
+					
 		    	}
 		    }
 			else if(irqSet & RAL_IRQ_RX_CRC_ERROR)

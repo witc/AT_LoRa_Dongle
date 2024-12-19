@@ -111,6 +111,21 @@ void radio_task_on(radio_context_t *ctx, dataQueue_t *rxd)
 			ru_radio_process_commands(RADIO_CMD_SEND_UNIVERSAL_PAYLOAD_NOW,ctx,rxd);
 			break;
 
+		case CMD_RF_RADIO_RX_TO_UART:
+			if (rxd->data == 1)
+			{
+				ru_radio_process_commands(RADIO_CMD_START_RX,ctx,rxd);
+				ctx->rx_to_uart = true;
+			}
+			else
+			{
+				/* code */
+				ctx->rx_to_uart = false;
+			}
+			
+			
+			break;
+
 		default:
 			break;
 	}

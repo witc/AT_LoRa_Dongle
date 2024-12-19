@@ -121,6 +121,7 @@ typedef struct
 	radioConfig_t		rfConfig;
 	radio_states_t		rfTaskState;
 	RFTimers_t			timers;
+	bool				rx_to_uart;		//true, false
 
 } radio_context_t;
 

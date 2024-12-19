@@ -58,6 +58,7 @@ static bool _GSC_Handle_BlueLED(uint8_t *data);
 static void _GSC_Handle_TX(uint8_t *data, uint8_t size);
 static bool GetCommandLimits(eATCommands cmd, int32_t *minValue, int32_t *maxValue, size_t *maxLength);
 static uint8_t HexStringToByteArray(const char *hexStr, uint8_t *byteArray, size_t byteArraySize);
+static bool _GSC_Handle_RX_TO_UART(uint8_t *data, uint8_t size);
  
 /**
  * @brief Parse data to uint32_t
@@ -1207,6 +1208,16 @@ bool GSC_ProcessCommand(eATCommands cmd, uint8_t *data, uint16_t size)
             break;
         }
 
+        case SYS_CMD_RF_RX_TO_UART:
+        {
+            if(_GSC_Handle_RX_TO_UART(data, size) == false)
+            {
+                AT_SendStringResponse("ERROR: Invalid RX_TO_UART value\r\n");
+                commandHandled = false;
+            }
+            break;
+        }
+
         default:
         {
             commandHandled = false;
@@ -1294,4 +1305,36 @@ static void _GSC_Handle_TX(uint8_t *data, uint8_t size)
     txm.cmd = CMD_RF_SEND_DATA_NOW;
 
     xQueueSend(queueRadioHandle,&txm,portMAX_DELAY);
+}
+
+/**
+ * @brief 
+ * 
+ * @param data 
+ * @param size 
+ * @return true 
+ * @return false 
+ */
+static bool _GSC_Handle_RX_TO_UART(uint8_t *data, uint8_t size)
+{
+    dataQueue_t     txm;
+    txm.ptr = NULL;
+
+    txm.cmd = CMD_RF_RADIO_RX_TO_UART;
+    
+    if(strcmp((char*) data, "ON") == 0)
+    {
+        txm.data = 1;
+    }
+    else if(strcmp((char*) data, "OFF") == 0)
+    {
+        txm.data = 0;
+    }
+    else
+    {
+        return false;
+    }
+
+    xQueueSend(queueRadioHandle,&txm,portMAX_DELAY);
+    return true;
 }

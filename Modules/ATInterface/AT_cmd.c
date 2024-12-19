@@ -85,7 +85,9 @@ const AT_Command_Struct AT_Commands[] = {
     {"AT+RF_TX_PERIOD_CTRL",        NULL,               SYS_CMD_RF_PERIOD_CTRL,              "AT+RF_PERIOD_CTRL - Start/Stop periodic TX",      "=<ON|OFF>, ?"},
     {"AT+RF_TX_SAVE_PCKT",          NULL,               SYS_CMD_RF_SAVE_PCKT_NVM,            "AT+RF_TX_SAVE_PCKT - Save packet to NVM",         "=<HEX data>, ?"},
     {"AT+RF_TX_FROM_NVM",           NULL,               SYS_CMD_RF_TX_FROM_NVM,              "AT+RF_TX_FROM_NVM - Transmit saved RF packet from NVM",  "=1"},
-    {"AT+RF_TX_PERIOD_STATUS",      NULL,               SYS_CMD_RF_PERIOD_STATUS,            "AT+RF_PERIOD_STATUS - Get periodic TX status",     "?"}
+    {"AT+RF_TX_PERIOD_STATUS",      NULL,               SYS_CMD_RF_PERIOD_STATUS,            "AT+RF_PERIOD_STATUS - Get periodic TX status",     "?"},
+    {"AT+RF_RX_TO_UART",            NULL,               SYS_CMD_RF_RX_TO_UART,               "AT+RF_RX_TO_UART - Set RF RX to serial port",            "=<ON|OFF>"},
+
 };
 
 
