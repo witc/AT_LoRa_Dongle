@@ -94,8 +94,8 @@ void ru_sx1262_assign( radio_context_t	*ctx)
 	ctx->rfConfig.radioHal.pin_NSS.pin=SX1262_NSS_Pin;
 	ctx->rfConfig.radioHal.pin_RF_SWITCH_1.port=SX1262_RF_SW_GPIO_Port;
 	ctx->rfConfig.radioHal.pin_RF_SWITCH_1.pin=SX1262_RF_SW_Pin;
-	ctx->rfConfig.radioHal.pin_RF_SWITCH_2.port=NULL;
-	ctx->rfConfig.radioHal.pin_RF_SWITCH_2.pin=NULL;
+	ctx->rfConfig.radioHal.pin_RF_SWITCH_2.port=0;
+	ctx->rfConfig.radioHal.pin_RF_SWITCH_2.pin=0;
 	ctx->rfConfig.radioHal.TCXO_is_used=true;
 	ctx->rfConfig.radioHal.DIO2_AS_RF_SWITCH=false;
 	ctx->rfConfig.radioHal.target=&hspi1;
@@ -188,7 +188,7 @@ bool ru_radioInit(radio_context_t *ctx)
 	HAL_NVIC_EnableIRQ(RF_DIO1_NVIC);
 
 	ctx->rfConfig.lastMode = RF_MODE_IDLE;
-	ctx->rx_to_uart = true;
+	ctx->rx_to_uart = false;
 	return true;
 
 }

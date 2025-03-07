@@ -439,7 +439,7 @@ void NVMA_Set_LR_PreamSize_TX(uint16_t size)
 void NVMA_Get_LR_PreamSize_TX(uint16_t *size)
 {   
     xSemaphoreTake(xEepromMutex, portMAX_DELAY);
-    *size = *((uint16_t *)EE_ADDR_LR_PREAM_SIZE_TX);
+    *size = *((uint32_t *)EE_ADDR_LR_PREAM_SIZE_TX);
     xSemaphoreGive(xEepromMutex);
 }
 
@@ -474,7 +474,7 @@ void NVMA_Get_LR_PreamSize_RX(uint16_t *size)
  * 
  * @param active 
  */
-void NVMA_Set_LR_Active_RX_To_UART(uint32_t active)
+void NVMA_Set_LR_Active_RX_To_UART(uint8_t active)
 {   
     xSemaphoreTake(xEepromMutex, portMAX_DELAY);
     HAL_FLASHEx_DATAEEPROM_Unlock();
@@ -488,7 +488,7 @@ void NVMA_Set_LR_Active_RX_To_UART(uint32_t active)
  * 
  * @param active 
  */
-void NVMA_Get_LR_Active_RX_To_UART(uint32_t *active)
+void NVMA_Get_LR_Active_RX_To_UART(uint8_t *active)
 {   
     xSemaphoreTake(xEepromMutex, portMAX_DELAY);
     *active = *((uint32_t *)EE_ADDR_LR_ACTIVE_RX_TO_UART);
@@ -578,6 +578,22 @@ void NVMA_Get_LR_TX_Period_TX(uint32_t *period)
 {   
     xSemaphoreTake(xEepromMutex, portMAX_DELAY);
     *period = *((uint32_t *)EE_ADDR_LR_TX_PERIOD_TX);
+    xSemaphoreGive(xEepromMutex);
+}
+
+void NVMA_Set_RX_To_UART(uint8_t active)
+{   
+    xSemaphoreTake(xEepromMutex, portMAX_DELAY);
+    HAL_FLASHEx_DATAEEPROM_Unlock();
+    HAL_FLASHEx_DATAEEPROM_Program(FLASH_TYPEPROGRAMDATA_WORD, EE_ADDR_RX_TO_UART, active);
+    HAL_FLASHEx_DATAEEPROM_Lock();
+    xSemaphoreGive(xEepromMutex);
+}
+
+void NVMA_Get_RX_To_UART(uint8_t *active)
+{   
+    xSemaphoreTake(xEepromMutex, portMAX_DELAY);
+    *active = *((uint8_t *)EE_ADDR_RX_TO_UART);
     xSemaphoreGive(xEepromMutex);
 }
 

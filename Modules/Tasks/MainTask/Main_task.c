@@ -11,6 +11,7 @@
 #include "semphr.h"
 #include "AT_cmd.h"
 #include "general_sys_cmd.h"
+#include "NVMA.h"
 
 #define LOG_LEVEL	LOG_LEVEL_VERBOSE
 #include "Log.h"
@@ -148,7 +149,7 @@ void AT_SendRfPacketResponse(uint8_t *packet, int16_t rssi, uint16_t length)
     response_size += ret;
 
     // Přidání odřádkování
-    if (response_size + 2 >= sizeof(response))
+    if ((unsigned int)response_size + 2 >= sizeof(response))
     {
         // Nedostatek místa v bufferu
         return;
@@ -321,6 +322,17 @@ void main_task(void)
     AT_Init(&at_ctx);
 
 	LOG_DEBUG("Main task started");
+
+    {
+        bool rxUart;
+        dataQueue_t txm;
+        txm.ptr = NULL;
+        NVMA_Get_RX_To_UART(&rxUart);
+        
+        txm.cmd = CMD_RF_RADIO_RX_TO_UART;
+        txm.data = rxUart;
+        xQueueSend(queueRadioHandle,&txm,portMAX_DELAY);
+    }
 
 	for(;;)
 	{

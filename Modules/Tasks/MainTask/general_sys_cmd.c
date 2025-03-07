@@ -107,6 +107,47 @@ size_t AT_ParseUint32(const uint8_t *data, uint32_t *value, size_t maxLength)
 }
 
 
+size_t AT_ParseUint16(const uint8_t *data, uint16_t *value, size_t maxLength)
+{
+    uint16_t result = 0;
+    const uint8_t *ptr = data;
+
+    if (*ptr == '\0')
+    {
+        return 0; // Prázdný řetězec
+    }
+
+    size_t len = 0;
+
+    while (*ptr != '\0')
+    {
+        if (*ptr < '0' || *ptr > '9')
+        {
+            return 0; // Nečíselný znak
+        }
+
+        uint8_t digit = *ptr - '0';
+
+        if (result > (UINT16_MAX - digit) / 10)
+        {
+            return 0; // Přetečení
+        }
+
+        result = result * 10 + digit;
+        ptr++;
+        len++;
+    }
+
+    if (len > maxLength)
+    {
+        return 0; // Délka přesáhla limit
+    }
+
+    *value = result;
+    return len;
+}
+
+
 /**
  * @brief Parse data to uint8_t
  * 
@@ -311,6 +352,12 @@ static void AT_FormatUint32Response(uint32_t value, uint8_t *response, uint16_t 
 {
     *response_size = snprintf((char *)response, RESPONSE_BUFF_SIZE, "%lu", (unsigned long) value);
 }
+
+static void AT_FormatUint16Response(uint16_t value, uint8_t *response, uint16_t *response_size)
+{
+    *response_size = snprintf((char *)response, RESPONSE_BUFF_SIZE, "%u", (unsigned int) value);
+}
+
 
 /**
  * @brief Return uint8_t value as a string
@@ -979,11 +1026,11 @@ bool GSC_ProcessCommand(eATCommands cmd, uint8_t *data, uint16_t size)
 
         case SYS_CMD_PREAM_SIZE_TX:
         {   
-            uint32_t size;
+            uint16_t size;
             if (isQuery)
             {
                 NVMA_Get_LR_PreamSize_TX((uint16_t*)&size);
-                AT_FormatUint32Response(size, (uint8_t *)response, &response_size);
+                AT_FormatUint16Response(size, (uint8_t *)response, &response_size);
                 hasResponse = true;
             }
             else
@@ -995,7 +1042,7 @@ bool GSC_ProcessCommand(eATCommands cmd, uint8_t *data, uint16_t size)
                     break;
                 }
 
-                if (!AT_ParseUint32(data, &size,maxLength))
+                if (!AT_ParseUint16(data,(uint16_t*) &size,maxLength))
                 {
                     AT_SendStringResponse("ERROR: Invalid PREAM_SIZE_TX value\r\n");
                     commandHandled = false;
@@ -1017,11 +1064,11 @@ bool GSC_ProcessCommand(eATCommands cmd, uint8_t *data, uint16_t size)
 
         case SYS_CMD_PREAM_SIZE_RX:
         {   
-            uint32_t size;
+            uint16_t size = 0;
             if (isQuery)
             {
                 NVMA_Get_LR_PreamSize_RX((uint16_t*)&size);
-                AT_FormatUint32Response(size, (uint8_t *)response, &response_size);
+                AT_FormatUint16Response(size, (uint8_t *)response, &response_size);
                 hasResponse = true;
             }
             else
@@ -1033,7 +1080,7 @@ bool GSC_ProcessCommand(eATCommands cmd, uint8_t *data, uint16_t size)
                     break;
                 }
 
-                if (!AT_ParseUint32(data, &size,maxLength))
+                if (!AT_ParseUint16(data,(uint16_t*) &size,maxLength))
                 {
                     AT_SendStringResponse("ERROR: Invalid PREAM_SIZE_RX value\r\n");
                     commandHandled = false;
@@ -1190,8 +1237,16 @@ bool GSC_ProcessCommand(eATCommands cmd, uint8_t *data, uint16_t size)
 
         case SYS_CMD_RF_PERIOD_STATUS:
         {
-            // Get periodic TX status
+            AT_SendStringResponse("TODO\r\n");
+            commandHandled = false;
             break;
+            // Get periodic TX status
+            // if (isQuery)
+            // {    
+            //     NVMA_Set_LR_TX_Period_TX(&status);
+            //     AT_FormatUint8Response(status, (uint8_t *)response, &response_size);
+            //     hasResponse = true;
+            // }
         }
 
         case SYS_CMD_TX_COMPLETE_SET:
@@ -1325,10 +1380,12 @@ static bool _GSC_Handle_RX_TO_UART(uint8_t *data, uint8_t size)
     if(strcmp((char*) data, "ON") == 0)
     {
         txm.data = 1;
+        NVMA_Set_RX_To_UART(1);
     }
     else if(strcmp((char*) data, "OFF") == 0)
     {
         txm.data = 0;
+        NVMA_Set_RX_To_UART(0);
     }
     else
     {
