@@ -1117,7 +1117,19 @@ bool GSC_ProcessCommand(eATCommands cmd, uint8_t *data, uint16_t size)
 
         case SYS_CMD_RF_TX_TXT:
         {
-            // Transmit data via RF in text format
+            uint8_t packet[256];
+            uint8_t packetSize = strlen((char *)data);
+            
+            AT_SendStringResponse("!! Not Tested !!\r\n");
+            if (packetSize == 0 || packetSize >= sizeof(packet))
+            {
+                AT_SendStringResponse("ERROR: Invalid text data\r\n");
+                commandHandled = false;
+                break;
+            }
+
+            memcpy(packet, data, packetSize);
+            _GSC_Handle_TX(packet, packetSize);
             break;
         }
 
