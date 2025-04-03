@@ -54,6 +54,12 @@ typedef enum
     SYS_CMD_TX_COMPLETE_SET = 37,
     SYS_CMD_RX_COMPLETE_SET = 38,
 
+    // AUX commands
+    SYS_CMD_AUX_SET         = 39,
+    SYS_CMD_AUX_PULSE       = 40,
+    SYS_CMD_AUX_QUERY       = 41,
+    SYS_CMD_AUX_STOP        = 42,
+
 } eATCommands;
 
 

@@ -63,6 +63,7 @@ target_sources(${CMAKE_PROJECT_NAME} PRIVATE
     ${CMAKE_SOURCE_DIR}/Modules/ATInterface/SerialPort/portSTM32L071xx.c
     ${CMAKE_SOURCE_DIR}/Modules/ATInterface/AT_cmd.c
     ${CMAKE_SOURCE_DIR}/Modules/Tasks/MainTask/general_sys_cmd.c
+    ${CMAKE_SOURCE_DIR}/Modules/Tasks/MainTask/auxPin_logic.c
     ${CMAKE_SOURCE_DIR}/Modules/NVMA/NVMA.c
     
     

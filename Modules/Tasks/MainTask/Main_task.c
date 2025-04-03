@@ -12,6 +12,7 @@
 #include "AT_cmd.h"
 #include "general_sys_cmd.h"
 #include "NVMA.h"
+#include "auxPin_logic.h"
 
 #define LOG_LEVEL	LOG_LEVEL_VERBOSE
 #include "Log.h"
@@ -321,6 +322,8 @@ void main_task(void)
 	at_ctx.onDataReceivedFromISR = AT_CustomCommandHandler;
     AT_Init(&at_ctx);
 
+    AUX_InitTimers();
+    
 	LOG_DEBUG("Main task started");
 
     {

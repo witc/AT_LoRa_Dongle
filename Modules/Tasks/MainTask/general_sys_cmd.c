@@ -18,6 +18,7 @@
 #include "AT_cmd.h"
 #include "radio_user.h"
 #include <errno.h>
+#include "auxPin_logic.h"
 
 #define RESPONSE_BUFF_SIZE  32
 
@@ -49,6 +50,7 @@ const AT_CommandLimit_t AT_CommandLimits[] = {
 };
 
 
+
 extern osMessageQueueId_t queueRadioHandle;
 
 const uint32_t AllowedBandwidths[] = {7810, 10420, 15630, 20830, 31250, 41670, 62500, 125000, 250000, 500000};
@@ -59,6 +61,8 @@ static void _GSC_Handle_TX(uint8_t *data, uint8_t size);
 static bool GetCommandLimits(eATCommands cmd, int32_t *minValue, int32_t *maxValue, size_t *maxLength);
 static uint8_t HexStringToByteArray(const char *hexStr, uint8_t *byteArray, size_t byteArraySize);
 static bool _GSC_Handle_RX_TO_UART(uint8_t *data, uint8_t size);
+static bool _GSC_Handle_AUX_PIN_PWM(uint8_t *data, uint8_t size);
+static bool _GSC_Handle_AUX_STOP(uint8_t *data, uint8_t size);
  
 /**
  * @brief Parse data to uint32_t
@@ -1285,6 +1289,24 @@ bool GSC_ProcessCommand(eATCommands cmd, uint8_t *data, uint16_t size)
             break;
         }
 
+        case SYS_CMD_AUX_PULSE:
+            if(_GSC_Handle_AUX_PIN_PWM(data, size) == false)
+            {
+                AT_SendStringResponse("ERROR: Invalid RX_TO_UART value\r\n");
+                commandHandled = false;
+            }
+        
+            break;
+
+        case SYS_CMD_AUX_STOP:
+            if(_GSC_Handle_AUX_STOP(data, size) == false)
+            {
+                AT_SendStringResponse("ERROR: Invalid RX_TO_UART value\r\n");
+                commandHandled = false;
+            }
+        
+            break;
+
         default:
         {
             commandHandled = false;
@@ -1405,5 +1427,46 @@ static bool _GSC_Handle_RX_TO_UART(uint8_t *data, uint8_t size)
     }
 
     xQueueSend(queueRadioHandle,&txm,portMAX_DELAY);
+    return true;
+}
+
+static bool _GSC_Handle_AUX_PIN_PWM(uint8_t *data, uint8_t size)
+{
+    uint8_t pin, duty;
+    uint16_t period;
+
+    // Oddělení tokenů
+    char *token = strtok((char*)data, ",");
+    if (!token || !AT_ParseUint8((uint8_t*)token, &pin, 1) || pin >= AUX_PINS_COUNT)
+        return false;
+
+    token = strtok(NULL, ",");
+    if (!token || !AT_ParseUint16((uint8_t*)token, &period, 5) || period == 0)
+        return false;
+
+    token = strtok(NULL, ",");
+    if (!token || !AT_ParseUint8((uint8_t*)token, &duty, 3) || duty > 100)
+        return false;
+
+    // Pokud je další token, chyba
+    if (strtok(NULL, ",") != NULL)
+        return false;
+
+    // Spuštění PWM na daném pinu
+    AUX_StartPWM(pin, period, duty);
+
+    return true;
+}
+
+
+static bool _GSC_Handle_AUX_STOP(uint8_t *data, uint8_t size)
+{
+    uint8_t pin;
+
+    // Ověření: existuje přesně jeden parametr (pin)
+    if (!data || !AT_ParseUint8(data, &pin, 1) || pin >= AUX_PINS_COUNT)
+        return false;
+
+    AUX_StopPWM(pin);
     return true;
 }

@@ -87,6 +87,12 @@ const AT_Command_Struct AT_Commands[] = {
     {"AT+RF_TX_FROM_NVM",           NULL,               SYS_CMD_RF_TX_FROM_NVM,              "AT+RF_TX_FROM_NVM - Transmit saved RF packet from NVM",  "=1"},
     {"AT+RF_TX_PERIOD_STATUS",      NULL,               SYS_CMD_RF_PERIOD_STATUS,            "AT+RF_TX_PERIOD_STATUS - Get periodic TX status",     "?"},
     {"AT+RF_RX_TO_UART",            NULL,               SYS_CMD_RF_RX_TO_UART,               "AT+RF_RX_TO_UART - Set RF RX to serial port",            "=<ON|OFF>"},
+    
+    {"AT+AUX",                      NULL,               SYS_CMD_AUX_SET,                     "AT+AUX=<pin>,<ON|OFF>",            "=<pin>,<ON|OFF>"},
+    {"AT+AUX_PULSE",                NULL,               SYS_CMD_AUX_PULSE,                   "AT+AUX_PULSE=<pin>,<period_ms>,<duty_pct>", "=<pin>,<period>,<duty%>"},
+    { "AT+AUX_PULSE_STOP",          NULL,               SYS_CMD_AUX_STOP,                    "AT+AUX_PULSE_STOP=<pin> - Stop PWM on AUX pin", "=<pin>" }
+    //{"AT+AUX?",                     NULL,               SYS_CMD_AUX_QUERY,                   "AT+AUX? - Get AUX pin states",     "?"}
+
 
 };
 

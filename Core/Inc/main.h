@@ -107,17 +107,6 @@ typedef struct
 #define CMD_RF_SEND_PACKET		251
 
 
-/**
- * @brief Command identifiers for the main task
- * 
- */
-#define CMD_MAIN_RF_IS_ON				      254
-#define CMD_MAIN_RF_IS_OFF			      253
-#define CMD_MAIN_RF_RX_PACKET		      252
-#define CMD_MAIN_AT_RX_PACKET		      251
-
-
-
 /* USER CODE END EFP */
 
 /* Private defines -----------------------------------------------------------*/
@@ -151,6 +140,16 @@ typedef struct
 
 /* USER CODE BEGIN Private defines */
 
+
+/**
+ * @brief Command identifiers for the main task
+ * 
+ */
+#define CMD_MAIN_RF_IS_ON				      254
+#define CMD_MAIN_RF_IS_OFF			      253
+#define CMD_MAIN_RF_RX_PACKET		      252
+#define CMD_MAIN_AT_RX_PACKET		      251
+
 #define CMD_RF_TURN_ON			    254
 #define CMD_RF_TURN_OFF			    253
 #define CMD_RF_IRQ_FIRED		    252
@@ -158,6 +157,7 @@ typedef struct
 #define CMD_RF_SEND_DATA_LBT		250
 #define CMD_RF_RADIO_HB         249
 #define CMD_RF_RADIO_RX_TO_UART 248
+
 
 
 #define CMD_CORE_RF_IS_ON			254
