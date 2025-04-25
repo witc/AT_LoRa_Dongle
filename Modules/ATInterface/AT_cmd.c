@@ -93,7 +93,6 @@ const AT_Command_Struct AT_Commands[] = {
     { "AT+AUX_PULSE_STOP",          NULL,               SYS_CMD_AUX_STOP,                    "AT+AUX_PULSE_STOP=<pin> - Stop PWM on AUX pin", "=<pin>" }
     //{"AT+AUX?",                     NULL,               SYS_CMD_AUX_QUERY,                   "AT+AUX? - Get AUX pin states",     "?"}
 
-
 };
 
 

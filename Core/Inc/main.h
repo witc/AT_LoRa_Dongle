@@ -157,6 +157,7 @@ typedef struct
 #define CMD_RF_SEND_DATA_LBT		250
 #define CMD_RF_RADIO_HB         249
 #define CMD_RF_RADIO_RX_TO_UART 248
+#define CMD_RF_RADIO_RECONFIG_RX 249
 
 
 

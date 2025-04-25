@@ -11,7 +11,7 @@
 #include "main.h"
 #include "RF_Task.h"
 
-#define RF_MINIMAL_RX_SIZE				5
+
 #define RF_HEART_BEAT_TIMEOUT_MS			(3*CONST_1_MIN)
 
 /*

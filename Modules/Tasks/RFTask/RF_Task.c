@@ -123,7 +123,10 @@ void radio_task_on(radio_context_t *ctx, dataQueue_t *rxd)
 				ctx->rx_to_uart = false;
 			}
 			
-			
+			break;
+
+		case CMD_RF_RADIO_RECONFIG_RX:
+			ru_radio_process_commands(RADIO_CMD_START_RX,ctx,rxd);
 			break;
 
 		default:

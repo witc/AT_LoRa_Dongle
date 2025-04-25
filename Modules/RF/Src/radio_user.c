@@ -524,12 +524,12 @@ void ru_radio_process_IRQ(radio_context_t *ctx)
 	
 		    if (((irqSet & RAL_IRQ_RX_DONE) == RAL_IRQ_RX_DONE) && ((irqSet & RAL_IRQ_RX_CRC_ERROR) != RAL_IRQ_RX_CRC_ERROR))
 		    {
-		    	if(ral_get_pkt_payload(ral,255,rxPayload,&rxSize) == RAL_STATUS_OK)
+		    	if(ral_get_pkt_payload(ral,MAX_SIZE_RADIO_BUFFER,rxPayload,&rxSize) == RAL_STATUS_OK)
 		    	{
 					ral_get_rssi_inst(ral, &RSSI);	
 					LOG_INFO("RX: %d B, RSSI: %d dBm", rxSize, (int16_t)RSSI);
 
-					if(ctx->rx_to_uart == true)
+					if(ctx->rx_to_uart == true && rxSize > 0)
 					{
 						rx_raw_data =  pvPortMalloc(rxSize);
 						if (rx_raw_data == NULL)

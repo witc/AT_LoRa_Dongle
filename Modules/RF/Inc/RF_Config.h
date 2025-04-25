@@ -24,7 +24,7 @@
 #define RF_RX_SF								RAL_LORA_SF9
 #define RF_RX_BW								RAL_LORA_BW_125_KHZ
 #define RF_RX_CODERATE							RAL_LORA_CR_4_5
-#define RF_RX_PREAMBLE_LEN						15	//musi byt >= nez je na vysilaci
+#define RF_RX_PREAMBLE_LEN						18 	//musi byt >= nez je na vysilaci
 #define RF_RX_HEADER_TYPE						RAL_LORA_PKT_EXPLICIT
 #define RF_RX_PACKET_LEN						MAX_SIZE_RADIO_BUFFER	//MAX dle calculatoru
 #define RF_RX_CRC_ON							true

@@ -446,6 +446,7 @@ bool GSC_ProcessCommand(eATCommands cmd, uint8_t *data, uint16_t size)
     bool commandHandled = true;
     bool constrained = false;
     size_t maxLength;
+    bool reconfigure_rx = false;
 
     int32_t minValue, maxValue;
 
@@ -530,6 +531,7 @@ bool GSC_ProcessCommand(eATCommands cmd, uint8_t *data, uint16_t size)
                 }
 
                 NVMA_Set_LR_Freq_RX(freq);
+                reconfigure_rx = true;
             }
             break;
         }
@@ -644,6 +646,7 @@ bool GSC_ProcessCommand(eATCommands cmd, uint8_t *data, uint16_t size)
                 }
                 
                 NVMA_Set_LR_RX_SF(sf);
+                reconfigure_rx = true;
             }
             break;
         }
@@ -720,6 +723,7 @@ bool GSC_ProcessCommand(eATCommands cmd, uint8_t *data, uint16_t size)
                 }
                 
                 NVMA_Set_LR_RX_BW(bw);
+                reconfigure_rx = true;
             }
             break;
         }
@@ -796,6 +800,7 @@ bool GSC_ProcessCommand(eATCommands cmd, uint8_t *data, uint16_t size)
                 }
                 
                 NVMA_Set_LR_RX_IQ(iq);
+                reconfigure_rx = true;
             }
             break;
         }
@@ -872,6 +877,7 @@ bool GSC_ProcessCommand(eATCommands cmd, uint8_t *data, uint16_t size)
                 }
                 
                 NVMA_Set_LR_RX_CR(cr);
+                reconfigure_rx = true;
             }
             break;
         }
@@ -948,6 +954,7 @@ bool GSC_ProcessCommand(eATCommands cmd, uint8_t *data, uint16_t size)
                 }
                 
                 NVMA_Set_LR_HeaderMode_RX(mode);
+                reconfigure_rx = true;
             }
             break;
         }
@@ -1024,6 +1031,7 @@ bool GSC_ProcessCommand(eATCommands cmd, uint8_t *data, uint16_t size)
                 }
                 
                 NVMA_Set_LR_CRC_RX(crc);
+                reconfigure_rx = true;
             }
             break;
         }
@@ -1100,6 +1108,7 @@ bool GSC_ProcessCommand(eATCommands cmd, uint8_t *data, uint16_t size)
                 }
                 
                 NVMA_Set_LR_PreamSize_RX(size);
+                reconfigure_rx = true;
             }
             break;
         }
@@ -1331,6 +1340,14 @@ bool GSC_ProcessCommand(eATCommands cmd, uint8_t *data, uint16_t size)
         }
     }
 
+    if(reconfigure_rx == true)
+    {
+        // Reconfigure RX settings
+        dataQueue_t     txm;
+        txm.ptr = NULL;
+        txm.cmd = CMD_RF_RADIO_RECONFIG_RX;
+        xQueueSend(queueRadioHandle,&txm,portMAX_DELAY);
+    }
     return commandHandled;
 }
   
