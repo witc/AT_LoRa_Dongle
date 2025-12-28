@@ -188,7 +188,7 @@ bool ru_radioInit(radio_context_t *ctx)
 	HAL_NVIC_EnableIRQ(RF_DIO1_NVIC);
 
 	ctx->rfConfig.lastMode = RF_MODE_IDLE;
-	ctx->rx_to_uart = false;
+	ctx->rx_to_uart = true;
 	return true;
 
 }
@@ -321,10 +321,21 @@ bool ru_radio_send_packet(uint8_t *data, uint8_t size, radio_context_t	*ctx)
 	ral_set_dio_irq_params(ral, RAL_IRQ_TX_DONE );
 
 	ctx->rfConfig.loraParam_tx.pkt_params.pld_len_in_bytes = size;
-//	ral_set_lora_pkt_params(ral,&ctx->rfConfig.loraParam_tx.pkt_params); //TODO asi je obsazeno v tom nize
-
 	ru_load_radio_config_tx(&ctx->rfConfig.loraParam_tx);
+
+	//ral_set_lora_pkt_params(ral,&ctx->rfConfig.loraParam_tx.pkt_params); //TODO asi je obsazeno v tom nize
 	ralf_setup_lora(ralf, &ctx->rfConfig.loraParam_tx);
+
+	LOG_INFO("TX params: Freq: %lu Hz, SF: %d, BW: %d, CR: %d/%d, Preamble: %d symb, CRC: %s, IQ Inv: %s",
+		ctx->rfConfig.loraParam_tx.rf_freq_in_hz,
+		ctx->rfConfig.loraParam_tx.mod_params.sf,
+		ctx->rfConfig.loraParam_tx.mod_params.bw,
+		(ctx->rfConfig.loraParam_tx.mod_params.cr + 4),
+		4,
+		ctx->rfConfig.loraParam_tx.pkt_params.preamble_len_in_symb,
+		ctx->rfConfig.loraParam_tx.pkt_params.crc_is_on ? "ON" : "OFF",
+		ctx->rfConfig.loraParam_tx.pkt_params.invert_iq_is_on ? "ON" : "OFF"
+	);
 
 	ral_set_pkt_payload(ral, data, size);
 	ru_radio_rfSwitch(true,ctx);
@@ -373,6 +384,18 @@ void ru_radio_start_rx(radio_context_t	*ctx)
 	ru_radioCleanAndStandby(RAL_STANDBY_CFG_RC, ctx);
 
 	ru_load_radio_config_rx(&ctx->rfConfig.loraParam_rx);
+
+	// log all rx params
+	LOG_INFO("RX params: Freq: %lu Hz, SF: %d, BW: %d, CR: %d/%d, Preamble: %d symb, CRC: %s, IQ Inv: %s",
+		ctx->rfConfig.loraParam_rx.rf_freq_in_hz,
+		ctx->rfConfig.loraParam_rx.mod_params.sf,
+		ctx->rfConfig.loraParam_rx.mod_params.bw,
+		(ctx->rfConfig.loraParam_rx.mod_params.cr + 4),
+		4,
+		ctx->rfConfig.loraParam_rx.pkt_params.preamble_len_in_symb,
+		ctx->rfConfig.loraParam_rx.pkt_params.crc_is_on ? "ON" : "OFF",
+		ctx->rfConfig.loraParam_rx.pkt_params.invert_iq_is_on ? "ON" : "OFF"
+	);
 
 	ret += ralf_setup_lora(ralf, &ctx->rfConfig.loraParam_rx);
 	ret += ral_set_dio_irq_params(ral,RAL_IRQ_RX_DONE  | RAL_IRQ_RX_TIMEOUT| RAL_IRQ_RX_CRC_ERROR);

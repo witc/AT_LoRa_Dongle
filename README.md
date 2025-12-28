@@ -1,130 +1,137 @@
 # AT_LoRa_Dongle
 
-**LoRa komunikační modul s AT příkazy pro bezdrátový přenos na velké vzdálenosti**
+**Professional LoRa wireless communication module with AT command interface**
 
-Ovládej LoRa transceiver pomocí jednoduchých sériových AT příkazů – žádné programování, funguje jako modem. Posílej data, nastavuj parametry a přijímej zprávy na dálku přes UART.
+A hardware module for long-range wireless IoT communication. Control via simple serial AT commands — no complex programming required. Transmit, receive, and configure LoRa parameters just like you would with a modem.
 
-**Hlavní vlastnosti:**
-- **Ovládání:** Sériové AT příkazy (115200 baud)
-- **Hardware:** STM32L071CBT6 + SX1262 LoRa transceiver
-- **Frekvence:** 869.525 MHz (optimalizováno), podporuje 150-960 MHz
-- **Výkon:** 0-22 dBm (nastavitelné)
-- **Dosah:** 15+ km (přímá viditelnost)
-- **RTOS:** FreeRTOS, komunikace přes message queues
-- **Paměť:** Non-volatile storage pro ukládání paketů
+**Core specifications:**
+- **Communication:** Serial AT commands (115200 baud)
+- **Hardware:** STM32L071CBT6 MCU + SX1262 LoRa transceiver
+- **Frequency:** 869.525 MHz (optimized), 150-960 MHz supported
+- **Output Power:** 0-22 dBm (configurable)
+- **Range:** 15+ km line-of-sight
+- **Integration:** FreeRTOS RTOS, message queues for inter-task communication
+- **Storage:** Non-volatile memory (NVM) for packet caching
 
 ---
 
-## Hardware
+## Hardware Specifications
 
-| Komponent | Hodnota |
-|-----------|---------|
+| Component | Value |
+|-----------|-------|
 | **MCU** | STM32L071CBT6 (ARM Cortex-M0+) |
-| **Flash / RAM** | 176 KB / 20 KB |
-| **RF** | SX1262 (Semtech LoRa) |
-| **Frekvence** | 150-960 MHz |
-| **Optimální frekvence** | **869.525 MHz** (EU ISM band) |
-| **TX výkon** | 0 až 22 dBm |
-| **UART** | 115200 baud, 8N1 |
-| **Programování** | SWD |
+| **Memory** | 192 KB Flash (176 KB application), 20 KB RAM |
+| **RF Transceiver** | SX1262 (Semtech LoRa modem) |
+| **Frequency Range** | 150 MHz - 960 MHz |
+| **Frequency Optimized** | **869.525 MHz** (EU ISM band, full power) |
+| **TX Power Range** | 0 to 22 dBm |
+| **Serial Interface** | UART1 (115200 baud, 8N1) |
+| **Programming** | SWD (Serial Wire Debug) |
+| **Dimensions/Weight** | [hardware data TBD] |
 
-**⚠️ Důležité:** Hardware je optimalizován pro **869.525 MHz** s přizpůsobenou impedancí. Jiné frekvence (150-960 MHz) fungují, ale nedosáhnou plného výkonu kvůli neoptimalizovanému RF filtru. Další hw varianty pro 915 MHz jsou v plánu.
+**⚠️ Important:** Current hardware revision is **optimized for 869.525 MHz** with matched RF impedance matching network. Other frequencies (150-960 MHz) are supported via firmware but will not achieve full TX power output due to unmatched antenna/filter circuits. Future hardware variants for 915 MHz and other regional bands are planned.
 
 ---
 
-## Softwarová architektura
+## Software Architecture
 
 ```
 ┌────────────────────────────────────────────────────────────┐
-│         UART (115200 baud) ← Serial AT příkazy            │
+│         Serial Port Interface (USART1 @ 115200 baud)       │
 │              ↓                                              │
-│         AT Parser (AT_cmd.c)                               │
+│         AT Command Parser (Modules/ATInterface/AT_cmd.c)   │
 │              ↓                                              │
 │  ┌─────────────────────────────────────────────────────┐   │
-│  │ FreeRTOS Scheduler                                  │   │
+│  │ FreeRTOS Task Scheduler                             │   │
 │  │ ┌─────────────────────┐      ┌──────────────────┐  │   │
 │  │ │ Main Task           │      │ RF Task          │  │   │
-│  │ │ - AT příkazy        │◄────►│ - SX1262 driver  │  │   │
-│  │ │ - Systém            │      │ - TX/RX          │  │   │
-│  │ │ - GPIO/LED          │      │                  │  │   │
+│  │ │ - AT command proc.  │◄────►│ - SX1262 driver  │  │   │
+│  │ │ - System control    │      │ - TX/RX handling │  │   │
+│  │ │ - GPIO/LED control  │      │ - RF state mgmt  │  │   │
 │  │ └─────────────────────┘      └──────────────────┘  │   │
 │  │          ↓                            ↓             │   │
 │  │    ┌──────────────┐          ┌──────────────┐      │   │
-│  │    │Message Queues│          │Semaphores    │      │   │
-│  │    └──────────────┘          └──────────────┘      │   │
+│  │    │Message Queues│          │Synchronization│    │   │
+│  │    │queueMainHandle          │Semaphores     │    │   │
+│  │    │queueRadioHandle          │Mutexes        │    │   │
+│  │    └──────────────┘          └──────────────┘     │   │
 │  └─────────────────────────────────────────────────────┘   │
 │              ↓                                              │
 │  ┌────────────────────────────────────────────────────┐    │
-│  │ Hardware Drivers                                   │    │
-│  │ GPIO | SPI | NVMA | SX1262                         │    │
+│  │ Peripheral Drivers & Modules                       │    │
+│  │ ┌──────────┐  ┌───────┐  ┌──────────┐  ┌────────┐ │    │
+│  │ │GPIO Ctrl │  │SPI    │  │NVMA      │  │ SX1262 │ │    │
+│  │ │LED/AUX   │  │ Driver │ │NV Memory │  │ Driver │ │    │
+│  │ └──────────┘  └───────┘  └──────────┘  └────────┘ │    │
 │  └────────────────────────────────────────────────────┘    │
 └────────────────────────────────────────────────────────────┘
 ```
 
-**Moduly:**
-- **ATInterface/** — Parser a dispatcher AT příkazů
-- **Tasks/MainTask/** — Hlavní task, systémové příkazy, GPIO
-- **Tasks/RFTask/** — Radio operace (TX/RX)
-- **RF/SX1262/** — SX1262 driver (Semtech)
-- **NVMA/** — Non-volatile paměť
-- **Core/** — STM32 HAL inicializace
+**Module breakdown:**
+- **Modules/ATInterface/AT_cmd.c** — AT command parser and dispatcher
+- **Modules/Tasks/MainTask/** — Main application task, system commands, GPIO control
+- **Modules/Tasks/RFTask/** — Radio operations (TX/RX via SX1262)
+- **Modules/RF/SX1262/** — SX1262 driver (Semtech provided)
+- **Modules/NVMA/** — Non-volatile memory abstraction layer
+- **Core/** — STM32 HAL initialization, peripheral setup
 
 ---
 
-## AT Příkazy – kompletní přehled
+## AT Commands — Complete Reference
 
-### Formát příkazů
-- **Case-insensitive:** `AT`, `at`, `At` jsou stejné
-- **Nastavit hodnotu:** `AT+COMMAND=value`
-- **Zjistit hodnotu:** `AT+COMMAND?`
-- **Provést akci:** `AT+COMMAND`
+### Command Format
+- **Case-insensitive:** `AT`, `at`, `At` all accepted
+- **Set value:** `AT+COMMAND=value` (e.g., `AT+LR_TX_POWER=14`)
+- **Query value:** `AT+COMMAND?` (returns current value)
+- **Execute action:** `AT+COMMAND` (no params)
 
-### Systémové příkazy
+### System Control Commands
 
-| Příkaz | Použití | Odpověď | Popis |
-|---------|---------|----------|-------|
-| `AT` | `AT` | `OK` | Test spojení |
-| `AT+HELP` | `AT+HELP` | [seznam příkazů] | Zobrazí všechny příkazy |
-| `AT+IDENTIFY` | `AT+IDENTIFY` | Info o zařízení | ID a verze |
-| `AT+SYS_RESTART` | `AT+SYS_RESTART` | `OK` → restart | Hardware reset |
-| `AT+FACTORY_MODE` | `=ON` / `=OFF` | `OK` | Tovární režim |
-| `AT+LED_BLUE` | `=ON` / `=OFF` | `OK` | Ovládání modré LED |
+| Command | Usage | Response | Description |
+|---------|-------|----------|-------------|
+| `AT` | `AT` | `OK` | Connectivity test |
+| `AT+HELP` | `AT+HELP` | [command list] | List all available commands |
+| `AT+IDENTIFY` | `AT+IDENTIFY` | Device ID & version | Get device information |
+| `AT+SYS_RESTART` | `AT+SYS_RESTART` | `OK` then restart | Restart system (hardware reset) |
+| `AT+FACTORY_MODE` | `=ON` / `=OFF` | `OK` | Enable factory mode for testing |
+| `AT+LED_BLUE` | `=ON` / `=OFF` | `OK` | Control blue status LED |
 
 ---
 
-### LoRa TX konfigurace
+### LoRa TX Configuration
 
-**Jednotlivé parametry:**
+**Individual parameter commands:**
 
-| Příkaz | Parametr | Příklad | Poznámka |
-|---------|-----------|---------|----------|
-| `AT+LR_TX_FREQ` | Frekvence (Hz) | `AT+LR_TX_FREQ=869525000` | 869.525 MHz pro EU |
-| `AT+LR_TX_POWER` | Výkon (dBm) | `AT+LR_TX_POWER=14` | 0-22 dBm |
-| `AT+LR_TX_SF` | Spreading Factor | `AT+LR_TX_SF=7` | 5-12; vyšší = větší dosah |
-| `AT+LR_TX_BW` | Šířka pásma (Hz) | `AT+LR_TX_BW=125000` | 7.81k až 500k Hz |
+| Command | Parameter | Example | Notes |
+|---------|-----------|---------|-------|
+| `AT+LR_TX_FREQ` | Frequency (Hz) | `AT+LR_TX_FREQ=869525000` | 869.525 MHz for EU |
+| `AT+LR_TX_POWER` | Power (dBm) | `AT+LR_TX_POWER=14` | 0-22 dBm range |
+| `AT+LR_TX_SF` | Spreading Factor | `AT+LR_TX_SF=7` | 5-12; higher = longer range |
+| `AT+LR_TX_BW` | Bandwidth (Hz) | `AT+LR_TX_BW=125000` | 7.81k to 500k Hz |
 | `AT+LR_TX_CR` | Coding Rate | `AT+LR_TX_CR=45` | 45, 46, 47, 48 |
-| `AT+LR_TX_CRC` | CRC Enable | `AT+LR_TX_CRC=1` | 0=vypnuto, 1=zapnuto |
-| `AT+LR_TX_HEADERMODE` | Typ hlavičky | `AT+LR_TX_HEADERMODE=0` | 0=explicit, 1=implicit |
-| `AT+LR_TX_IQ_INV` | IQ Invert | `AT+LR_TX_IQ_INV=0` | 0=normální, 1=invertováno |
-| `AT+LR_TX_PREAMBLE_SIZE` | Délka preambule | `AT+LR_TX_PREAMBLE_SIZE=8` | 1-65535; min. 8 |
+| `AT+LR_TX_CRC` | CRC Enable | `AT+LR_TX_CRC=1` | 0=off, 1=on |
+| `AT+LR_TX_HEADERMODE` | Header Type | `AT+LR_TX_HEADERMODE=0` | 0=explicit, 1=implicit |
+| `AT+LR_TX_IQ_INV` | IQ Invert | `AT+LR_TX_IQ_INV=0` | 0=normal, 1=inverted |
+| `AT+LR_TX_PREAMBLE_SIZE` | Preamble Len | `AT+LR_TX_PREAMBLE_SIZE=8` | 1-65535; minimum 8 recommended |
 
-**Dotaz na hodnotu:**
+**Query current value:**
 ```
-AT+LR_TX_FREQ?          # Vrátí: 869525000
-AT+LR_TX_POWER?         # Vrátí: 14
+AT+LR_TX_FREQ?          # Returns: 869525000
+AT+LR_TX_POWER?         # Returns: 14
 ```
 
-**Hromadné nastavení TX (vše najednou):**
+**Bulk TX configuration (set all at once):**
 ```
 AT+LR_TX_SET=SF:7,BW:7,CR:45,Freq:869525000,IQ:0,Header:0,CRC:1,Power:14
 ```
 
 ---
 
-### LoRa RX konfigurace
+### LoRa RX Configuration
 
-**Stejné parametry jako TX, nahraď `TX` za `RX`:**
+**Same parameters as TX, replace `TX` with `RX`:**
 - `AT+LR_RX_FREQ=<Hz>`
+- `AT+LR_RX_POWER` (note: RX doesn't use power setting)
 - `AT+LR_RX_SF=<5-12>`
 - `AT+LR_RX_BW=<Hz>`
 - `AT+LR_RX_CR=<45-48>`
@@ -133,42 +140,44 @@ AT+LR_TX_SET=SF:7,BW:7,CR:45,Freq:869525000,IQ:0,Header:0,CRC:1,Power:14
 - `AT+LR_RX_IQ_INV=<0|1>`
 - `AT+LR_RX_PREAMBLE_SIZE=<1-65535>`
 
-**Hromadné nastavení RX:**
+**Bulk RX configuration:**
 ```
 AT+LR_RX_SET=SF:7,BW:7,CR:45,Freq:869525000,IQ:0,Header:0,CRC:1
 ```
 
 ---
 
-### Referenční tabulka šířky pásma
+### Bandwidth Reference
 
-| Hz | kHz | Použití |
+Standard LoRa bandwidth values (in Hz):
+
+| Hz Value | kHz | Typical Use |
 |----------|-----|------------|
-| 7810 | 7.81 | Maximální dosah (pomalé) |
-| 10420 | 10.42 | Velmi dlouhý dosah |
-| 15630 | 15.63 | Dlouhý dosah |
-| 20830 | 20.83 | Střední dosah |
-| 31250 | 31.25 | Střední dosah |
-| 41670 | 41.67 | Kratší dosah |
-| 62500 | 62.5 | Krátký dosah |
-| **125000** | **125** | **Standardní (doporučeno)** |
-| 250000 | 250 | Krátký dosah, vysoká rychlost |
-| 500000 | 500 | Velmi krátký dosah |
+| 7810 | 7.81 | Extreme range (slow) |
+| 10420 | 10.42 | Very long range |
+| 15630 | 15.63 | Long range |
+| 20830 | 20.83 | Medium range |
+| 31250 | 31.25 | Medium range |
+| 41670 | 41.67 | Medium/short range |
+| 62500 | 62.5 | Short range |
+| **125000** | **125** | **Standard (recommended)** |
+| 250000 | 250 | Short range, high data rate |
+| 500000 | 500 | Very short range only |
 
 ---
 
-### Odesílání dat
+### Data Transmission Commands
 
-| Příkaz | Formát | Příklad | Účel |
+| Command | Format | Example | Purpose |
 |---------|--------|---------|---------|
-| `AT+RF_TX_TXT` | `=<text>` | `AT+RF_TX_TXT=Hello LoRa` | Odeslat ASCII text |
-| `AT+RF_TX_HEX` | `=<hex>` | `AT+RF_TX_HEX=48656C6C6F` | Odeslat binární data (hex) |
-| `AT+RF_TX_SAVE_PCKT` | `=<hex>` | `AT+RF_TX_SAVE_PCKT=DEADBEEF` | Uložit paket do NVM |
-| `AT+RF_TX_FROM_NVM` | `=1` | `AT+RF_TX_FROM_NVM=1` | Odeslat uložený paket |
+| `AT+RF_TX_TXT` | `=<text>` | `AT+RF_TX_TXT=Hello LoRa` | Send ASCII text via RF |
+| `AT+RF_TX_HEX` | `=<hex>` | `AT+RF_TX_HEX=48656C6C6F` | Send binary data as hex |
+| `AT+RF_TX_SAVE_PCKT` | `=<hex>` | `AT+RF_TX_SAVE_PCKT=DEADBEEF` | Save packet to NVM |
+| `AT+RF_TX_FROM_NVM` | `=1` | `AT+RF_TX_FROM_NVM=1` | Transmit previously saved packet |
 
-**Příklady:**
+**Examples:**
 ```
-AT+RF_TX_TXT=Teplota: 23.5°C
+AT+RF_TX_TXT=Sensor reading: 23.5°C
 AT+RF_TX_HEX=010203AABBCC
 AT+RF_TX_SAVE_PCKT=48656C6C6F
 AT+RF_TX_FROM_NVM=1
@@ -176,102 +185,105 @@ AT+RF_TX_FROM_NVM=1
 
 ---
 
-### Periodický přenos
+### Periodic Transmission
 
-Automatické opakované odesílání dat v pravidelných intervalech:
+Control automatic repeated transmission of data at fixed intervals:
 
-| Příkaz | Formát | Příklad | Účel |
+| Command | Format | Example | Purpose |
 |---------|--------|---------|---------|
-| `AT+RF_TX_PERIOD` | `=<ms>` | `AT+RF_TX_PERIOD=5000` | Nastavit interval (5 sekund) |
-| `AT+RF_TX_PERIOD_CTRL` | `=ON` / `=OFF` | `AT+RF_TX_PERIOD_CTRL=ON` | Spustit/zastavit |
-| `AT+RF_TX_PERIOD_STATUS` | `?` | `AT+RF_TX_PERIOD_STATUS?` | Zjistit stav |
+| `AT+RF_TX_PERIOD` | `=<milliseconds>` | `AT+RF_TX_PERIOD=5000` | Set interval (5 seconds) |
+| `AT+RF_TX_PERIOD_CTRL` | `=ON` / `=OFF` | `AT+RF_TX_PERIOD_CTRL=ON` | Start/stop periodic TX |
+| `AT+RF_TX_PERIOD_STATUS` | `?` | `AT+RF_TX_PERIOD_STATUS?` | Check if periodic TX enabled |
 
-**Použití:**
+**Periodic TX workflow:**
 ```
-AT+RF_TX_PERIOD=5000                # Interval 5 sekund
-AT+RF_TX_SAVE_PCKT=48656C6C6F       # Uložit payload
-AT+RF_TX_PERIOD_CTRL=ON             # Spustit periodický přenos
-# Zařízení odesílá každých 5 sekund...
-AT+RF_TX_PERIOD_STATUS?             # Ověřit stav
-AT+RF_TX_PERIOD_CTRL=OFF            # Zastavit
+AT+RF_TX_PERIOD=5000                # Set 5-second interval
+AT+RF_TX_SAVE_PCKT=48656C6C6F       # Save payload to NVM
+AT+RF_TX_PERIOD_CTRL=ON             # Start periodic transmission
+# Device will transmit every 5 seconds...
+AT+RF_TX_PERIOD_STATUS?             # Check: enabled?
+AT+RF_TX_PERIOD_CTRL=OFF            # Stop periodic transmission
 ```
 
 ---
 
-### Příjem dat
+### Reception Control
 
-| Příkaz | Formát | Účel |
+| Command | Format | Purpose |
 |---------|--------|---------|
-| `AT+RF_RX_TO_UART` | `=ON` / `=OFF` | Přeposílat přijaté pakety na UART |
+| `AT+RF_RX_TO_UART` | `=ON` / `=OFF` | Forward received packets to UART |
 
-**Příklad:**
+**RX mode example:**
 ```
 AT+RF_RX_TO_UART=ON
-# Zařízení naslouchá a vypisuje přijaté pakety:
-# +RX: 48656C6C6F20576F726C64
+# Now device listens and prints all received LoRa packets to UART
+# Example received: +RX: 48656C6C6F20576F726C64
 ```
 
 ---
 
-### Ovládání GPIO
+### Auxiliary GPIO Control
 
-Přímé ovládání GPIO pinů pro externí zařízení (relé, senzory atd.):
+Directly control GPIO pins for external devices (relays, sensors, etc.):
 
-| Příkaz | Formát | Příklad | Účel |
+| Command | Format | Example | Purpose |
 |---------|--------|---------|---------|
-| `AT+AUX` | `=<pin>,<ON\|OFF>` | `AT+AUX=1,ON` | Nastavit GPIO high/low |
-| `AT+AUX_PULSE` | `=<pin>,<period_ms>,<duty_%>` | `AT+AUX_PULSE=2,1000,50` | PWM výstup |
-| `AT+AUX_PULSE_STOP` | `=<pin>` | `AT+AUX_PULSE_STOP=2` | Zastavit PWM |
+| `AT+AUX` | `=<pin>,<ON\|OFF>` | `AT+AUX=1,ON` | Set GPIO high/low |
+| `AT+AUX_PULSE` | `=<pin>,<period_ms>,<duty_%>` | `AT+AUX_PULSE=2,1000,50` | PWM output |
+| `AT+AUX_PULSE_STOP` | `=<pin>` | `AT+AUX_PULSE_STOP=2` | Stop PWM |
 
-**Příklady:**
+**GPIO examples:**
 ```
-AT+AUX=1,ON                 # Pin 1 high (např. aktivovat relé)
-AT+AUX=1,OFF                # Pin 1 low
-AT+AUX_PULSE=2,1000,75      # PWM na pinu 2: 1 kHz, 75% duty cycle
-AT+AUX_PULSE_STOP=2         # Zastavit PWM na pinu 2
+AT+AUX=1,ON                 # Set pin 1 high (e.g., activate relay)
+AT+AUX=1,OFF                # Set pin 1 low
+AT+AUX_PULSE=2,1000,75      # PWM on pin 2: 1 kHz frequency, 75% duty cycle
+AT+AUX_PULSE_STOP=2         # Stop PWM on pin 2
 ```
 
 ---
 
-## Rychlý start
+## Quick Start Guide
 
-### 1. Připojení hardwaru
+### 1. Hardware Connection
 
 ```
-USB TTL Převodník     AT_LoRa_Dongle
-────────────────      ──────────────
-GND ──────────────► GND
-RXD ──────────────► TX (USART1)
-TXD ──────────────► RX (USART1)
-+5V/+3.3V ────────► VCC
+USB TTL Adapter         AT_LoRa_Dongle
+─────────────────       ──────────────
+GND ────────────────► GND
+RXD ────────────────► TX (USART1)
+TXD ────────────────► RX (USART1)
++5V/+3.3V ─────────► VCC
 ```
 
-Nastavení terminálu: **115200 baud, 8N1**
+Configure terminal: **115200 baud, 8 data bits, 1 stop bit, no parity**
 
-### 2. Test spojení
+### 2. Basic Connectivity Test
 
 ```bash
-AT                  # Test
-# Očekáváno: OK
+# Test connection
+AT
+# Expected: OK
 
-AT+IDENTIFY         # Info o zařízení
-# Očekáváno: AT-LoRa_Dongle v1.0
+# Get device info
+AT+IDENTIFY
+# Expected: AT-LoRa_Dongle v1.0
 
-AT+HELP             # Seznam příkazů
+# List all commands
+AT+HELP
 ```
 
-### 3. Nastavení LoRa parametrů (EU 869 MHz)
+### 3. Configure LoRa Parameters (EU 869 MHz Example)
 
 ```bash
-# TX parametry
+# Set TX parameters
 AT+LR_TX_FREQ=869525000      # 869.525 MHz
 AT+LR_TX_POWER=14            # 14 dBm
-AT+LR_TX_SF=7                # SF7
-AT+LR_TX_BW=125000           # 125 kHz
+AT+LR_TX_SF=7                # SF7 (good compromise)
+AT+LR_TX_BW=125000           # 125 kHz (standard)
 AT+LR_TX_CR=45               # CR 4/5
-AT+LR_TX_CRC=1               # CRC zapnuto
+AT+LR_TX_CRC=1               # Enable CRC
 
-# RX shodné s TX (pro příjem vlastních zpráv)
+# Set RX to match TX (so you can receive your own messages)
 AT+LR_RX_FREQ=869525000
 AT+LR_RX_SF=7
 AT+LR_RX_BW=125000
@@ -279,150 +291,246 @@ AT+LR_RX_CR=45
 AT+LR_RX_CRC=1
 ```
 
-**Nebo hromadně:**
+**Or use bulk configuration:**
 ```bash
 AT+LR_TX_SET=SF:7,BW:7,CR:45,Freq:869525000,IQ:0,Header:0,CRC:1,Power:14
 AT+LR_RX_SET=SF:7,BW:7,CR:45,Freq:869525000,IQ:0,Header:0,CRC:1
 ```
 
-### 4. Odesílání dat
+### 4. Send Data
 
 ```bash
-AT+RF_TX_TXT=Hello World        # Odeslat text
-AT+RF_TX_HEX=48656C6C6F         # Odeslat hex
+# Send text
+AT+RF_TX_TXT=Hello World
 
-# Nebo uložit a odeslat z NVM
+# Send hex data
+AT+RF_TX_HEX=48656C6C6F
+
+# Or save and transmit from NVM
 AT+RF_TX_SAVE_PCKT=DEADBEEF
 AT+RF_TX_FROM_NVM=1
 ```
 
-### 5. Příjem dat
+### 5. Receive Data
 
 ```bash
+# Enable RX forwarding to UART
 AT+RF_RX_TO_UART=ON
-# Zařízení vypisuje přijaté pakety:
+
+# Now device prints all received packets:
 # +RX: 48656C6C6F20576F726C64
 ```
 
-### 6. Periodický přenos (např. data každých 10 sekund)
+### 6. Periodic Transmission (e.g., sensor data every 10 seconds)
 
 ```bash
-AT+RF_TX_SAVE_PCKT=DEADBEEF        # Uložit payload
-AT+RF_TX_PERIOD=10000              # 10 sekund
-AT+RF_TX_PERIOD_CTRL=ON            # Spustit
-AT+RF_TX_PERIOD_STATUS?            # Ověřit
+AT+RF_TX_SAVE_PCKT=DEADBEEF        # Save payload
+AT+RF_TX_PERIOD=10000              # 10 seconds
+AT+RF_TX_PERIOD_CTRL=ON            # Start periodic TX
+AT+RF_TX_PERIOD_STATUS?            # Verify enabled
 
-# Zastavení:
+# To stop:
 AT+RF_TX_PERIOD_CTRL=OFF
 ```
 
 ---
 
-## Build a flashování
+## Building and Flashing
 
-### Potřebné nástroje
+### Prerequisites
 
-- **STM32CubeCLT** nebo **STM32CubeIDE**
+- **STM32CubeCLT** or **STM32CubeIDE** (recommended)
 - **ARM GCC toolchain** (arm-none-eabi-gcc)
-- **CMake** 3.22+
-- **STM32_Programmer_CLI** pro flashování
+- **CMake** 3.22 or later
+- **STM32_Programmer_CLI** for flashing
+- **Git** for version control
 
-### Build
+### Build Steps
 
-1. **Klonování:**
+1. **Clone repository:**
    ```bash
    git clone https://github.com/witc/AT_LoRa_Dongle.git
    cd AT_LoRa_Dongle
    ```
 
-2. **Konfigurace:**
+2. **Configure CMake build:**
    ```bash
    cmake -B build -S . -DCMAKE_BUILD_TYPE=Debug
    ```
 
-3. **Kompilace:**
+3. **Build firmware:**
    ```bash
    cmake --build build --config Debug
    ```
 
-   Výstup: `build/Debug/AT_LoRa_Dongle.elf`
+   Output: `build/Debug/AT_LoRa_Dongle.elf`
 
-### Flashování
+### Flashing to Device
 
-**VSCode task** (doporučeno):
-1. Připoj zařízení přes SWD
-2. Spusť task: `CMake: Flash project (SWD)`
+**Using VSCode task** (recommended):
+1. Connect device via SWD
+2. Run VSCode task: `CMake: Flash project (SWD)`
 
-**CLI:**
+**Using CLI:**
 ```bash
 STM32_Programmer_CLI --connect port=swd --download build/Debug/AT_LoRa_Dongle.elf -hardRst -rst --start
 ```
 
+**Verify flash:**
+```bash
+STM32_Programmer_CLI --list
+```
+
 ---
 
-## Struktura projektu
+## Project Structure
 
 ```
 AT_LoRa_Dongle/
-├── Core/                       # STM32 HAL & systém
-│   ├── Inc/                    # Hlavičky (FreeRTOSConfig.h, main.h)
-│   └── Src/                    # main.c, HAL callbacks
+├── README.md                    # This file
+├── CMakeLists.txt              # Build configuration
+├── AT_LoRa_Dongle.ioc          # STM32CubeMX project file
 │
-├── Modules/                    # Aplikační kód
-│   ├── ATInterface/            # AT parser (AT_cmd.c)
-│   ├── Tasks/
-│   │   ├── MainTask/           # Hlavní task, GPIO
-│   │   └── RFTask/             # RF operace
-│   ├── RF/SX1262/              # SX1262 driver (Semtech)
-│   └── NVMA/                   # Non-volatile paměť
+├── Core/                       # STM32 HAL & system
+│   ├── Inc/
+│   │   ├── main.h
+│   │   ├── stm32l0xx_hal_conf.h
+│   │   ├── FreeRTOSConfig.h    # FreeRTOS settings
+│   │   └── ...
+│   └── Src/
+│       ├── main.c              # Entry point, hardware init
+│       ├── stm32l0xx_hal_msp.c # HAL callbacks
+│       ├── system_stm32l0xx.c
+│       └── ...
 │
 ├── Drivers/                    # STM32 HAL drivers
+│   ├── STM32L0xx_HAL_Driver/
+│   └── CMSIS/
+│
 ├── Middlewares/                # FreeRTOS kernel
-└── build/                      # Build výstupy
+│   └── Third_Party/FreeRTOS/
+│
+├── Modules/                    # Application code
+│   ├── ATInterface/
+│   │   ├── AT_cmd.h            # AT command definitions (enum eATCommands)
+│   │   ├── AT_cmd.c            # AT command parser & dispatcher
+│   │   └── SerialPort/         # UART abstraction layer
+│   │
+│   ├── Tasks/
+│   │   ├── MainTask/
+│   │   │   ├── Main_task.h
+│   │   │   ├── Main_task.c     # Main FreeRTOS task
+│   │   │   ├── general_sys_cmd.c
+│   │   │   └── auxPin_logic.c  # GPIO/PWM control
+│   │   │
+│   │   └── RFTask/
+│   │       ├── RF_Task.h
+│   │       └── RF_Task.c       # RF transmission/reception task
+│   │
+│   ├── RF/                     # Radio driver
+│   │   ├── Inc/
+│   │   ├── Src/
+│   │   │   └── radio_user.c
+│   │   └── SX1262/             # Semtech SX1262 driver
+│   │       ├── Inc/
+│   │       ├── Src/
+│   │       │   ├── sx126x.c
+│   │       │   ├── ral_sx126x.c
+│   │       │   └── ...
+│   │       └── [Semtech licensed driver]
+│   │
+│   └── NVMA/                   # Non-volatile memory
+│       ├── NVMA.h
+│       └── NVMA.c              # Flash-based packet storage
+│
+├── cmake/                      # Build system
+│   ├── gcc-arm-none-eabi.cmake
+│   └── stm32cubemx/
+│
+├── build/                      # Build output (generated)
+│   ├── Debug/
+│   │   ├── AT_LoRa_Dongle.elf
+│   │   ├── AT_LoRa_Dongle.map
+│   │   └── compile_commands.json
+│   └── Release/
+│
+└── .vscode/                    # VSCode settings
+    ├── launch.json             # Debug configuration
+    └── tasks.json              # Build/flash tasks
 ```
 
 ---
 
-## Přidání nového AT příkazu
+## Development Guide
 
-1. **Definuj enum** v `AT_cmd.h`:
+### Adding a New AT Command
+
+1. **Define command enum** in `Modules/ATInterface/AT_cmd.h`:
    ```c
    typedef enum {
-       // ... existující
+       // ... existing commands
        SYS_CMD_MY_NEW_COMMAND = 99,
    } eATCommands;
    ```
 
-2. **Přidej do tabulky** v `AT_cmd.c`:
+2. **Add to command table** in `Modules/ATInterface/AT_cmd.c`:
    ```c
    const AT_Command_Struct AT_Commands[] = {
-       {"AT+MY_CMD", NULL, SYS_CMD_MY_NEW_COMMAND, "Popis", "parametry"},
+       // ... existing commands
+       {"AT+MY_CMD", NULL, SYS_CMD_MY_NEW_COMMAND, "AT+MY_CMD - My new command", "parameters"},
    };
    ```
 
-3. **Implementuj handler** (např. v `general_sys_cmd.c`):
+3. **Implement handler** in appropriate module (e.g., `Modules/Tasks/MainTask/general_sys_cmd.c`):
    ```c
    void AT_HandleMyCommand(char *params) {
-       // Zpracuj příkaz
+       // Process command
+       // Send response
        AT_SendStringResponse("OK\r\n");
    }
    ```
 
+4. **Update README** with new command documentation
+
+### Message Queue Communication
+
+Main Task → RF Task via FreeRTOS queues:
+```c
+osMessageQueueId_t queueMainHandle;     // Send from MainTask
+osMessageQueueId_t queueRadioHandle;    // Send from RFTask
+
+// Send data from MainTask to RFTask
+dataQueue_t msg = { ... };
+osMessageQueuePut(queueRadioHandle, &msg, 0, 0);
+
+// RF Task receives and processes
+```
+
+### Accessing Non-Volatile Memory
+
+Save/load packets from flash:
+```c
+NVMA_SavePacket(buffer, length);
+NVMA_LoadPacket(buffer, &length);
+```
+
 ---
 
-## Řešení problémů
+## Troubleshooting
 
-| Problém | Diagnóza | Řešení |
+| Problem | Diagnosis | Solution |
 |---------|-----------|----------|
-| **Žádná odpověď na AT** | Zařízení nereaguje | Zkontroluj UART připojení, baud rate (115200), napájení |
-| **Build selhává** | Chyby kompilace | Ověř CMake 3.22+, ARM GCC toolchain, závislosti |
-| **TX nevysílá** | Žádný RF výstup | Zkontroluj frekvenci (opt. 869.525 MHz), anténu, TX power, SF (5-12) |
-| **Nízký výkon na jiných frekvencích** | Slabý signál mimo 869 MHz | Očekávané – HW optimalizován pouze pro 869.525 MHz |
-| **RX jen šum** | Nelze dekódovat zprávy | Ověř shodné parametry RX a TX (SF, BW, CR, frekvence, header, CRC) |
-| **Periodický TX nefunguje** | Neopakuje se | Ověř uložený paket v NVM, nastavenou periodu, `AT+RF_TX_PERIOD_CTRL=ON` |
-| **Zařízení "zbricklé"** | Neodpovídá vůbec | Připoj přes SWD, flashni firmware pomocí STM32CubeProgrammer GUI |
+| **Device not responding** | No response to `AT` command | Check UART connection, baud rate (115200), power supply. Try `AT+IDENTIFY` |
+| **Compilation errors** | Build fails | Verify CMake 3.22+, ARM GCC toolchain installed, all dependencies present |
+| **LoRa TX not transmitting** | No RF output | Check frequency (optimized: 869.525 MHz), antenna connected, TX power set, spreading factor valid (5-12) |
+| **Low TX power on other bands** | Reduced RF output on non-869 MHz | Hardware optimized for 869.525 MHz only. Expected on other frequencies. |
+| **RX receiving only noise** | Can't decode valid messages | Verify RX parameters match TX settings (SF, BW, CR, frequency, header mode, CRC) |
+| **Periodic TX not working** | TX doesn't repeat | Verify packet saved to NVM first, period set (ms), periodic TX enabled with `AT+RF_TX_PERIOD_CTRL=ON` |
+| **Flash tool not found** | `STM32_Programmer_CLI` not in PATH | Install STM32CubeCLT, add to system PATH, or use VSCode task |
+| **Device bricked** | Device unresponsive | Connect via SWD, flash fresh firmware using STM32CubeProgrammer GUI |
 
-**Factory reset:**
+### Factory Reset
+
 ```bash
 AT+FACTORY_MODE=ON
 AT+SYS_RESTART
@@ -430,61 +538,112 @@ AT+SYS_RESTART
 
 ---
 
-## API Reference
+## API Reference (For Programmers)
 
-### Main Task (`Main_task.h`)
+### Main Task API (`Modules/Tasks/MainTask/Main_task.h`)
 
 ```c
-void main_task(void);                                    // FreeRTOS task
-bool MT_SendDataToMainTask(dataQueue_t *data);          // Poslat data do main tasku
-bool AT_CustomCommandHandler(char *data, ...);           // Handler vlastních AT příkazů
+/**
+ * FreeRTOS main task entry point
+ * Called by FreeRTOS scheduler
+ */
+void main_task(void);
+
+/**
+ * Send data from external source to main task
+ * @param data: Message to send (dataQueue_t structure)
+ * @return: true if successful, false if queue full
+ */
+bool MT_SendDataToMainTask(dataQueue_t *data);
+
+/**
+ * Handle custom AT commands
+ * Called by AT parser when command matches
+ * @param data: Command string
+ * @param atCmd: Command enum value
+ * @param size: Command length
+ * @return: true if handled
+ */
+bool AT_CustomCommandHandler(char *data, eATCommands atCmd, uint16_t size);
 ```
 
-### RF Task (`RF_Task.h`)
+### RF Task API (`Modules/Tasks/RFTask/RF_Task.h`)
 
 ```c
-void rf_task(void);                                      // RF task (TX/RX operace)
+/**
+ * FreeRTOS RF task entry point
+ * Handles all LoRa radio operations
+ */
+void rf_task(void);
 ```
 
-### AT Commands (`AT_cmd.h`)
+### AT Command API (`Modules/ATInterface/AT_cmd.h`)
 
 ```c
-void AT_Init(AT_cmd_t *atCmd);                          // Inicializace AT subsystému
-void AT_HandleATCommand(uint16_t size);                 // Zpracování AT příkazu
-void AT_SendStringResponse(char *response);             // Odeslat odpověď na UART
+/**
+ * Initialize AT command subsystem
+ * @param atCmd: AT context with UART handle and buffers
+ */
+void AT_Init(AT_cmd_t *atCmd);
+
+/**
+ * Process incoming AT command (called from UART ISR)
+ * @param size: Size of received data
+ */
+void AT_HandleATCommand(uint16_t size);
+
+/**
+ * Send string response to UART
+ * @param response: Null-terminated response string
+ */
+void AT_SendStringResponse(char *response);
 ```
 
-### NVMA (`NVMA.h`)
+### NVMA API (`Modules/NVMA/NVMA.h`)
 
 ```c
-void NVMA_SavePacket(uint8_t *data, uint16_t length);   // Uložit paket do flash
-void NVMA_LoadPacket(uint8_t *buffer, uint16_t *len);   // Načíst paket z flash
+/**
+ * Save packet to non-volatile memory
+ */
+void NVMA_SavePacket(uint8_t *data, uint16_t length);
+
+/**
+ * Load packet from non-volatile memory
+ */
+void NVMA_LoadPacket(uint8_t *buffer, uint16_t *length);
 ```
 
 ---
 
-## Výkonové parametry
+## Performance Specifications
 
-| Parametr | Hodnota |
-|-----------|---------|
-| **Odezva příkazu** | <10 ms |
-| **TX latence** | ~100 ms (setup) + čas TX |
-| **RX citlivost** (SF7, BW125) | ~-120 dBm |
-| **Spotřeba (RX)** | ~80 mA |
-| **Spotřeba (TX @ 22 dBm)** | ~500 mA peak |
-| **Velikost paketu** | 1-255 bytů |
+| Parameter | Value |
+|-----------|-------|
+| **Command Response Time** | <10 ms |
+| **TX Latency** | ~100 ms (setup) + LoRa TX time |
+| **RX Sensitivity** (SF7, BW125) | ~-120 dBm |
+| **Current Consumption (RX)** | ~80 mA |
+| **Current Consumption (TX @ 22 dBm)** | ~500 mA peak |
+| **Packet Size** | 1-255 bytes |
 
 ---
 
-## Licence
+## License & Attribution
 
-- **Firmware:** [Your License]
-- **SX1262 Driver:** Semtech
+- **Firmware:** [Your License Here]
+- **SX1262 Driver:** Semtech (see `Modules/RF/SX1262/LICENSE`)
 - **FreeRTOS:** Real Time Engineers Ltd
 - **STM32 HAL:** STMicroelectronics
 
 ---
 
-**Verze:** v1.0  
-**Hardware:** Rev 1.0 (869.525 MHz)  
-**Aktualizováno:** Prosinec 2024
+## Support & Contact
+
+For issues, questions, or contributions:
+- Create an issue on GitHub
+- Check existing documentation
+- Review code comments in relevant module
+
+**Last Updated:** November 2024
+**Firmware Version:** v1.0
+**Hardware Revision:** Rev 1.0 (869.525 MHz)

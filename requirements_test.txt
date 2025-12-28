@@ -1,0 +1,2 @@
+# Requirements for LoRa Dongle testing
+pyserial>=3.5

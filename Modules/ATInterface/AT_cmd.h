@@ -13,6 +13,13 @@
 
 #include "portSTM32L071xx.h"
 
+/* Firmware version */
+#define FW_VERSION_MAJOR    1
+#define FW_VERSION_MINOR    0
+#define FW_VERSION_PATCH    0
+#define FW_VERSION_STRING   "v1.0.0"
+#define FW_DEVICE_NAME      "AT-USB LoRa_Dongle"
+
 /**
  * @brief 
  * 

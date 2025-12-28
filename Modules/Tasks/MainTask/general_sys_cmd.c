@@ -53,6 +53,10 @@ const AT_CommandLimit_t AT_CommandLimits[] = {
 
 extern osMessageQueueId_t queueRadioHandle;
 
+// Timer pro debouncing RX rekonfigurace
+static TimerHandle_t rxReconfigTimer = NULL;
+#define RX_RECONFIG_DELAY_MS 50  // Prodleva před odesláním rekonfigurace
+
 const uint32_t AllowedBandwidths[] = {7810, 10420, 15630, 20830, 31250, 41670, 62500, 125000, 250000, 500000};
 const size_t AllowedBandwidthCount = sizeof(AllowedBandwidths) / sizeof(AllowedBandwidths[0]);
 
@@ -63,6 +67,8 @@ static uint8_t HexStringToByteArray(const char *hexStr, uint8_t *byteArray, size
 static bool _GSC_Handle_RX_TO_UART(uint8_t *data, uint8_t size);
 static bool _GSC_Handle_AUX_PIN_PWM(uint8_t *data, uint8_t size);
 static bool _GSC_Handle_AUX_STOP(uint8_t *data, uint8_t size);
+static void RxReconfigTimerCallback(TimerHandle_t xTimer);
+static void TriggerRxReconfig(void);
  
 /**
  * @brief Parse data to uint32_t
@@ -199,6 +205,58 @@ size_t AT_ParseUint8(const uint8_t *data, uint8_t *value, size_t maxLength)
 }
 
 
+/**
+ * @brief Timer callback pro odeslání RX rekonfigurace
+ * 
+ * @param xTimer 
+ */
+static void RxReconfigTimerCallback(TimerHandle_t xTimer)
+{
+    dataQueue_t txm;
+    txm.ptr = NULL;
+    txm.cmd = CMD_RF_RADIO_RECONFIG_RX;
+    xQueueSend(queueRadioHandle, &txm, portMAX_DELAY);
+}
+
+/**
+ * @brief Spustí/restartuje timer pro RX rekonfiguraci
+ * 
+ */
+static void TriggerRxReconfig(void)
+{
+    // Pokud timer ještě neexistuje, vytvoř ho
+    if (rxReconfigTimer == NULL)
+    {
+        rxReconfigTimer = xTimerCreate(
+            "RxReconfigTimer",
+            pdMS_TO_TICKS(RX_RECONFIG_DELAY_MS),
+            pdFALSE,  // One-shot timer
+            NULL,
+            RxReconfigTimerCallback
+        );
+        
+        if (rxReconfigTimer == NULL)
+        {
+            // Pokud se nepodařilo vytvořit timer, pošli zprávu okamžitě
+            dataQueue_t txm;
+            txm.ptr = NULL;
+            txm.cmd = CMD_RF_RADIO_RECONFIG_RX;
+            xQueueSend(queueRadioHandle, &txm, portMAX_DELAY);
+            return;
+        }
+    }
+    
+    // Restart timeru (pokud již běží, restartuje se)
+    if (xTimerIsTimerActive(rxReconfigTimer) == pdTRUE)
+    {
+        xTimerReset(rxReconfigTimer, portMAX_DELAY);
+    }
+    else
+    {
+        xTimerStart(rxReconfigTimer, portMAX_DELAY);
+    }
+}
+
 
 /**
  * @brief 
@@ -223,7 +281,7 @@ void ProcessRFMultiSetCommand(bool tx, char *params)
     };
 
     const char *keys[] = {
-        "SF", "BW", "CR", "Freq", "IQ", "Header", "CRC", "Power"
+        "SF", "BW", "CR", "FREQ", "IQINV", "HEADERMODE", "CRC", "POWER"
     };
 
     //Pokud jde o dotaz
@@ -300,13 +358,13 @@ void ProcessRFMultiSetCommand(bool tx, char *params)
             else           cmd = SYS_CMD_RX_FREQ;
             // Případně ověření hodnoty
         }
-        else if (strcmp(key, "IQ") == 0)
+        else if (strcmp(key, "IQINV") == 0)
         {
             if(tx == true) cmd = SYS_CMD_TX_IQ;
             else           cmd = SYS_CMD_RX_IQ;
         
         }
-        else if (strcmp(key, "HEADER") == 0)
+        else if (strcmp(key, "HEADERMODE") == 0)
         {
             if(tx == true) cmd = SYS_CMD_HEADERMODE_TX;
             else           cmd = SYS_CMD_HEADERMODE_RX;
@@ -1342,11 +1400,8 @@ bool GSC_ProcessCommand(eATCommands cmd, uint8_t *data, uint16_t size)
 
     if(reconfigure_rx == true)
     {
-        // Reconfigure RX settings
-        dataQueue_t     txm;
-        txm.ptr = NULL;
-        txm.cmd = CMD_RF_RADIO_RECONFIG_RX;
-        xQueueSend(queueRadioHandle,&txm,portMAX_DELAY);
+        // Spustí/restartuje timer pro RX rekonfiguraci
+        TriggerRxReconfig();
     }
     return commandHandled;
 }

@@ -58,8 +58,8 @@ const AT_Command_Struct AT_Commands[] = {
     {"AT+SYS_RESTART",           AT_HandleRestartSys,    0,                                 "AT+SYS_RESTART - Restart the system",             ""},
     {"AT+LED_BLUE",              NULL,                   SYS_LED_BLUE,                      "AT+LED_BLUE - Set LED blue state",                "=ON, =OFF"},
     /* multiple LoRa params*/
-    {"AT+LR_TX_SET",                NULL,               SYS_CMD_TX_COMPLETE_SET,             "AT+LR_TX_SET - Set multiple TX parameters",      "=SF:<value>,BW:<value>,CR:<value>,Freq:<value>,IQ:<value>,Header:<value>,CRC:<value>,Power:<value>, ?"},
-    {"AT+LR_RX_SET",                NULL,               SYS_CMD_RX_COMPLETE_SET,             "AT+LR_RX_SET - Set multiple RX parameters",      "=SF:<value>,BW:<value>,CR:<value>,Freq:<value>,IQ:<value>,Header:<value>,CRC:<value>, ?"},
+    {"AT+LR_TX_SET",                NULL,               SYS_CMD_TX_COMPLETE_SET,             "AT+LR_TX_SET - Set multiple TX parameters",      "=SF:<value>,BW:<value>,CR:<value>,Freq:<value>,IQInv:<value>,HeaderMode:<value>,CRC:<value>,Power:<value>, ?"},
+    {"AT+LR_RX_SET",                NULL,               SYS_CMD_RX_COMPLETE_SET,             "AT+LR_RX_SET - Set multiple RX parameters",      "=SF:<value>,BW:<value>,CR:<value>,Freq:<value>,IQInv:<value>,HeaderMode:<value>,CRC:<value>, ?"},
     /* single LoRa params*/
     {"AT+LR_TX_FREQ",                NULL,               SYS_CMD_TX_FREQ,                     "AT+LR_TX_FREQ - Set TX frequency",                "=<frequency_in_Hz>, ?"},
     {"AT+LR_RX_FREQ",                NULL,               SYS_CMD_RX_FREQ,                     "AT+LR_RX_FREQ - Set RX frequency",                "=<frequency_in_Hz>, ?"},
@@ -90,7 +90,7 @@ const AT_Command_Struct AT_Commands[] = {
     
     {"AT+AUX",                      NULL,               SYS_CMD_AUX_SET,                     "AT+AUX=<pin>,<ON|OFF>",            "=<pin>,<ON|OFF>"},
     {"AT+AUX_PULSE",                NULL,               SYS_CMD_AUX_PULSE,                   "AT+AUX_PULSE=<pin>,<period_ms>,<duty_pct>", "=<pin>,<period>,<duty%>"},
-    { "AT+AUX_PULSE_STOP",          NULL,               SYS_CMD_AUX_STOP,                    "AT+AUX_PULSE_STOP=<pin> - Stop PWM on AUX pin", "=<pin>" }
+    {"AT+AUX_PULSE_STOP",           NULL,               SYS_CMD_AUX_STOP,                    "AT+AUX_PULSE_STOP=<pin> - Stop PWM on AUX pin", "=<pin>" }
     //{"AT+AUX?",                     NULL,               SYS_CMD_AUX_QUERY,                   "AT+AUX? - Get AUX pin states",     "?"}
 
 };
@@ -305,8 +305,8 @@ static void AT_HandleHelp(char *params)
 
     // Add examples for complex commands
     AT_SendStringResponse("\r\nExamples for complex commands:\r\n");
-    AT_SendStringResponse("  AT+LR_TX_SET=SF:9,BW:7,CR:45,Freq:869525000,IQ:0,Header:0,CRC:1,Power:22\r\n");
-    AT_SendStringResponse("  AT+LR_RX_SET=SF:9,BW:7,CR:45,Freq:869525000,IQ:1,Header:0,CRC:1\r\n");
+    AT_SendStringResponse("  AT+LR_TX_SET=SF:9,BW:7,CR:45,Freq:869525000,IQInv:0,HeaderMode:0,CRC:1,Power:22\r\n");
+    AT_SendStringResponse("  AT+LR_RX_SET=SF:9,BW:7,CR:45,Freq:869525000,IQInv:1,HeaderMode:0,CRC:1\r\n");
 }
 
 /**
@@ -317,7 +317,7 @@ static void AT_HandleHelp(char *params)
 static void AT_HandleIdentify(char *params)
 {
     UNUSED(params);
-    AT_SendStringResponse("AT-LoRa_Dongle v1.0\r\n");
+    AT_SendStringResponse(FW_DEVICE_NAME " " FW_VERSION_STRING "\r\n");
 }
 
 
