@@ -42,10 +42,10 @@ const AT_CommandLimit_t AT_CommandLimits[] = {
     {SYS_CMD_PREAM_SIZE_RX, 1, 65535, 5},          // RX preamble size (1 to 65535, max 5 znaků)
     {SYS_CMD_RF_TX_HEX, 0, 255, 512},              // RF TX HEX (max 512 znaků pro HEX data)
     {SYS_CMD_RF_TX_TXT, 0, 255, 512},              // RF TX TXT (max 512 znaků pro textová data)
-    {SYS_CMD_RF_PERIOD_SET, 1, 65535, 5},          // RF periodic TX set (1 to 65535 ms, max 5 znaků)
-    {SYS_CMD_RF_PERIOD_CTRL, 0, 1, 1},             // RF periodic TX control (0 = OFF, 1 = ON, max 1 znak)
+    {SYS_CMD_RF_TX_NVM_PERIOD, 1, 65535, 5},       // RF NVM packet periodic TX period (1 to 65535 ms, max 5 znaků)
+    {SYS_CMD_RF_TX_PERIODIC_NVM, 0, 0, 3},         // RF periodic NVM packet TX control (ON/OFF, max 3 znaky)
     {SYS_CMD_RF_SAVE_PCKT_NVM, 0, 255, 512},       // Save RF packet to NVM (max 512 znaků pro HEX data)
-    {SYS_CMD_RF_TX_FROM_NVM, 1, 1, 1},             // Transmit saved RF packet from NVM (1, max 1 znak)
+    {SYS_CMD_RF_TX_NVM_ONCE, 1, 1, 1},             // Transmit saved NVM packet once (1, max 1 znak)
     {SYS_CMD_RF_PERIOD_STATUS, 0, 1, 1}            // Get periodic TX status (0 = FALSE, 1 = TRUE, max 1 znak)
 };
 
@@ -57,6 +57,9 @@ extern osMessageQueueId_t queueRadioHandle;
 static TimerHandle_t rxReconfigTimer = NULL;
 #define RX_RECONFIG_DELAY_MS 50  // Prodleva před odesláním rekonfigurace
 
+// Timer pro periodický TX
+static TimerHandle_t periodicTxTimer = NULL;
+
 const uint32_t AllowedBandwidths[] = {7810, 10420, 15630, 20830, 31250, 41670, 62500, 125000, 250000, 500000};
 const size_t AllowedBandwidthCount = sizeof(AllowedBandwidths) / sizeof(AllowedBandwidths[0]);
 
@@ -64,11 +67,15 @@ static bool _GSC_Handle_BlueLED(uint8_t *data);
 static void _GSC_Handle_TX(uint8_t *data, uint8_t size);
 static bool GetCommandLimits(eATCommands cmd, int32_t *minValue, int32_t *maxValue, size_t *maxLength);
 static uint8_t HexStringToByteArray(const char *hexStr, uint8_t *byteArray, size_t byteArraySize);
+static void ByteArrayToHexString(const uint8_t *byteArray, size_t arraySize, char *hexStr, size_t hexStrSize);
 static bool _GSC_Handle_RX_TO_UART(uint8_t *data, uint8_t size);
 static bool _GSC_Handle_AUX_PIN_PWM(uint8_t *data, uint8_t size);
 static bool _GSC_Handle_AUX_STOP(uint8_t *data, uint8_t size);
 static void RxReconfigTimerCallback(TimerHandle_t xTimer);
 static void TriggerRxReconfig(void);
+static void PeriodicTxTimerCallback(TimerHandle_t xTimer);
+static void StartPeriodicTx(void);
+static void StopPeriodicTx(void);
  
 /**
  * @brief Parse data to uint32_t
@@ -259,6 +266,78 @@ static void TriggerRxReconfig(void)
 
 
 /**
+ * @brief Callback funkce pro periodický TX timer
+ * 
+ * @param xTimer 
+ */
+static void PeriodicTxTimerCallback(TimerHandle_t xTimer)
+{
+    uint8_t packet[256];
+    uint16_t packetSize;
+    
+    // Načtení uloženého paketu z NVM
+    NVMA_Get_LR_Saved_Pckt_Size(&packetSize);
+    NVMA_Get_LR_TX_RF_PCKT(packet, packetSize);
+    
+    // Využití existující funkce pro odeslání
+    _GSC_Handle_TX(packet, packetSize);
+}
+
+/**
+ * @brief Spustí periodický TX timer
+ * 
+ */
+static void StartPeriodicTx(void)
+{
+    uint32_t period;
+    
+    // Načtení periody z NVM
+    NVMA_Get_LR_TX_Period_TX(&period);
+    
+    // Pokud timer ještě neexistuje, vytvoř ho
+    if (periodicTxTimer == NULL)
+    {
+        periodicTxTimer = xTimerCreate(
+            "PeriodicTxTimer",
+            pdMS_TO_TICKS(period),
+            pdTRUE,  // Auto-reload timer (periodický)
+            NULL,
+            PeriodicTxTimerCallback
+        );
+        
+        if (periodicTxTimer == NULL)
+        {
+            AT_SendStringResponse("ERROR: Failed to create periodic TX timer\r\n");
+            return;
+        }
+
+    }
+    else
+    {
+        // Aktualizace periody existujícího timeru
+        xTimerChangePeriod(periodicTxTimer, pdMS_TO_TICKS(period), portMAX_DELAY);
+    }
+    
+    // Spuštění timeru
+    osTimerStart(periodicTxTimer, period);
+
+    PeriodicTxTimerCallback(periodicTxTimer); // Okamžité spuštění prvního přenosu
+}
+
+/**
+ * @brief Zastaví periodický TX timer
+ * 
+ */
+static void StopPeriodicTx(void)
+{
+    if (periodicTxTimer != NULL)
+    {
+        xTimerStop(periodicTxTimer, portMAX_DELAY);
+    }
+}
+
+
+/**
  * @brief 
  * 
  * @param tx 
@@ -277,11 +356,12 @@ void ProcessRFMultiSetCommand(bool tx, char *params)
         tx ? SYS_CMD_TX_IQ : SYS_CMD_RX_IQ,
         tx ? SYS_CMD_HEADERMODE_TX : SYS_CMD_HEADERMODE_RX,
         tx ? SYS_CMD_CRC_TX : SYS_CMD_CRC_RX,
+        tx ? SYS_CMD_PREAM_SIZE_TX : SYS_CMD_PREAM_SIZE_RX,
         tx ? SYS_CMD_TX_POWER : SYS_CMD_TX_POWER
     };
 
     const char *keys[] = {
-        "SF", "BW", "CR", "FREQ", "IQINV", "HEADERMODE", "CRC", "POWER"
+        "SF", "BW", "CR", "FREQ", "IQINV", "HEADERMODE", "CRC", "PREAMBLE", "POWER"
     };
 
     //Pokud jde o dotaz
@@ -375,6 +455,11 @@ void ProcessRFMultiSetCommand(bool tx, char *params)
             if(tx == true) cmd = SYS_CMD_CRC_TX;
             else           cmd = SYS_CMD_CRC_RX;
            
+        }
+        else if (strcmp(key, "PREAMBLE") == 0)
+        {
+            if(tx == true) cmd = SYS_CMD_PREAM_SIZE_TX;
+            else           cmd = SYS_CMD_PREAM_SIZE_RX;
         }
         else
         {
@@ -483,6 +568,28 @@ static uint8_t HexStringToByteArray(const char *hexStr, uint8_t *byteArray, size
     }
 
     return (uint8_t)(hexStrLen / 2);
+}
+
+/**
+ * @brief Convert uint8_t array to hex string
+ * 
+ * @param byteArray 
+ * @param arraySize 
+ * @param hexStr 
+ * @param hexStrSize 
+ */
+static void ByteArrayToHexString(const uint8_t *byteArray, size_t arraySize, char *hexStr, size_t hexStrSize)
+{
+    if (hexStrSize < (arraySize * 2 + 1))
+    {
+        return; // Nedostatečná velikost bufferu
+    }
+
+    for (size_t i = 0; i < arraySize; i++)
+    {
+        snprintf(&hexStr[i * 2], 3, "%02X", byteArray[i]);
+    }
+    hexStr[arraySize * 2] = '\0';
 }
 
 /**
@@ -1204,7 +1311,7 @@ bool GSC_ProcessCommand(eATCommands cmd, uint8_t *data, uint16_t size)
             break;
         }
 
-        case SYS_CMD_RF_TX_FROM_NVM:
+        case SYS_CMD_RF_TX_NVM_ONCE:
         {   
             uint8_t tx;
 
@@ -1215,10 +1322,10 @@ bool GSC_ProcessCommand(eATCommands cmd, uint8_t *data, uint16_t size)
                 break;
             }
 
-            // Transmit saved RF packet from NVM
+            // Transmit saved NVM packet once
             if (!AT_ParseUint8(data, &tx,maxLength))
             {
-                AT_SendStringResponse("ERROR: Invalid TX_FROM_NVM value\r\n");
+                AT_SendStringResponse("ERROR: Invalid TX_NVM_ONCE value\r\n");
                 commandHandled = false;
                 break;
             }
@@ -1234,7 +1341,7 @@ bool GSC_ProcessCommand(eATCommands cmd, uint8_t *data, uint16_t size)
                 }
                 else 
                 {
-                    AT_SendStringResponse("ERROR: Invalid TX_FROM_NVM value\r\n");
+                    AT_SendStringResponse("ERROR: Invalid TX_NVM_ONCE value\r\n");
                     commandHandled = false;
                     break;
                 }
@@ -1244,7 +1351,7 @@ bool GSC_ProcessCommand(eATCommands cmd, uint8_t *data, uint16_t size)
             break;
         }
 
-        case SYS_CMD_RF_PERIOD_SET:
+        case SYS_CMD_RF_TX_NVM_PERIOD:
         {
             uint32_t period;
             if (isQuery)
@@ -1264,7 +1371,7 @@ bool GSC_ProcessCommand(eATCommands cmd, uint8_t *data, uint16_t size)
 
                 if (!AT_ParseUint32(data, &period,maxLength))
                 {
-                    AT_SendStringResponse("ERROR: Invalid TX_PERIOD value\r\n");
+                    AT_SendStringResponse("ERROR: Invalid TX_NVM_PERIOD value\r\n");
                     commandHandled = false;
                     break;
                 }
@@ -1272,7 +1379,7 @@ bool GSC_ProcessCommand(eATCommands cmd, uint8_t *data, uint16_t size)
                 period = Constrain_u32(period, minValue, maxValue,&constrained);
                 if(constrained)
                 {
-                    AT_SendStringResponse("ERROR: TX_PERIOD value out of limit\r\n");
+                    AT_SendStringResponse("ERROR: TX_NVM_PERIOD value out of limit\r\n");
                     commandHandled = false;
                     break;
                 }
@@ -1282,9 +1389,31 @@ bool GSC_ProcessCommand(eATCommands cmd, uint8_t *data, uint16_t size)
             break;
         }
 
-        case SYS_CMD_RF_PERIOD_CTRL:
+        case SYS_CMD_RF_TX_PERIODIC_NVM:
         {
-            // Start/Stop periodic TX
+            // Start/Stop periodic NVM packet TX
+            if (isQuery)
+            {
+                AT_SendStringResponse("TODO\r\n");
+                commandHandled = false;
+            }
+            else
+            {
+                if(strcmp((char*) data, "ON") == 0)
+                {
+                    StartPeriodicTx();
+                }
+                else if(strcmp((char*) data, "OFF") == 0)
+                {
+                    StopPeriodicTx();
+                }
+                else
+                {
+                    AT_SendStringResponse("ERROR: Invalid TX_PERIODIC_NVM value (use ON or OFF)\r\n");
+                    commandHandled = false;
+                    break;
+                }
+            }
             break;
         }
 
@@ -1292,12 +1421,26 @@ bool GSC_ProcessCommand(eATCommands cmd, uint8_t *data, uint16_t size)
         {   
             if (isQuery)
             {      
-                // uint16_t pcktSize;
-                // uint8_t packet[256];
-                // NVMA_Get_LR_Saved_Pckt_Size(&pcktSize);
-                // NVMA_Get_LR_TX_RF_PCKT(packet,pcktSize);
-                // AT_FormatUint32Response(packet, (uint8_t *)response, &response_size);
-                // hasResponse = true;
+                uint16_t pcktSize;
+                uint8_t packet[256];
+                char hexString[513]; // 256 bytes * 2 + 1 null terminator
+                char outputBuffer[530]; // hexString + size info
+                
+                NVMA_Get_LR_Saved_Pckt_Size(&pcktSize);
+                
+                if (pcktSize > 0 && pcktSize <= 256)
+                {
+                    NVMA_Get_LR_TX_RF_PCKT(packet, pcktSize);
+                    ByteArrayToHexString(packet, pcktSize, hexString, sizeof(hexString));
+                    snprintf(outputBuffer, sizeof(outputBuffer), "%s (%u B)", hexString, pcktSize);
+                    AT_SendStringResponse(outputBuffer);
+                    hasResponse = false; // Už bylo odesláno
+                }
+                else
+                {
+                    AT_SendStringResponse("ERROR: No packet saved or invalid size\r\n");
+                    commandHandled = false;
+                }
             }
             else
             {
