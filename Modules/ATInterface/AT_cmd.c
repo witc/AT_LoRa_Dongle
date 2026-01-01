@@ -80,6 +80,7 @@ const AT_Command_Struct AT_Commands[] = {
     {"AT+LR_RX_PREAMBLE_SIZE",      NULL,               SYS_CMD_PREAM_SIZE_RX,               "AT+LR_RX_PREAMBLE_SIZE",                         "=<1 to 65535> should be >= TX side,?"},
     {"AT+LR_TX_LDRO",               NULL,               SYS_CMD_TX_LDRO,                     "AT+LR_TX_LDRO - Set TX Low Data Rate Optimization", "=0 (off), =1 (on), =2 (auto), ?"},
     {"AT+LR_RX_LDRO",               NULL,               SYS_CMD_RX_LDRO,                     "AT+LR_RX_LDRO - Set RX Low Data Rate Optimization", "=0 (off), =1 (on), =2 (auto), ?"},
+    {"AT+LR_RX_PLDLEN",             NULL,               SYS_CMD_RX_PLDLEN,                   "AT+LR_RX_PLDLEN - RX payload length (required only for implicit mode)", "=<1-255>, ?"},
  
     /* RF immediate TX commands */
     {"AT+RF_TX_HEX",                NULL,               SYS_CMD_RF_TX_HEX,                   "AT+RF_TX_HEX - Transmit data via RF in HEX format",  "=<HEX data>"},

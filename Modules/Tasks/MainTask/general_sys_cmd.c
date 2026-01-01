@@ -1606,6 +1606,30 @@ bool GSC_ProcessCommand(eATCommands cmd, uint8_t *data, uint16_t size)
             break;
         }
 
+        case SYS_CMD_RX_PLDLEN:
+        {   
+            uint8_t pldlen;
+            if (isQuery)
+            {
+                NVMA_Get_LR_RX_PldLen(&pldlen);
+                AT_FormatUint8Response(pldlen, (uint8_t *)response, &response_size);
+                hasResponse = true;
+            }
+            else
+            {
+                if (!AT_ParseUint8(data, &pldlen, 3))  // max 255 = 3 digits
+                {
+                    AT_SendStringResponse("ERROR: Invalid RX_PLDLEN value\r\n");
+                    commandHandled = false;
+                    break;
+                }
+                
+                NVMA_Set_LR_RX_PldLen(pldlen);
+                reconfigure_rx = true;
+            }
+            break;
+        }
+
         case SYS_CMD_AUX_PULSE:
             if(_GSC_Handle_AUX_PIN_PWM(data, size) == false)
             {

@@ -278,6 +278,7 @@ bool ru_load_radio_config_rx(ralf_params_lora_t *loraParam)
 	uint8_t bw;
 	uint8_t cr;
 	uint8_t ldro;
+	uint8_t pldlen;
 
 	NVMA_Get_LR_CRC_RX((uint8_t*)&loraParam->pkt_params.crc_is_on);
 	NVMA_Get_LR_HeaderMode_RX(&loraParam->pkt_params.header_type);
@@ -302,6 +303,16 @@ bool ru_load_radio_config_rx(ralf_params_lora_t *loraParam)
 		loraParam->mod_params.ldro = ral_compute_lora_ldro(loraParam->mod_params.sf, loraParam->mod_params.bw);
 	} else {
 		loraParam->mod_params.ldro = ldro;
+	}
+
+	// Payload length for implicit header mode
+	// In implicit mode, RX must know expected payload length (not sent in header)
+	NVMA_Get_LR_RX_PldLen(&pldlen);
+	if (loraParam->pkt_params.header_type == RAL_LORA_PKT_IMPLICIT && pldlen > 0) {
+		loraParam->pkt_params.pld_len_in_bytes = pldlen;
+	} else {
+		// Explicit mode or pldlen=0: use max buffer size
+		loraParam->pkt_params.pld_len_in_bytes = RF_RX_PACKET_LEN;
 	}
 
 	//NVMA_Get_LR_(&loraParam->sync_word);		//TODO

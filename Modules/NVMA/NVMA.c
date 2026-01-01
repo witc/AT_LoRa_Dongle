@@ -645,4 +645,26 @@ void NVMA_Get_LR_RX_LDRO(uint8_t *ldro)
     xSemaphoreGive(xEepromMutex);
 }
 
+/**
+ * @brief Set RX expected payload length (for implicit header mode)
+ * @param len Payload length in bytes (1-255, 0 to use actual received size)
+ */
+void NVMA_Set_LR_RX_PldLen(uint8_t len)
+{   
+    xSemaphoreTake(xEepromMutex, portMAX_DELAY);
+    HAL_FLASHEx_DATAEEPROM_Unlock();
+    HAL_FLASHEx_DATAEEPROM_Program(FLASH_TYPEPROGRAMDATA_WORD, EE_ADDR_LR_RX_PLDLEN, len);
+    HAL_FLASHEx_DATAEEPROM_Lock();
+    xSemaphoreGive(xEepromMutex);
+}
 
+/**
+ * @brief Get RX expected payload length (for implicit header mode)
+ * @param len Pointer to store payload length
+ */
+void NVMA_Get_LR_RX_PldLen(uint8_t *len)
+{   
+    xSemaphoreTake(xEepromMutex, portMAX_DELAY);
+    *len = *((uint8_t *)EE_ADDR_LR_RX_PLDLEN);
+    xSemaphoreGive(xEepromMutex);
+}

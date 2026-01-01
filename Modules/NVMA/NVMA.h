@@ -36,6 +36,7 @@
 #define EE_ADDR_RX_TO_UART                      (EE_ADDR_LR_TX_PERIOD_TX + sizeof(uint32_t))    //uint8_t
 #define EE_ADDR_LR_TX_LDRO                      (EE_ADDR_RX_TO_UART + sizeof(uint32_t))
 #define EE_ADDR_LR_RX_LDRO                      (EE_ADDR_LR_TX_LDRO + sizeof(uint32_t))
+#define EE_ADDR_LR_RX_PLDLEN                    (EE_ADDR_LR_RX_LDRO + sizeof(uint32_t))
 
 
 
@@ -113,5 +114,8 @@ void NVMA_Get_LR_TX_LDRO(uint8_t *ldro);
 
 void NVMA_Set_LR_RX_LDRO(uint8_t ldro);
 void NVMA_Get_LR_RX_LDRO(uint8_t *ldro);
+
+void NVMA_Set_LR_RX_PldLen(uint8_t len);
+void NVMA_Get_LR_RX_PldLen(uint8_t *len);
 
 #endif // NVMA_H

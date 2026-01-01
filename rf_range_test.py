@@ -51,7 +51,7 @@ def should_skip_test(sf: int, bw: int) -> bool:
     """Check if test should be skipped based on filter settings"""
     if SKIP_SLOW_TESTS:
         # Skip slow combinations: low bandwidth + high spreading factor
-        if bw <= 5 or sf >= 10:
+        if bw <= 7 or sf >= 8:
             return True
     return False
 
@@ -242,8 +242,26 @@ class ATLoraDongle:
         return success
     
     def configure_rx(self, sf: int, bw: int, freq: int, cr: int = 45, 
-                     iq_inv: int = 0, ldro: int = 2, header_mode: int = 0, crc: int = 1, preamble: int = 8) -> bool:
-        """Configure RX parameters"""
+                     iq_inv: int = 0, ldro: int = 2, header_mode: int = 0, crc: int = 1, preamble: int = 8,
+                     rx_payload_len: int = 0) -> bool:
+        """Configure RX parameters
+        
+        Args:
+            rx_payload_len: Expected payload length for implicit header mode (0=auto/max buffer)
+        """
+        # For implicit header mode, set expected payload length first
+        if header_mode == 1 and rx_payload_len > 0:
+            pldlen_cmd = f"AT+LR_RX_PLDLEN={rx_payload_len}"
+            success, response = self.send_command(pldlen_cmd)
+            if not success:
+                logger.error(f"{self.name}: RX payload length config failed: {response}")
+                return False
+            logger.debug(f"{self.name}: RX payload length set to {rx_payload_len} for implicit mode")
+        elif header_mode == 0:
+            # For explicit mode, set to 0 (use max buffer)
+            pldlen_cmd = "AT+LR_RX_PLDLEN=0"
+            self.send_command(pldlen_cmd)
+        
         cmd = f"AT+LR_RX_SET=SF:{sf},BW:{bw},CR:{cr},Freq:{freq},IQInv:{iq_inv},HeaderMode:{header_mode},CRC:{crc},Preamble:{preamble},LDRO:{ldro}"
         # 9 parameters = 9 OK responses expected
         success, response = self.send_command(cmd, expected_ok_count=9)
@@ -357,9 +375,13 @@ def run_single_test(tx_dongle: ATLoraDongle, rx_dongle: ATLoraDongle,
                         ldro=ldro, header_mode=header_mode, crc=crc, preamble=preamble, 
                         success=False, tx_time_ms=0, rx_time_ms=0)
     
-    # Configure RX first
+    # Calculate expected packet size for implicit header mode
+    packet_size_bytes = len(TEST_PACKET_HEX) // 2
+    
+    # Configure RX first (pass payload length for implicit header mode)
     if not rx_dongle.configure_rx(sf, bw, freq, cr=cr, iq_inv=iq_inv, ldro=ldro, 
-                                   header_mode=header_mode, crc=crc, preamble=preamble):
+                                   header_mode=header_mode, crc=crc, preamble=preamble,
+                                   rx_payload_len=packet_size_bytes):
         result.error_msg = "RX configuration failed"
         return result
     
@@ -373,7 +395,6 @@ def run_single_test(tx_dongle: ATLoraDongle, rx_dongle: ATLoraDongle,
         return result
     
     # Get accurate TOA from firmware for timeout calculation
-    packet_size_bytes = len(TEST_PACKET_HEX) // 2
     toa_ms = tx_dongle.get_toa(packet_size_bytes)
     if toa_ms == 0:
         # Fallback: rough estimate
@@ -382,8 +403,8 @@ def run_single_test(tx_dongle: ATLoraDongle, rx_dongle: ATLoraDongle,
     else:
         logger.info(f"TOA: {toa_ms} ms (from firmware)")
     
-    # Timeout = TOA + 25% margin (minimum 500ms for command processing)
-    rx_timeout_ms = max(500, toa_ms * 1.25)
+    # Timeout = TOA + 25% margin (minimum 100ms for command processing)
+    rx_timeout_ms = max(100, toa_ms * 1.25)
     rx_timeout_s = rx_timeout_ms / 1000
     logger.info(f"RX timeout set to: {rx_timeout_ms:.0f} ms (TOA {toa_ms} ms + 25%)")
     
