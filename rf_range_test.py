@@ -34,6 +34,50 @@ BW_OPTIONS = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]  # All bandwidth options
 # BW mapping: 0=7.81kHz, 1=10.42kHz, 2=15.63kHz, 3=20.83kHz, 4=31.25kHz, 
 #             5=41.67kHz, 6=62.5kHz, 7=125kHz, 8=250kHz, 9=500kHz
 
+CR_OPTIONS = [45, 46, 47, 48]  # Coding rates: 4/5, 4/6, 4/7, 4/8
+IQ_INV_OPTIONS = [0, 1]  # IQ inversion: 0=normal, 1=inverted
+HEADER_MODE_OPTIONS = [0, 1]  # Header mode: 0=explicit, 1=implicit
+CRC_OPTIONS = [0, 1]  # CRC: 0=disabled, 1=enabled
+PREAMBLE_OPTIONS = [8]  # Preamble length in symbols (can add: 8, 16, 32, etc.)
+
+# Fixed parameters (not iterated)
+FIXED_POWER = 22  # TX power in dBm
+FIXED_LDRO = 2  # LDRO: 0=off, 1=on, 2=auto (always auto)
+
+# Test filtering options
+SKIP_SLOW_TESTS = True  # Skip slow combinations: BW <= 5 and SF >= 10
+
+def should_skip_test(sf: int, bw: int) -> bool:
+    """Check if test should be skipped based on filter settings"""
+    if SKIP_SLOW_TESTS:
+        # Skip slow combinations: low bandwidth + high spreading factor
+        if bw <= 5 or sf >= 10:
+            return True
+    return False
+
+CR_NAMES = {
+    45: "4/5",
+    46: "4/6", 
+    47: "4/7",
+    48: "4/8"
+}
+
+LDRO_NAMES = {
+    0: "off",
+    1: "on",
+    2: "auto"
+}
+
+HEADER_MODE_NAMES = {
+    0: "Expl",
+    1: "Impl"
+}
+
+CRC_NAMES = {
+    0: "OFF",
+    1: "ON"
+}
+
 BW_NAMES = {
     0: "7.81 kHz",
     1: "10.42 kHz", 
@@ -47,12 +91,32 @@ BW_NAMES = {
     9: "500 kHz"
 }
 
+CR_NAMES = {
+    45: "4/5",
+    46: "4/6",
+    47: "4/7",
+    48: "4/8"
+}
+
+LDRO_NAMES = {
+    0: "OFF",
+    1: "ON",
+    2: "AUTO"
+}
+
 
 @dataclass
 class TestResult:
     sf: int
     bw: int
+    cr: int
     freq: int
+    power: int
+    iq_inv: int
+    ldro: int
+    header_mode: int
+    crc: int
+    preamble: int
     success: bool
     tx_time_ms: float
     rx_time_ms: float
@@ -164,24 +228,28 @@ class ATLoraDongle:
         finally:
             self.serial.timeout = original_timeout
     
-    def configure_tx(self, sf: int, bw: int, freq: int) -> bool:
+    def configure_tx(self, sf: int, bw: int, freq: int, cr: int = 45, power: int = 22, 
+                     iq_inv: int = 0, ldro: int = 2, header_mode: int = 0, crc: int = 1, preamble: int = 8) -> bool:
         """Configure TX parameters"""
-        cmd = f"AT+LR_TX_SET=SF:{sf},BW:{bw},CR:45,Freq:{freq},IQInv:0,HeaderMode:0,CRC:1,Preamble:8,Power:22,LDRO:0"
+        cmd = f"AT+LR_TX_SET=SF:{sf},BW:{bw},CR:{cr},Freq:{freq},IQInv:{iq_inv},HeaderMode:{header_mode},CRC:{crc},Preamble:{preamble},Power:{power},LDRO:{ldro}"
         # 10 parameters = 10 OK responses expected
         success, response = self.send_command(cmd, expected_ok_count=10)
         if success:
-            logger.info(f"{self.name}: TX configured - SF{sf}, BW{bw}, Freq:{freq}, LDRO:off")
+            ldro_name = {0: 'off', 1: 'on', 2: 'auto'}.get(ldro, str(ldro))
+            logger.info(f"{self.name}: TX configured - SF{sf}, BW{bw}, CR{cr}, Pwr:{power}dBm, LDRO:{ldro_name}")
         else:
             logger.error(f"{self.name}: TX config failed: {response}")
         return success
     
-    def configure_rx(self, sf: int, bw: int, freq: int) -> bool:
+    def configure_rx(self, sf: int, bw: int, freq: int, cr: int = 45, 
+                     iq_inv: int = 0, ldro: int = 2, header_mode: int = 0, crc: int = 1, preamble: int = 8) -> bool:
         """Configure RX parameters"""
-        cmd = f"AT+LR_RX_SET=SF:{sf},BW:{bw},CR:45,Freq:{freq},IQInv:0,HeaderMode:0,CRC:1,Preamble:8,LDRO:0"
+        cmd = f"AT+LR_RX_SET=SF:{sf},BW:{bw},CR:{cr},Freq:{freq},IQInv:{iq_inv},HeaderMode:{header_mode},CRC:{crc},Preamble:{preamble},LDRO:{ldro}"
         # 9 parameters = 9 OK responses expected
         success, response = self.send_command(cmd, expected_ok_count=9)
         if success:
-            logger.info(f"{self.name}: RX configured - SF{sf}, BW{bw}, Freq:{freq}, LDRO:off")
+            ldro_name = {0: 'off', 1: 'on', 2: 'auto'}.get(ldro, str(ldro))
+            logger.info(f"{self.name}: RX configured - SF{sf}, BW{bw}, CR{cr}, LDRO:{ldro_name}, Hdr:{header_mode}, CRC:{crc}")
         else:
             logger.error(f"{self.name}: RX config failed: {response}")
         return success
@@ -271,17 +339,27 @@ def find_silicon_labs_ports() -> List[str]:
 
 
 def run_single_test(tx_dongle: ATLoraDongle, rx_dongle: ATLoraDongle, 
-                    sf: int, bw: int, freq: int) -> TestResult:
+                    sf: int, bw: int, freq: int, cr: int = 45, power: int = 22,
+                    iq_inv: int = 0, ldro: int = 2, header_mode: int = 0, crc: int = 1, preamble: int = 8) -> TestResult:
     """Run a single RF test with specified parameters"""
     
+    cr_name = CR_NAMES.get(cr, str(cr))
+    iq_name = "Inv" if iq_inv else "Norm"
+    hdr_name = HEADER_MODE_NAMES.get(header_mode, str(header_mode))
+    crc_name = CRC_NAMES.get(crc, str(crc))
+    
     logger.info(f"\n{'='*60}")
-    logger.info(f"Testing: SF{sf}, BW{bw} ({BW_NAMES.get(bw, 'Unknown')}), Freq:{freq} Hz")
+    logger.info(f"Testing: SF{sf}, BW{bw} ({BW_NAMES.get(bw, 'Unknown')}), CR:{cr_name}")
+    logger.info(f"         IQ:{iq_name}, Hdr:{hdr_name}, CRC:{crc_name}")
     logger.info(f"{'='*60}")
     
-    result = TestResult(sf=sf, bw=bw, freq=freq, success=False, tx_time_ms=0, rx_time_ms=0)
+    result = TestResult(sf=sf, bw=bw, cr=cr, freq=freq, power=power, iq_inv=iq_inv, 
+                        ldro=ldro, header_mode=header_mode, crc=crc, preamble=preamble, 
+                        success=False, tx_time_ms=0, rx_time_ms=0)
     
     # Configure RX first
-    if not rx_dongle.configure_rx(sf, bw, freq):
+    if not rx_dongle.configure_rx(sf, bw, freq, cr=cr, iq_inv=iq_inv, ldro=ldro, 
+                                   header_mode=header_mode, crc=crc, preamble=preamble):
         result.error_msg = "RX configuration failed"
         return result
     
@@ -289,7 +367,8 @@ def run_single_test(tx_dongle: ATLoraDongle, rx_dongle: ATLoraDongle,
     time.sleep(0.2)
     
     # Configure TX
-    if not tx_dongle.configure_tx(sf, bw, freq):
+    if not tx_dongle.configure_tx(sf, bw, freq, cr=cr, power=power, iq_inv=iq_inv, ldro=ldro,
+                                   header_mode=header_mode, crc=crc, preamble=preamble):
         result.error_msg = "TX configuration failed"
         return result
     
@@ -343,28 +422,53 @@ def run_single_test(tx_dongle: ATLoraDongle, rx_dongle: ATLoraDongle,
 
 
 def run_full_test_suite(tx_dongle: ATLoraDongle, rx_dongle: ATLoraDongle) -> List[TestResult]:
-    """Run complete test suite with all SF/BW combinations"""
+    """Run complete test suite with all parameter combinations"""
     
     results = []
-    total_tests = len(SF_RANGE) * len(BW_OPTIONS)
+    
+    # Calculate total tests (accounting for skipped combinations)
+    total_tests = 0
+    for sf in SF_RANGE:
+        for bw in BW_OPTIONS:
+            if not should_skip_test(sf, bw):
+                total_tests += len(CR_OPTIONS) * len(IQ_INV_OPTIONS) * len(HEADER_MODE_OPTIONS) * len(CRC_OPTIONS) * len(PREAMBLE_OPTIONS)
+    
+    skipped_combos = (len(SF_RANGE) * len(BW_OPTIONS) - sum(1 for sf in SF_RANGE for bw in BW_OPTIONS if not should_skip_test(sf, bw)))
     current_test = 0
     
     logger.info(f"\n{'#'*60}")
     logger.info(f"Starting RF Range Test Suite")
     logger.info(f"Total tests: {total_tests}")
+    if SKIP_SLOW_TESTS:
+        logger.info(f"Skipping slow tests (BW<=5 & SF>=10): {skipped_combos} SF/BW combinations excluded")
     logger.info(f"Test packet size: {len(TEST_PACKET_HEX)//2} bytes")
+    logger.info(f"Parameters: SF={list(SF_RANGE)}, BW={BW_OPTIONS}, CR={CR_OPTIONS}")
+    logger.info(f"            IQ={IQ_INV_OPTIONS}, Header={HEADER_MODE_OPTIONS}, CRC={CRC_OPTIONS}")
+    logger.info(f"Fixed: Power={FIXED_POWER}dBm, LDRO=auto")
     logger.info(f"{'#'*60}\n")
     
     # Enable RX to UART on receiver
     rx_dongle.enable_rx_to_uart(True)
     
-    for sf in SF_RANGE:
-        for bw in BW_OPTIONS:
-            current_test += 1
-            logger.info(f"\nTest {current_test}/{total_tests}")
-            
-            result = run_single_test(tx_dongle, rx_dongle, sf, bw, TEST_FREQUENCY)
-            results.append(result)
+    for cr in CR_OPTIONS:
+        for iq_inv in IQ_INV_OPTIONS:
+            for header_mode in HEADER_MODE_OPTIONS:
+                for crc in CRC_OPTIONS:
+                    for preamble in PREAMBLE_OPTIONS:
+                        for sf in SF_RANGE:
+                            for bw in BW_OPTIONS:
+                                # Skip slow test combinations if configured
+                                if should_skip_test(sf, bw):
+                                    continue
+                                    
+                                current_test += 1
+                                logger.info(f"\nTest {current_test}/{total_tests}")
+                                
+                                result = run_single_test(tx_dongle, rx_dongle, sf, bw, TEST_FREQUENCY,
+                                                        cr=cr, power=FIXED_POWER, iq_inv=iq_inv, 
+                                                        ldro=FIXED_LDRO, header_mode=header_mode,
+                                                        crc=crc, preamble=preamble)
+                                results.append(result)
     
     return results
 
@@ -372,11 +476,11 @@ def run_full_test_suite(tx_dongle: ATLoraDongle, rx_dongle: ATLoraDongle) -> Lis
 def print_results_summary(results: List[TestResult]):
     """Print a summary table of all test results"""
     
-    print("="*90)
+    print("="*140)
     print("TEST RESULTS SUMMARY")
-    print("="*90)
-    print(f"{'SF':<4} {'BW':<12} {'Freq (Hz)':<12} {'Result':<10} {'RSSI':<8} {'TX (ms)':<10} {'RX (ms)':<10} {'Error'}")
-    print("-"*90)
+    print("="*140)
+    print(f"{'SF':<4} {'BW':<10} {'CR':<5} {'IQ':<5} {'Hdr':<5} {'CRC':<4} {'Result':<10} {'RSSI':<10} {'Wait(ms)':<10} {'Error'}")
+    print("-"*140)
     
     success_count = 0
     fail_count = 0
@@ -389,12 +493,16 @@ def print_results_summary(results: List[TestResult]):
             fail_count += 1
             
         bw_name = BW_NAMES.get(r.bw, f"BW{r.bw}")
+        cr_name = CR_NAMES.get(r.cr, str(r.cr))
+        iq_name = "Inv" if r.iq_inv else "Norm"
+        hdr_name = HEADER_MODE_NAMES.get(r.header_mode, str(r.header_mode))
+        crc_name = CRC_NAMES.get(r.crc, str(r.crc))
         rssi_str = f"{r.rssi} dBm" if r.success else "-"
-        print(f"{r.sf:<4} {bw_name:<12} {r.freq:<12} {status:<10} {rssi_str:<8} {r.tx_time_ms:<10.1f} {r.rx_time_ms:<10.1f} {r.error_msg[:20]}")
+        print(f"{r.sf:<4} {bw_name:<10} {cr_name:<5} {iq_name:<5} {hdr_name:<5} {crc_name:<4} {status:<10} {rssi_str:<10} {r.rx_time_ms*1000:<10.0f} {r.error_msg[:25]}")
     
-    print("-"*90)
+    print("-"*140)
     print(f"Total: {len(results)} tests | Passed: {success_count} | Failed: {fail_count} | Success rate: {success_count/len(results)*100:.1f}%")
-    print("="*90)
+    print("="*140)
     
     # Print matrix view
     print("\nRESULTS MATRIX (SF vs BW):")
