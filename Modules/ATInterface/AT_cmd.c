@@ -58,8 +58,8 @@ const AT_Command_Struct AT_Commands[] = {
     {"AT+SYS_RESTART",           AT_HandleRestartSys,    0,                                 "AT+SYS_RESTART - Restart the system",             ""},
     {"AT+LED_BLUE",              NULL,                   SYS_LED_BLUE,                      "AT+LED_BLUE - Set LED blue state",                "=ON, =OFF"},
     /* multiple LoRa params*/
-    {"AT+LR_TX_SET",                NULL,               SYS_CMD_TX_COMPLETE_SET,             "AT+LR_TX_SET - Set multiple TX parameters",      "=SF:<value>,BW:<value>,CR:<value>,Freq:<value>,IQInv:<value>,HeaderMode:<value>,CRC:<value>,Power:<value>,Preamble:<value>, ?"},
-    {"AT+LR_RX_SET",                NULL,               SYS_CMD_RX_COMPLETE_SET,             "AT+LR_RX_SET - Set multiple RX parameters",      "=SF:<value>,BW:<value>,CR:<value>,Freq:<value>,IQInv:<value>,HeaderMode:<value>,CRC:<value>,Preamble:<value>, ?"},
+    {"AT+LR_TX_SET",                NULL,               SYS_CMD_TX_COMPLETE_SET,             "AT+LR_TX_SET - Set multiple TX parameters",      "=SF:<value>,BW:<value>,CR:<value>,Freq:<value>,IQInv:<value>,HeaderMode:<value>,CRC:<value>,Power:<value>,Preamble:<value>,LDRO:<0|1|2>, ?"},
+    {"AT+LR_RX_SET",                NULL,               SYS_CMD_RX_COMPLETE_SET,             "AT+LR_RX_SET - Set multiple RX parameters",      "=SF:<value>,BW:<value>,CR:<value>,Freq:<value>,IQInv:<value>,HeaderMode:<value>,CRC:<value>,Preamble:<value>,LDRO:<0|1|2>, ?"},
     /* single LoRa params*/
     {"AT+LR_TX_FREQ",                NULL,               SYS_CMD_TX_FREQ,                     "AT+LR_TX_FREQ - Set TX frequency",                "=<frequency_in_Hz>, ?"},
     {"AT+LR_RX_FREQ",                NULL,               SYS_CMD_RX_FREQ,                     "AT+LR_RX_FREQ - Set RX frequency",                "=<frequency_in_Hz>, ?"},
@@ -78,6 +78,8 @@ const AT_Command_Struct AT_Commands[] = {
     {"AT+LR_RX_CRC",                NULL,               SYS_CMD_CRC_RX,                      "AT+LR_RX_CRC - Set RX CRC check",                "=1, =0, ?"},
     {"AT+LR_TX_PREAMBLE_SIZE",      NULL,               SYS_CMD_PREAM_SIZE_TX,               "AT+LR_TX_PREAMBLE_SIZE",                         "=<1 to 65535>, optimum >=8, ?"  },
     {"AT+LR_RX_PREAMBLE_SIZE",      NULL,               SYS_CMD_PREAM_SIZE_RX,               "AT+LR_RX_PREAMBLE_SIZE",                         "=<1 to 65535> should be >= TX side,?"},
+    {"AT+LR_TX_LDRO",               NULL,               SYS_CMD_TX_LDRO,                     "AT+LR_TX_LDRO - Set TX Low Data Rate Optimization", "=0 (off), =1 (on), =2 (auto), ?"},
+    {"AT+LR_RX_LDRO",               NULL,               SYS_CMD_RX_LDRO,                     "AT+LR_RX_LDRO - Set RX Low Data Rate Optimization", "=0 (off), =1 (on), =2 (auto), ?"},
  
     /* RF immediate TX commands */
     {"AT+RF_TX_HEX",                NULL,               SYS_CMD_RF_TX_HEX,                   "AT+RF_TX_HEX - Transmit data via RF in HEX format",  "=<HEX data>"},
@@ -94,6 +96,10 @@ const AT_Command_Struct AT_Commands[] = {
     
     /* RF RX commands */
     {"AT+RF_RX_TO_UART",            NULL,               SYS_CMD_RF_RX_TO_UART,               "AT+RF_RX_TO_UART - Set RF RX to serial port",            "=<ON|OFF>"},
+    
+    /* RF TOA command */
+    {"AT+RF_GET_TOA",               NULL,               SYS_CMD_RF_GET_TOA,                  "AT+RF_GET_TOA - Get Time on Air for packet",             "=<packet_size_bytes>"},
+    {"AT+RF_GET_TSYM",              NULL,               SYS_CMD_RF_GET_TSYM,                 "AT+RF_GET_TSYM - Get symbol time in us (from TX config)", ""},
     
     /* AUX GPIO commands */
     {"AT+AUX",                      NULL,               SYS_CMD_AUX_SET,                     "AT+AUX=<pin>,<ON|OFF>",            "=<pin>,<ON|OFF>"},

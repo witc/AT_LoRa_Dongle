@@ -59,6 +59,7 @@ static TimerHandle_t rxReconfigTimer = NULL;
 
 // Timer pro periodický TX
 static TimerHandle_t periodicTxTimer = NULL;
+// Timer ID se používá jako flag aktivního stavu (NULL = neaktivní, non-NULL = aktivní)
 
 const uint32_t AllowedBandwidths[] = {7810, 10420, 15630, 20830, 31250, 41670, 62500, 125000, 250000, 500000};
 const size_t AllowedBandwidthCount = sizeof(AllowedBandwidths) / sizeof(AllowedBandwidths[0]);
@@ -272,6 +273,13 @@ static void TriggerRxReconfig(void)
  */
 static void PeriodicTxTimerCallback(TimerHandle_t xTimer)
 {
+    // Kontrola zda nebyl timer zastaven (callback mohl být ve frontě)
+    // Timer ID se mění okamžitě (ne přes frontu), takže vidíme aktuální stav
+    if (pvTimerGetTimerID(xTimer) == NULL)
+    {
+        return;
+    }
+    
     uint8_t packet[256];
     uint16_t packetSize;
     
@@ -318,8 +326,9 @@ static void StartPeriodicTx(void)
         xTimerChangePeriod(periodicTxTimer, pdMS_TO_TICKS(period), portMAX_DELAY);
     }
     
-    // Spuštění timeru
-    osTimerStart(periodicTxTimer, period);
+    // Spuštění timeru - nastavení Timer ID jako flag aktivního stavu
+    vTimerSetTimerID(periodicTxTimer, (void*)1);
+    xTimerStart(periodicTxTimer, portMAX_DELAY);
 
     PeriodicTxTimerCallback(periodicTxTimer); // Okamžité spuštění prvního přenosu
 }
@@ -332,6 +341,8 @@ static void StopPeriodicTx(void)
 {
     if (periodicTxTimer != NULL)
     {
+        // Nejdříve Timer ID na NULL (okamžitá změna), pak stop
+        vTimerSetTimerID(periodicTxTimer, NULL);
         xTimerStop(periodicTxTimer, portMAX_DELAY);
     }
 }
@@ -357,11 +368,12 @@ void ProcessRFMultiSetCommand(bool tx, char *params)
         tx ? SYS_CMD_HEADERMODE_TX : SYS_CMD_HEADERMODE_RX,
         tx ? SYS_CMD_CRC_TX : SYS_CMD_CRC_RX,
         tx ? SYS_CMD_PREAM_SIZE_TX : SYS_CMD_PREAM_SIZE_RX,
+        tx ? SYS_CMD_TX_LDRO : SYS_CMD_RX_LDRO,
         tx ? SYS_CMD_TX_POWER : SYS_CMD_TX_POWER
     };
 
     const char *keys[] = {
-        "SF", "BW", "CR", "FREQ", "IQINV", "HEADERMODE", "CRC", "PREAMBLE", "POWER"
+        "SF", "BW", "CR", "FREQ", "IQINV", "HEADERMODE", "CRC", "PREAMBLE", "LDRO", "POWER"
     };
 
     //Pokud jde o dotaz
@@ -460,6 +472,11 @@ void ProcessRFMultiSetCommand(bool tx, char *params)
         {
             if(tx == true) cmd = SYS_CMD_PREAM_SIZE_TX;
             else           cmd = SYS_CMD_PREAM_SIZE_RX;
+        }
+        else if (strcmp(key, "LDRO") == 0)
+        {
+            if(tx == true) cmd = SYS_CMD_TX_LDRO;
+            else           cmd = SYS_CMD_RX_LDRO;
         }
         else
         {
@@ -1295,6 +1312,7 @@ bool GSC_ProcessCommand(eATCommands cmd, uint8_t *data, uint16_t size)
 
         case SYS_CMD_RF_TX_TXT:
         {
+            StopPeriodicTx(); // Stop periodic TX if running
             uint8_t packet[256];
             uint8_t packetSize = strlen((char *)data);
             
@@ -1313,6 +1331,7 @@ bool GSC_ProcessCommand(eATCommands cmd, uint8_t *data, uint16_t size)
 
         case SYS_CMD_RF_TX_NVM_ONCE:
         {   
+            StopPeriodicTx(); // Stop periodic TX if running
             uint8_t tx;
 
             if (!GetCommandLimits(cmd, &minValue, &maxValue, &maxLength))
@@ -1424,15 +1443,16 @@ bool GSC_ProcessCommand(eATCommands cmd, uint8_t *data, uint16_t size)
                 uint16_t pcktSize;
                 uint8_t packet[256];
                 char hexString[513]; // 256 bytes * 2 + 1 null terminator
-                char outputBuffer[530]; // hexString + size info
+                char outputBuffer[560]; // hexString + size info + TOA
                 
                 NVMA_Get_LR_Saved_Pckt_Size(&pcktSize);
                 
                 if (pcktSize > 0 && pcktSize <= 256)
                 {
+                    uint32_t toa_ms = ru_calculate_toa_ms((uint8_t)pcktSize);
                     NVMA_Get_LR_TX_RF_PCKT(packet, pcktSize);
                     ByteArrayToHexString(packet, pcktSize, hexString, sizeof(hexString));
-                    snprintf(outputBuffer, sizeof(outputBuffer), "%s (%u B)", hexString, pcktSize);
+                    snprintf(outputBuffer, sizeof(outputBuffer), "packet: %s, size: %u B, TOA: %lu ms", hexString, pcktSize, toa_ms);
                     AT_SendStringResponse(outputBuffer);
                     hasResponse = false; // Už bylo odesláno
                 }
@@ -1499,6 +1519,93 @@ bool GSC_ProcessCommand(eATCommands cmd, uint8_t *data, uint16_t size)
             break;
         }
 
+        case SYS_CMD_RF_GET_TOA:
+        {
+            // Parse packet size from data
+            uint16_t packetSize = 0;
+            if (AT_ParseUint16(data, &packetSize, 3) && packetSize > 0 && packetSize <= 255)
+            {
+                uint32_t toa_ms = ru_calculate_toa_ms((uint8_t)packetSize);
+                snprintf(response, sizeof(response), "TOA: %lu ms\r\n", toa_ms);
+                hasResponse = true;
+            }
+            else
+            {
+                AT_SendStringResponse("ERROR: Invalid packet size (1-255)\r\n");
+                commandHandled = false;
+            }
+            break;
+        }
+
+        case SYS_CMD_RF_GET_TSYM:
+        {
+            uint32_t tsym_us = ru_calculate_symbol_time_us();
+            snprintf(response, sizeof(response), "TSYM: %lu us\r\n", tsym_us);
+            hasResponse = true;
+            break;
+        }
+
+        case SYS_CMD_TX_LDRO:
+        {   
+            uint8_t ldro;
+            if (isQuery)
+            {
+                NVMA_Get_LR_TX_LDRO(&ldro);
+                AT_FormatUint8Response(ldro, (uint8_t *)response, &response_size);
+                hasResponse = true;
+            }
+            else
+            {
+                if (!AT_ParseUint8(data, &ldro, 1))
+                {
+                    AT_SendStringResponse("ERROR: Invalid TX_LDRO value\r\n");
+                    commandHandled = false;
+                    break;
+                }
+                
+                if (ldro > 2)
+                {
+                    AT_SendStringResponse("ERROR: TX_LDRO value must be 0, 1, or 2\r\n");
+                    commandHandled = false;
+                    break;
+                }
+                
+                NVMA_Set_LR_TX_LDRO(ldro);
+            }
+            break;
+        }
+
+        case SYS_CMD_RX_LDRO:
+        {   
+            uint8_t ldro;
+            if (isQuery)
+            {
+                NVMA_Get_LR_RX_LDRO(&ldro);
+                AT_FormatUint8Response(ldro, (uint8_t *)response, &response_size);
+                hasResponse = true;
+            }
+            else
+            {
+                if (!AT_ParseUint8(data, &ldro, 1))
+                {
+                    AT_SendStringResponse("ERROR: Invalid RX_LDRO value\r\n");
+                    commandHandled = false;
+                    break;
+                }
+                
+                if (ldro > 2)
+                {
+                    AT_SendStringResponse("ERROR: RX_LDRO value must be 0, 1, or 2\r\n");
+                    commandHandled = false;
+                    break;
+                }
+                
+                NVMA_Set_LR_RX_LDRO(ldro);
+                reconfigure_rx = true;
+            }
+            break;
+        }
+
         case SYS_CMD_AUX_PULSE:
             if(_GSC_Handle_AUX_PIN_PWM(data, size) == false)
             {
@@ -1543,8 +1650,9 @@ bool GSC_ProcessCommand(eATCommands cmd, uint8_t *data, uint16_t size)
 
     if(reconfigure_rx == true)
     {
+        RxReconfigTimerCallback(NULL);
         // Spustí/restartuje timer pro RX rekonfiguraci
-        TriggerRxReconfig();
+        //TriggerRxReconfig();
     }
     return commandHandled;
 }

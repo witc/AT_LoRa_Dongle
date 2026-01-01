@@ -1389,6 +1389,18 @@ uint32_t sx126x_get_lora_time_on_air_in_ms( const sx126x_pkt_params_lora_t* pkt_
                                             const sx126x_mod_params_lora_t* mod_p );
 
 /**
+ * @brief Get the LoRa symbol time in microseconds
+ *
+ * @remark Symbol time Ts = 2^SF / BW
+ *
+ * @param [in] bw LoRa bandwidth parameter
+ * @param [in] sf LoRa spreading factor (5-12)
+ *
+ * @returns Symbol time in microseconds
+ */
+uint32_t sx126x_get_lora_symbol_time_us( sx126x_lora_bw_t bw, uint8_t sf );
+
+/**
  * @brief Compute the numerator for GFSK time-on-air computation.
  *
  * @remark To get the actual time-on-air in second, this value has to be divided by the GFSK bitrate in bits per

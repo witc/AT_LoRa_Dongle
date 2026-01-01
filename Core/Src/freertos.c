@@ -52,7 +52,7 @@ typedef StaticQueue_t osStaticMessageQDef_t;
 /* USER CODE END Variables */
 /* Definitions for TaskMain */
 osThreadId_t TaskMainHandle;
-uint32_t TaskCoreBuffer[ 500 ];
+uint32_t TaskCoreBuffer[ 600 ];
 osStaticThreadDef_t TaskCoreControlBlock;
 const osThreadAttr_t TaskMain_attributes = {
   .name = "TaskMain",
@@ -64,7 +64,7 @@ const osThreadAttr_t TaskMain_attributes = {
 };
 /* Definitions for TaskRF */
 osThreadId_t TaskRFHandle;
-uint32_t TaskRFBuffer[ 500 ];
+uint32_t TaskRFBuffer[ 450 ];
 osStaticThreadDef_t TaskRFControlBlock;
 const osThreadAttr_t TaskRF_attributes = {
   .name = "TaskRF",

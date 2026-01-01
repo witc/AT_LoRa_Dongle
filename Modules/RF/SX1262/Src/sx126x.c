@@ -1076,6 +1076,14 @@ uint32_t sx126x_get_lora_time_on_air_in_ms( const sx126x_pkt_params_lora_t* pkt_
     return ( numerator + denominator - 1 ) / denominator;
 }
 
+uint32_t sx126x_get_lora_symbol_time_us( sx126x_lora_bw_t bw, uint8_t sf )
+{
+    uint32_t bw_hz = sx126x_get_lora_bw_in_hz( bw );
+    // Symbol time Ts = 2^SF / BW (in seconds)
+    // Ts_us = (2^SF * 1000000) / BW
+    return ( ( 1U << sf ) * 1000000U ) / bw_hz;
+}
+
 uint32_t sx126x_get_gfsk_time_on_air_numerator( const sx126x_pkt_params_gfsk_t* pkt_p )
 {
     return pkt_p->preamble_len_in_bits + ( pkt_p->header_type == SX126X_GFSK_PKT_VAR_LEN ? 8 : 0 ) +

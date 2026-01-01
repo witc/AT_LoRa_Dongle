@@ -67,6 +67,12 @@ typedef enum
     SYS_CMD_AUX_QUERY       = 41,
     SYS_CMD_AUX_STOP        = 42,
 
+    // TOA command
+    SYS_CMD_RF_GET_TOA      = 43,
+    SYS_CMD_RF_GET_TSYM     = 44,
+    SYS_CMD_TX_LDRO         = 45,
+    SYS_CMD_RX_LDRO         = 46,
+
 } eATCommands;
 
 

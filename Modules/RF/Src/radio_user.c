@@ -11,6 +11,9 @@
 #include "ral.h"
 #include "ralf.h"
 #include "ralf_sx126x.h"
+#include "ral_sx126x.h"
+#include "ral_defs.h"
+#include "sx126x.h"
 #include "NVMA.h"
 
 
@@ -206,6 +209,7 @@ bool ru_load_radio_config_tx(ralf_params_lora_t *loraParam)
 {	
 	uint8_t bw;
 	uint8_t cr;
+	uint8_t ldro;
 	NVMA_Get_LR_CRC_TX((uint8_t*)&loraParam->pkt_params.crc_is_on);
 	NVMA_Get_LR_HeaderMode_TX(&loraParam->pkt_params.header_type);
 	NVMA_Get_LR_TX_IQ((uint8_t*)&loraParam->pkt_params.invert_iq_is_on);
@@ -223,15 +227,57 @@ bool ru_load_radio_config_tx(ralf_params_lora_t *loraParam)
 	bw = get_lora_bw_from_user_value(bw);
 	loraParam->mod_params.bw = bw;
 
+	// LDRO: 0=off, 1=on, 2=auto
+	NVMA_Get_LR_TX_LDRO(&ldro);
+	if (ldro == 2) {
+		// Auto: compute based on SF and BW
+		loraParam->mod_params.ldro = ral_compute_lora_ldro(loraParam->mod_params.sf, loraParam->mod_params.bw);
+	} else {
+		loraParam->mod_params.ldro = ldro;
+	}
+
 	//NVMA_Get_LR_(&loraParam->sync_word);		//TODO
 	
 	return true;
+}
+
+/**
+ * @brief Calculate Time on Air for TX packet from NVMA settings
+ * 
+ * @param packetSize Size of packet in bytes
+ * @return uint32_t Time on air in milliseconds
+ */
+uint32_t ru_calculate_toa_ms(uint8_t packetSize)
+{
+	ralf_params_lora_t loraParam;
+	memset(&loraParam, 0, sizeof(loraParam));
+	
+	loraParam.pkt_params.pld_len_in_bytes = packetSize;
+	ru_load_radio_config_tx(&loraParam);
+	
+	return ral_sx126x_get_lora_time_on_air_in_ms(&loraParam.pkt_params, &loraParam.mod_params);
+}
+
+/**
+ * @brief Calculate Symbol Time from current TX settings
+ * 
+ * @return uint32_t Symbol time in microseconds
+ */
+uint32_t ru_calculate_symbol_time_us(void)
+{
+	ralf_params_lora_t loraParam;
+	memset(&loraParam, 0, sizeof(loraParam));
+	
+	ru_load_radio_config_tx(&loraParam);
+	
+	return sx126x_get_lora_symbol_time_us(loraParam.mod_params.bw, loraParam.mod_params.sf);
 }
 
 bool ru_load_radio_config_rx(ralf_params_lora_t *loraParam)
 {	
 	uint8_t bw;
 	uint8_t cr;
+	uint8_t ldro;
 
 	NVMA_Get_LR_CRC_RX((uint8_t*)&loraParam->pkt_params.crc_is_on);
 	NVMA_Get_LR_HeaderMode_RX(&loraParam->pkt_params.header_type);
@@ -246,8 +292,18 @@ bool ru_load_radio_config_rx(ralf_params_lora_t *loraParam)
 	NVMA_Get_LR_Freq_RX(&loraParam->rf_freq_in_hz);
 
 	NVMA_Get_LR_RX_BW(&bw);
-	get_lora_bw_from_user_value(bw);
+	bw = get_lora_bw_from_user_value(bw);
 	loraParam->mod_params.bw = bw;
+
+	// LDRO: 0=off, 1=on, 2=auto
+	NVMA_Get_LR_RX_LDRO(&ldro);
+	if (ldro == 2) {
+		// Auto: compute based on SF and BW
+		loraParam->mod_params.ldro = ral_compute_lora_ldro(loraParam->mod_params.sf, loraParam->mod_params.bw);
+	} else {
+		loraParam->mod_params.ldro = ldro;
+	}
+
 	//NVMA_Get_LR_(&loraParam->sync_word);		//TODO
 	
 	return true;
@@ -381,7 +437,7 @@ void ru_radio_start_rx(radio_context_t	*ctx)
 	ral = &ctx->rfConfig.ralf.ral;
 	ralf = &ctx->rfConfig.ralf;
 
-	ru_radioCleanAndStandby(RAL_STANDBY_CFG_RC, ctx);
+	ru_radioCleanAndStandby(RAL_STANDBY_CFG_XOSC, ctx);
 
 	ru_load_radio_config_rx(&ctx->rfConfig.loraParam_rx);
 
@@ -398,9 +454,9 @@ void ru_radio_start_rx(radio_context_t	*ctx)
 	);
 
 	ret += ralf_setup_lora(ralf, &ctx->rfConfig.loraParam_rx);
-	ret += ral_set_dio_irq_params(ral,RAL_IRQ_RX_DONE  | RAL_IRQ_RX_TIMEOUT| RAL_IRQ_RX_CRC_ERROR);
-	ret += ral_cfg_rx_boosted(ral,true);	
-	ret += ral_set_rx(ral,RAL_RX_TIMEOUT_CONTINUOUS_MODE);
+	ret += ral_set_dio_irq_params(ral, RAL_IRQ_RX_DONE | RAL_IRQ_RX_TIMEOUT | RAL_IRQ_RX_CRC_ERROR);
+	ret += ral_cfg_rx_boosted(ral, true);
+	ret += ral_set_rx(ral, RAL_RX_TIMEOUT_CONTINUOUS_MODE);
 
 	if(ret != RAL_STATUS_OK) _exit(5315321);
 
@@ -495,8 +551,7 @@ void ru_radio_process_commands(RFCommands_e cmd,radio_context_t *ctx, const data
 			ru_radioCleanAndStandby(RAL_STANDBY_CFG_XOSC,ctx);
 			ru_radio_send_packet(pkt->packet,pkt->size,ctx);
 			vPortFree(pkt->packet);
-			uint32_t toa_ms =  ral_get_lora_time_on_air_in_ms(ral, &ctx->rfConfig.loraParam_tx.pkt_params, &ctx->rfConfig.loraParam_tx.mod_params);
-			LOG_INFO("RF data sent: %d B, TOA: %d ms", pkt->size,toa_ms);
+			LOG_INFO("RF data sent: %d B, TOA: %lu ms", pkt->size, ru_calculate_toa_ms(pkt->size));
 
 			break;
 

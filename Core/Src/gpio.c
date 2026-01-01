@@ -79,7 +79,7 @@ void MX_GPIO_Init(void)
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
 
-  /*Configure GPIO pins : PAPin PAPin PAPin */
+  /*Configure GPIO pins : SX1262_NSS_Pin SX1262_RF_SW_Pin aux4_Pin */
   GPIO_InitStruct.Pin = SX1262_NSS_Pin|SX1262_RF_SW_Pin|aux4_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
@@ -94,8 +94,8 @@ void MX_GPIO_Init(void)
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
 
-  /*Configure GPIO pins : PBPin PBPin PBPin PBPin
-                           PBPin PBPin PBPin PBPin */
+  /*Configure GPIO pins : SX1262_RESET_Pin LED_GREEN_Pin aux3_Pin aux2_Pin
+                           LED_BLUE_Pin aux6_Pin aux5_Pin aux1_Pin */
   GPIO_InitStruct.Pin = SX1262_RESET_Pin|LED_GREEN_Pin|aux3_Pin|aux2_Pin
                           |LED_BLUE_Pin|aux6_Pin|aux5_Pin|aux1_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
@@ -103,13 +103,13 @@ void MX_GPIO_Init(void)
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
 
-  /*Configure GPIO pin : PtPin */
+  /*Configure GPIO pin : SX1262_DIO1_Pin */
   GPIO_InitStruct.Pin = SX1262_DIO1_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_IT_RISING;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   HAL_GPIO_Init(SX1262_DIO1_GPIO_Port, &GPIO_InitStruct);
 
-  /*Configure GPIO pin : PtPin */
+  /*Configure GPIO pin : SX1262_BUSY_Pin */
   GPIO_InitStruct.Pin = SX1262_BUSY_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
   GPIO_InitStruct.Pull = GPIO_NOPULL;

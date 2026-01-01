@@ -1,0 +1,494 @@
+#!/usr/bin/env python3
+"""
+RF Range Test Script for AT LoRa Dongle
+Tests various SF, BW combinations between two dongles.
+
+Author: Auto-generated
+Date: 2026-01-01
+"""
+
+import serial
+import serial.tools.list_ports
+import time
+import sys
+from dataclasses import dataclass
+from typing import Optional, List, Tuple
+import logging
+
+# Configure logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(levelname)s - %(message)s'
+)
+logger = logging.getLogger(__name__)
+
+# Test configuration
+TEST_PACKET_HEX = "0102030405060708090A0B0C0D0E0F101112131415161718191A1B1C"  # 28 bytes
+TEST_FREQUENCY = 869525000
+BAUD_RATE = 115200
+TIMEOUT = 5.0  # seconds
+
+# RF Parameters to test
+SF_RANGE = range(5, 13)  # SF5 to SF12
+BW_OPTIONS = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]  # All bandwidth options
+# BW mapping: 0=7.81kHz, 1=10.42kHz, 2=15.63kHz, 3=20.83kHz, 4=31.25kHz, 
+#             5=41.67kHz, 6=62.5kHz, 7=125kHz, 8=250kHz, 9=500kHz
+
+BW_NAMES = {
+    0: "7.81 kHz",
+    1: "10.42 kHz", 
+    2: "15.63 kHz",
+    3: "20.83 kHz",
+    4: "31.25 kHz",
+    5: "41.67 kHz",
+    6: "62.5 kHz",
+    7: "125 kHz",
+    8: "250 kHz",
+    9: "500 kHz"
+}
+
+
+@dataclass
+class TestResult:
+    sf: int
+    bw: int
+    freq: int
+    success: bool
+    tx_time_ms: float
+    rx_time_ms: float
+    rssi: int = 0
+    error_msg: str = ""
+
+
+class ATLoraDongle:
+    """Class to communicate with AT LoRa Dongle"""
+    
+    def __init__(self, port: str, name: str = "Dongle"):
+        self.port = port
+        self.name = name
+        self.serial: Optional[serial.Serial] = None
+        
+    def connect(self) -> bool:
+        """Connect to the dongle"""
+        try:
+            self.serial = serial.Serial(
+                port=self.port,
+                baudrate=BAUD_RATE,
+                timeout=TIMEOUT,
+                write_timeout=TIMEOUT
+            )
+            time.sleep(0.5)  # Wait for connection to stabilize
+            self.serial.reset_input_buffer()
+            self.serial.reset_output_buffer()
+            logger.info(f"{self.name}: Connected to {self.port}")
+            return True
+        except Exception as e:
+            logger.error(f"{self.name}: Failed to connect to {self.port}: {e}")
+            return False
+    
+    def disconnect(self):
+        """Disconnect from the dongle"""
+        if self.serial and self.serial.is_open:
+            self.serial.close()
+            logger.info(f"{self.name}: Disconnected from {self.port}")
+    
+    def send_command(self, cmd: str, wait_response: bool = True, timeout: float = None, 
+                     expected_ok_count: int = 1, stop_on_pattern: str = None) -> Tuple[bool, str]:
+        """Send AT command and wait for response
+        
+        Args:
+            cmd: AT command to send
+            wait_response: Whether to wait for response
+            timeout: Custom timeout in seconds
+            expected_ok_count: Number of OK responses to wait for (for multi-param commands)
+            stop_on_pattern: Stop reading when this pattern is found in response (e.g. 'TOA:')
+        """
+        if not self.serial or not self.serial.is_open:
+            return False, "Not connected"
+        
+        original_timeout = self.serial.timeout
+        if timeout:
+            self.serial.timeout = timeout
+            
+        try:
+            # Clear buffers
+            self.serial.reset_input_buffer()
+            
+            # Send command
+            full_cmd = f"{cmd}\r\n"
+            self.serial.write(full_cmd.encode())
+            logger.debug(f"{self.name} TX: {cmd}")
+            
+            if not wait_response:
+                return True, ""
+            
+            # Read response
+            response_lines = []
+            ok_count = 0
+            error_count = 0
+            start_time = time.time()
+            
+            while True:
+                if time.time() - start_time > (timeout or TIMEOUT):
+                    break
+                    
+                if self.serial.in_waiting > 0:
+                    line = self.serial.readline().decode('utf-8', errors='ignore').strip()
+                    if line:
+                        response_lines.append(line)
+                        logger.debug(f"{self.name} RX: {line}")
+                        
+                        # Check for custom stop pattern first
+                        if stop_on_pattern and stop_on_pattern in line:
+                            break
+                        
+                        # Count OK and ERROR responses
+                        if line == "OK":
+                            ok_count += 1
+                            if ok_count >= expected_ok_count:
+                                break
+                        elif "ERROR" in line:
+                            error_count += 1
+                            break  # Stop on first error
+                else:
+                    time.sleep(0.01)
+            
+            response = "\n".join(response_lines)
+            success = ok_count >= expected_ok_count and error_count == 0
+            
+            return success, response
+            
+        except Exception as e:
+            logger.error(f"{self.name}: Command error: {e}")
+            return False, str(e)
+        finally:
+            self.serial.timeout = original_timeout
+    
+    def configure_tx(self, sf: int, bw: int, freq: int) -> bool:
+        """Configure TX parameters"""
+        cmd = f"AT+LR_TX_SET=SF:{sf},BW:{bw},CR:45,Freq:{freq},IQInv:0,HeaderMode:0,CRC:1,Preamble:8,Power:22,LDRO:0"
+        # 10 parameters = 10 OK responses expected
+        success, response = self.send_command(cmd, expected_ok_count=10)
+        if success:
+            logger.info(f"{self.name}: TX configured - SF{sf}, BW{bw}, Freq:{freq}, LDRO:off")
+        else:
+            logger.error(f"{self.name}: TX config failed: {response}")
+        return success
+    
+    def configure_rx(self, sf: int, bw: int, freq: int) -> bool:
+        """Configure RX parameters"""
+        cmd = f"AT+LR_RX_SET=SF:{sf},BW:{bw},CR:45,Freq:{freq},IQInv:0,HeaderMode:0,CRC:1,Preamble:8,LDRO:0"
+        # 9 parameters = 9 OK responses expected
+        success, response = self.send_command(cmd, expected_ok_count=9)
+        if success:
+            logger.info(f"{self.name}: RX configured - SF{sf}, BW{bw}, Freq:{freq}, LDRO:off")
+        else:
+            logger.error(f"{self.name}: RX config failed: {response}")
+        return success
+    
+    def enable_rx_to_uart(self, enable: bool = True) -> bool:
+        """Enable/disable RX to UART output"""
+        cmd = f"AT+RF_RX_TO_UART={'ON' if enable else 'OFF'}"
+        success, _ = self.send_command(cmd)
+        return success
+    
+    def get_toa(self, packet_size: int) -> int:
+        """Get Time on Air for a packet of given size in ms
+        
+        Args:
+            packet_size: Packet size in bytes
+            
+        Returns:
+            TOA in milliseconds, or 0 if failed
+        """
+        cmd = f"AT+RF_GET_TOA={packet_size}"
+        _, response = self.send_command(cmd, timeout=2.0, stop_on_pattern="ms")
+        # Response format: "TOA: X ms" - doesn't include OK, stop when we see "ms"
+        if "TOA:" in response:
+            # Parse "TOA: X ms" from response
+            import re
+            match = re.search(r'TOA:\s*(\d+)\s*ms', response)
+            if match:
+                toa = int(match.group(1))
+                logger.debug(f"{self.name}: TOA for {packet_size}B = {toa} ms")
+                return toa
+        logger.warning(f"{self.name}: Failed to get TOA: {response}")
+        return 0
+    
+    def send_packet(self, hex_data: str) -> bool:
+        """Send a packet via RF"""
+        cmd = f"AT+RF_TX_HEX={hex_data}"
+        success, response = self.send_command(cmd)
+        return success
+    
+    def wait_for_rx_packet(self, timeout: float = 10.0) -> Tuple[bool, str, int]:
+        """Wait for incoming RX packet
+        
+        Returns:
+            Tuple of (success, hex_data, rssi)
+        """
+        if not self.serial or not self.serial.is_open:
+            return False, "Not connected", 0
+        
+        start_time = time.time()
+        buffer = ""
+        
+        # Pattern for RX packet: +RF_RX:<len>,<hex_data>,RSSI:<rssi>
+        import re
+        pattern = re.compile(r'\+RF_RX:(\d+),([0-9A-Fa-f]+),RSSI:(-?\d+)')
+        
+        try:
+            while time.time() - start_time < timeout:
+                if self.serial.in_waiting > 0:
+                    chunk = self.serial.read(self.serial.in_waiting).decode('utf-8', errors='ignore')
+                    buffer += chunk
+                    logger.debug(f"{self.name} RX buffer: {chunk.strip()}")
+                    
+                    match = pattern.search(buffer)
+                    if match:
+                        data_len = int(match.group(1))
+                        hex_data = match.group(2).upper()
+                        rssi = int(match.group(3))
+                        logger.info(f"{self.name}: Received {data_len} bytes, RSSI: {rssi} dBm")
+                        return True, hex_data, rssi
+                else:
+                    time.sleep(0.01)
+            
+            return False, "Timeout waiting for packet", 0
+            
+        except Exception as e:
+            return False, str(e), 0
+
+
+def find_silicon_labs_ports() -> List[str]:
+    """Find COM ports with Silicon Labs devices"""
+    ports = []
+    for port in serial.tools.list_ports.comports():
+        if "Silicon Labs" in port.description or "CP210" in port.description:
+            ports.append(port.device)
+            logger.info(f"Found Silicon Labs device: {port.device} - {port.description}")
+    return ports
+
+
+def run_single_test(tx_dongle: ATLoraDongle, rx_dongle: ATLoraDongle, 
+                    sf: int, bw: int, freq: int) -> TestResult:
+    """Run a single RF test with specified parameters"""
+    
+    logger.info(f"\n{'='*60}")
+    logger.info(f"Testing: SF{sf}, BW{bw} ({BW_NAMES.get(bw, 'Unknown')}), Freq:{freq} Hz")
+    logger.info(f"{'='*60}")
+    
+    result = TestResult(sf=sf, bw=bw, freq=freq, success=False, tx_time_ms=0, rx_time_ms=0)
+    
+    # Configure RX first
+    if not rx_dongle.configure_rx(sf, bw, freq):
+        result.error_msg = "RX configuration failed"
+        return result
+    
+    # Small delay for RX to start listening
+    time.sleep(0.2)
+    
+    # Configure TX
+    if not tx_dongle.configure_tx(sf, bw, freq):
+        result.error_msg = "TX configuration failed"
+        return result
+    
+    # Get accurate TOA from firmware for timeout calculation
+    packet_size_bytes = len(TEST_PACKET_HEX) // 2
+    toa_ms = tx_dongle.get_toa(packet_size_bytes)
+    if toa_ms == 0:
+        # Fallback: rough estimate
+        toa_ms = 100 * (2 ** (sf - 5)) / (BW_OPTIONS.index(bw) + 1) if bw in BW_OPTIONS else 1000
+        logger.warning(f"Using estimated TOA: {toa_ms:.0f} ms")
+    else:
+        logger.info(f"TOA: {toa_ms} ms (from firmware)")
+    
+    # Timeout = TOA + 25% margin (minimum 500ms for command processing)
+    rx_timeout_ms = max(500, toa_ms * 1.25)
+    rx_timeout_s = rx_timeout_ms / 1000
+    logger.info(f"RX timeout set to: {rx_timeout_ms:.0f} ms (TOA {toa_ms} ms + 25%)")
+    
+    # Clear RX buffer before sending
+    rx_dongle.serial.reset_input_buffer()
+    
+    # Start timing from TX command - this is when packet transmission begins
+    tx_start = time.time()
+    if not tx_dongle.send_packet(TEST_PACKET_HEX):
+        result.error_msg = "TX send failed"
+        return result
+    result.tx_time_ms = (time.time() - tx_start) * 1000
+    
+    # Wait for RX packet (timeout starts from TX command)
+    success, received, rssi = rx_dongle.wait_for_rx_packet(timeout=rx_timeout_s)
+    actual_wait_time = time.time() - tx_start
+    result.rx_time_ms = actual_wait_time  # Total time from TX start
+    result.rssi = rssi
+    
+    if success:
+        # Verify packet content
+        expected = TEST_PACKET_HEX.upper()
+        received = received.upper()
+        
+        if received == expected:
+            result.success = True
+            logger.info(f"✓ SUCCESS: Packet received correctly ({len(TEST_PACKET_HEX)//2} bytes), RSSI: {rssi} dBm, Real wait: {actual_wait_time*1000:.0f} ms")
+        else:
+            result.error_msg = f"Data mismatch: expected {expected}, got {received}"
+            logger.warning(f"✗ FAIL: {result.error_msg}, Real wait: {actual_wait_time*1000:.0f} ms")
+    else:
+        result.error_msg = received  # Contains error message
+        logger.warning(f"✗ FAIL: {result.error_msg}, Real wait: {actual_wait_time*1000:.0f} ms")
+    
+    return result
+
+
+def run_full_test_suite(tx_dongle: ATLoraDongle, rx_dongle: ATLoraDongle) -> List[TestResult]:
+    """Run complete test suite with all SF/BW combinations"""
+    
+    results = []
+    total_tests = len(SF_RANGE) * len(BW_OPTIONS)
+    current_test = 0
+    
+    logger.info(f"\n{'#'*60}")
+    logger.info(f"Starting RF Range Test Suite")
+    logger.info(f"Total tests: {total_tests}")
+    logger.info(f"Test packet size: {len(TEST_PACKET_HEX)//2} bytes")
+    logger.info(f"{'#'*60}\n")
+    
+    # Enable RX to UART on receiver
+    rx_dongle.enable_rx_to_uart(True)
+    
+    for sf in SF_RANGE:
+        for bw in BW_OPTIONS:
+            current_test += 1
+            logger.info(f"\nTest {current_test}/{total_tests}")
+            
+            result = run_single_test(tx_dongle, rx_dongle, sf, bw, TEST_FREQUENCY)
+            results.append(result)
+    
+    return results
+
+
+def print_results_summary(results: List[TestResult]):
+    """Print a summary table of all test results"""
+    
+    print("="*90)
+    print("TEST RESULTS SUMMARY")
+    print("="*90)
+    print(f"{'SF':<4} {'BW':<12} {'Freq (Hz)':<12} {'Result':<10} {'RSSI':<8} {'TX (ms)':<10} {'RX (ms)':<10} {'Error'}")
+    print("-"*90)
+    
+    success_count = 0
+    fail_count = 0
+    
+    for r in results:
+        status = "✓ PASS" if r.success else "✗ FAIL"
+        if r.success:
+            success_count += 1
+        else:
+            fail_count += 1
+            
+        bw_name = BW_NAMES.get(r.bw, f"BW{r.bw}")
+        rssi_str = f"{r.rssi} dBm" if r.success else "-"
+        print(f"{r.sf:<4} {bw_name:<12} {r.freq:<12} {status:<10} {rssi_str:<8} {r.tx_time_ms:<10.1f} {r.rx_time_ms:<10.1f} {r.error_msg[:20]}")
+    
+    print("-"*90)
+    print(f"Total: {len(results)} tests | Passed: {success_count} | Failed: {fail_count} | Success rate: {success_count/len(results)*100:.1f}%")
+    print("="*90)
+    
+    # Print matrix view
+    print("\nRESULTS MATRIX (SF vs BW):")
+    print("-"*60)
+    
+    # Header
+    print(f"{'SF':<4}", end="")
+    for bw in BW_OPTIONS:
+        print(f"{bw:<6}", end="")
+    print()
+    
+    # Data rows
+    for sf in SF_RANGE:
+        print(f"{sf:<4}", end="")
+        for bw in BW_OPTIONS:
+            # Find result for this SF/BW combination
+            result = next((r for r in results if r.sf == sf and r.bw == bw), None)
+            if result:
+                symbol = "✓" if result.success else "✗"
+            else:
+                symbol = "-"
+            print(f"{symbol:<6}", end="")
+        print()
+    
+    print("-"*60)
+    print("BW Legend:", ", ".join([f"{k}={v}" for k, v in BW_NAMES.items()]))
+
+
+def main():
+    """Main entry point"""
+    
+    print("\n" + "#"*60)
+    print("  AT LoRa Dongle RF Range Test")
+    print("#"*60 + "\n")
+    
+    # Find Silicon Labs COM ports
+    ports = find_silicon_labs_ports()
+    
+    if len(ports) < 2:
+        logger.error(f"Need 2 Silicon Labs devices, found {len(ports)}")
+        logger.error("Please connect both AT LoRa Dongles")
+        sys.exit(1)
+    
+    if len(ports) > 2:
+        logger.warning(f"Found {len(ports)} devices, using first two: {ports[0]}, {ports[1]}")
+    
+    # Create dongle instances
+    tx_dongle = ATLoraDongle(ports[0], "TX_Dongle")
+    rx_dongle = ATLoraDongle(ports[1], "RX_Dongle")
+    
+    try:
+        # Connect to both dongles
+        if not tx_dongle.connect():
+            logger.error("Failed to connect to TX dongle")
+            sys.exit(1)
+            
+        if not rx_dongle.connect():
+            logger.error("Failed to connect to RX dongle")
+            tx_dongle.disconnect()
+            sys.exit(1)
+        
+        # Verify communication with basic AT command
+        logger.info("\nVerifying communication...")
+        
+        # AT command returns help text, so just check we get a response
+        success, response = tx_dongle.send_command("AT", timeout=3.0)
+        if not response or len(response) < 10:
+            logger.error(f"TX dongle not responding")
+            sys.exit(1)
+        logger.info(f"TX dongle OK (received {len(response)} bytes)")
+        
+        success, response = rx_dongle.send_command("AT", timeout=3.0)
+        if not response or len(response) < 10:
+            logger.error(f"RX dongle not responding")
+            sys.exit(1)
+        logger.info(f"RX dongle OK (received {len(response)} bytes)")
+        
+        # Run test suite
+        results = run_full_test_suite(tx_dongle, rx_dongle)
+        
+        # Print summary
+        print_results_summary(results)
+        
+    except KeyboardInterrupt:
+        logger.info("\nTest interrupted by user")
+    except Exception as e:
+        logger.error(f"Test error: {e}")
+        raise
+    finally:
+        # Cleanup
+        tx_dongle.disconnect()
+        rx_dongle.disconnect()
+        logger.info("\nTest complete")
+
+
+if __name__ == "__main__":
+    main()

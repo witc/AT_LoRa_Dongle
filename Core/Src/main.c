@@ -27,6 +27,9 @@
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 #include "AT_cmd.h"
+#include "cmsis_os2.h"
+
+extern osMessageQueueId_t queueRadioHandle;
 
 #define LOG_TAG "[MAIN]"
 #define LOG_LEVEL LOG_LEVEL_VERBOSE
@@ -50,7 +53,6 @@
 
 /* Private variables ---------------------------------------------------------*/
 
-extern osMessageQId queueRadioHandle;
 /* USER CODE BEGIN PV */
 /* USER CODE END PV */
 

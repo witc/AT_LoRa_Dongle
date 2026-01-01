@@ -597,4 +597,52 @@ void NVMA_Get_RX_To_UART(uint8_t *active)
     xSemaphoreGive(xEepromMutex);
 }
 
+/**
+ * @brief Set TX LDRO (Low Data Rate Optimization)
+ * @param ldro 0=off, 1=on, 2=auto
+ */
+void NVMA_Set_LR_TX_LDRO(uint8_t ldro)
+{   
+    xSemaphoreTake(xEepromMutex, portMAX_DELAY);
+    HAL_FLASHEx_DATAEEPROM_Unlock();
+    HAL_FLASHEx_DATAEEPROM_Program(FLASH_TYPEPROGRAMDATA_WORD, EE_ADDR_LR_TX_LDRO, ldro);
+    HAL_FLASHEx_DATAEEPROM_Lock();
+    xSemaphoreGive(xEepromMutex);
+}
+
+/**
+ * @brief Get TX LDRO (Low Data Rate Optimization)
+ * @param ldro 0=off, 1=on, 2=auto
+ */
+void NVMA_Get_LR_TX_LDRO(uint8_t *ldro)
+{   
+    xSemaphoreTake(xEepromMutex, portMAX_DELAY);
+    *ldro = *((uint8_t *)EE_ADDR_LR_TX_LDRO);
+    xSemaphoreGive(xEepromMutex);
+}
+
+/**
+ * @brief Set RX LDRO (Low Data Rate Optimization)
+ * @param ldro 0=off, 1=on, 2=auto
+ */
+void NVMA_Set_LR_RX_LDRO(uint8_t ldro)
+{   
+    xSemaphoreTake(xEepromMutex, portMAX_DELAY);
+    HAL_FLASHEx_DATAEEPROM_Unlock();
+    HAL_FLASHEx_DATAEEPROM_Program(FLASH_TYPEPROGRAMDATA_WORD, EE_ADDR_LR_RX_LDRO, ldro);
+    HAL_FLASHEx_DATAEEPROM_Lock();
+    xSemaphoreGive(xEepromMutex);
+}
+
+/**
+ * @brief Get RX LDRO (Low Data Rate Optimization)
+ * @param ldro 0=off, 1=on, 2=auto
+ */
+void NVMA_Get_LR_RX_LDRO(uint8_t *ldro)
+{   
+    xSemaphoreTake(xEepromMutex, portMAX_DELAY);
+    *ldro = *((uint8_t *)EE_ADDR_LR_RX_LDRO);
+    xSemaphoreGive(xEepromMutex);
+}
+
 
