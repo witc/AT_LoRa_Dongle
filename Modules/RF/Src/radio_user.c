@@ -100,7 +100,7 @@ void ru_sx1262_assign( radio_context_t	*ctx)
 	ctx->rfConfig.radioHal.pin_RF_SWITCH_2.port=0;
 	ctx->rfConfig.radioHal.pin_RF_SWITCH_2.pin=0;
 	ctx->rfConfig.radioHal.TCXO_is_used=true;
-	ctx->rfConfig.radioHal.DIO2_AS_RF_SWITCH=false;
+	ctx->rfConfig.radioHal.DIO2_AS_RF_SWITCH=true;
 	ctx->rfConfig.radioHal.target=&hspi1;
 	//ctx->rfConfig.radioHal.AtomicActionEnter=vTaskSuspendAll;
 	//ctx->rfConfig.radioHal.AtomicActionExit=xTaskResumeAll;
@@ -135,6 +135,9 @@ void ru_sx1262_assign( radio_context_t	*ctx)
 
 
 	ctx->rfConfig.ralf = ( ralf_t ) RALF_SX126X_INSTANTIATE( &ctx->rfConfig.radioHal );
+
+	//Dorji module must have SW pin always high - we do it in init
+	if(ctx->rfConfig.radioHal.pin_RF_SWITCH_1.port != NULL)		HAL_GPIO_WritePin(ctx->rfConfig.radioHal.pin_RF_SWITCH_1.port, ctx->rfConfig.radioHal.pin_RF_SWITCH_1.pin, GPIO_PIN_SET);
 
 }
 
@@ -421,14 +424,19 @@ bool ru_radio_send_packet(uint8_t *data, uint8_t size, radio_context_t	*ctx)
  */
 void ru_radio_rfSwitch(bool tx,radio_context_t	*ctx)
 {
+
+	//Dorji module must have SW pin always high - we already do it in init
+	return;
+	//if(ctx->rfConfig.radioHal.pin_RF_SWITCH_1.port != NULL)		HAL_GPIO_WritePin(ctx->rfConfig.radioHal.pin_RF_SWITCH_1.port, ctx->rfConfig.radioHal.pin_RF_SWITCH_1.pin, GPIO_PIN_SET);
+
 	if(tx == true)
 	{	
-		if(ctx->rfConfig.radioHal.pin_RF_SWITCH_1.port != NULL)		HAL_GPIO_WritePin(ctx->rfConfig.radioHal.pin_RF_SWITCH_1.port, ctx->rfConfig.radioHal.pin_RF_SWITCH_1.pin, GPIO_PIN_RESET);
-		if(ctx->rfConfig.radioHal.pin_RF_SWITCH_2.port != NULL)		HAL_GPIO_WritePin(ctx->rfConfig.radioHal.pin_RF_SWITCH_2.port, ctx->rfConfig.radioHal.pin_RF_SWITCH_2.pin, GPIO_PIN_RESET);
+		if(ctx->rfConfig.radioHal.pin_RF_SWITCH_1.port != NULL)		HAL_GPIO_WritePin(ctx->rfConfig.radioHal.pin_RF_SWITCH_1.port, ctx->rfConfig.radioHal.pin_RF_SWITCH_1.pin, GPIO_PIN_SET);
+		if(ctx->rfConfig.radioHal.pin_RF_SWITCH_2.port != NULL)		HAL_GPIO_WritePin(ctx->rfConfig.radioHal.pin_RF_SWITCH_2.port, ctx->rfConfig.radioHal.pin_RF_SWITCH_2.pin, GPIO_PIN_SET);
 	}
 	else
 	{
-		if(ctx->rfConfig.radioHal.pin_RF_SWITCH_1.port != NULL)	 HAL_GPIO_WritePin(ctx->rfConfig.radioHal.pin_RF_SWITCH_1.port, ctx->rfConfig.radioHal.pin_RF_SWITCH_1.pin, GPIO_PIN_SET);
+		if(ctx->rfConfig.radioHal.pin_RF_SWITCH_1.port != NULL)	 HAL_GPIO_WritePin(ctx->rfConfig.radioHal.pin_RF_SWITCH_1.port, ctx->rfConfig.radioHal.pin_RF_SWITCH_1.pin, GPIO_PIN_RESET);
 		if(ctx->rfConfig.radioHal.pin_RF_SWITCH_2.port != NULL)   HAL_GPIO_WritePin(ctx->rfConfig.radioHal.pin_RF_SWITCH_2.port, ctx->rfConfig.radioHal.pin_RF_SWITCH_2.pin, GPIO_PIN_RESET);
 	}
 

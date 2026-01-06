@@ -58,8 +58,8 @@ const AT_Command_Struct AT_Commands[] = {
     {"AT+SYS_RESTART",           AT_HandleRestartSys,    0,                                 "AT+SYS_RESTART - Restart the system",             ""},
     {"AT+LED_BLUE",              NULL,                   SYS_LED_BLUE,                      "AT+LED_BLUE - Set LED blue state",                "=ON, =OFF"},
     /* multiple LoRa params*/
-    {"AT+LR_TX_SET",                NULL,               SYS_CMD_TX_COMPLETE_SET,             "AT+LR_TX_SET - Set multiple TX parameters",      "=SF:<value>,BW:<value>,CR:<value>,Freq:<value>,IQInv:<value>,HeaderMode:<value>,CRC:<value>,Power:<value>,Preamble:<value>,LDRO:<0|1|2>, ?"},
-    {"AT+LR_RX_SET",                NULL,               SYS_CMD_RX_COMPLETE_SET,             "AT+LR_RX_SET - Set multiple RX parameters",      "=SF:<value>,BW:<value>,CR:<value>,Freq:<value>,IQInv:<value>,HeaderMode:<value>,CRC:<value>,Preamble:<value>,LDRO:<0|1|2>, ?"},
+    {"AT+LR_TX_SET",                NULL,               SYS_CMD_TX_COMPLETE_SET,             "AT+LR_TX_SET - Set multiple TX parameters",      "=SF:<5-12>,BW:<0-9>,CR:<45-48>,Freq:<Hz>,IQInv:<0|1>,HeaderMode:<0|1>,CRC:<0|1>,Preamble:<1-65535>,Power:<dBm>,LDRO:<0|1|2>, ?"},
+    {"AT+LR_RX_SET",                NULL,               SYS_CMD_RX_COMPLETE_SET,             "AT+LR_RX_SET - Set multiple RX parameters",      "=SF:<5-12>,BW:<0-9>,CR:<45-48>,Freq:<Hz>,IQInv:<0|1>,HeaderMode:<0|1>,CRC:<0|1>,Preamble:<1-65535>,LDRO:<0|1|2>, ?"},
     /* single LoRa params*/
     {"AT+LR_TX_FREQ",                NULL,               SYS_CMD_TX_FREQ,                     "AT+LR_TX_FREQ - Set TX frequency",                "=<frequency_in_Hz>, ?"},
     {"AT+LR_RX_FREQ",                NULL,               SYS_CMD_RX_FREQ,                     "AT+LR_RX_FREQ - Set RX frequency",                "=<frequency_in_Hz>, ?"},
@@ -320,8 +320,8 @@ static void AT_HandleHelp(char *params)
 
     // Add examples for complex commands
     AT_SendStringResponse("\r\nExamples for complex commands:\r\n");
-    AT_SendStringResponse("  AT+LR_TX_SET=SF:9,BW:7,CR:45,Freq:869525000,IQInv:0,HeaderMode:0,CRC:1,Preamble:8,Power:22\r\n");
-    AT_SendStringResponse("  AT+LR_RX_SET=SF:9,BW:7,CR:45,Freq:869525000,IQInv:1,HeaderMode:0,CRC:1,Preamble:8\r\n");
+    AT_SendStringResponse("  AT+LR_TX_SET=SF:9,BW:7,CR:45,Freq:869525000,IQInv:0,HeaderMode:0,CRC:1,Preamble:8,Power:22,LDRO:2\r\n");
+    AT_SendStringResponse("  AT+LR_RX_SET=SF:9,BW:7,CR:45,Freq:869525000,IQInv:1,HeaderMode:0,CRC:1,Preamble:8,LDRO:2\r\n");
 }
 
 /**

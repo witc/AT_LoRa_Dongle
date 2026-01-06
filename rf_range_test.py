@@ -23,7 +23,7 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 # Test configuration
-TEST_PACKET_HEX = "0102030405060708090A0B0C0D0E0F101112131415161718191A1B1C"  # 28 bytes
+TEST_PACKET_HEX = "010203"  # 3 bytes
 TEST_FREQUENCY = 869525000
 BAUD_RATE = 115200
 TIMEOUT = 5.0  # seconds
@@ -51,7 +51,7 @@ def should_skip_test(sf: int, bw: int) -> bool:
     """Check if test should be skipped based on filter settings"""
     if SKIP_SLOW_TESTS:
         # Skip slow combinations: low bandwidth + high spreading factor
-        if bw <= 7 or sf >= 8:
+        if bw <= 4 or sf >= 10:
             return True
     return False
 
