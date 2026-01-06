@@ -13,6 +13,7 @@
 #include "general_sys_cmd.h"
 #include "NVMA.h"
 #include "auxPin_logic.h"
+#include "iwdg.h"
 
 #define LOG_LEVEL	LOG_LEVEL_VERBOSE
 #include "Log.h"
@@ -69,11 +70,27 @@ static void _Main_Alive_Callback(TimerHandle_t xTimer)
  * 
  * @param xTimer 
  */
-static _Main_Rx_done_Callback(TimerHandle_t xTimer)
+static void _Main_Rx_done_Callback(TimerHandle_t xTimer)
 {
+    (void)xTimer;
     HAL_GPIO_WritePin(LED_BLUE_GPIO_Port, LED_BLUE_Pin, GPIO_PIN_RESET);
 }
 
+
+static void GeneralSys_IWDG_Callback(TimerHandle_t xTimer)
+{
+    (void)xTimer;
+    dataQueue_t txm;
+    txm.ptr = NULL;
+    
+    // Send heartbeat request to RF task
+    txm.cmd = CMD_RF_HB_REQUEST;
+    xQueueSend(queueRadioHandle, &txm, 0);  // Non-blocking
+    
+    // Notify main task to start collecting responses
+    txm.cmd = CMD_MAIN_IWDG_REFRESH;
+    xQueueSend(queueMainHandle, &txm, 0);   // Non-blocking
+}
 
 /**
  * @brief 
@@ -213,6 +230,29 @@ void main_task_on(main_ctx_t *ctx, dataQueue_t *rxd)
 
 			break;
 
+		case CMD_MAIN_IWDG_REFRESH:
+			// Start heartbeat pending, clear previous responses
+			ctx->heartbeat.hb_pending = true;
+			ctx->heartbeat.rf_task_alive = false;
+			break;
+
+		case CMD_MAIN_HB_RESPONSE_RF:
+			// RF task responded
+			ctx->heartbeat.rf_task_alive = true;
+			
+			// Check if all tasks responded
+			if (ctx->heartbeat.hb_pending && ctx->heartbeat.rf_task_alive)
+			{
+				// All tasks alive - refresh IWDG
+				HAL_IWDG_Refresh(&hiwdg);
+				
+				// Clear flags and restart timer for next heartbeat cycle
+				ctx->heartbeat.hb_pending = false;
+				ctx->heartbeat.rf_task_alive = false;
+				xTimerStart(ctx->timers.IWDG_timer.timer, 0);
+			}
+			break;
+
 		default:
 			break;
 	}
@@ -284,6 +324,8 @@ void main_task(void)
 	BaseType_t ret;
 	main_ctx_t ctx;
 	ctx.task_state = MAIN_TASK_ON;
+	ctx.heartbeat.hb_pending = false;
+	ctx.heartbeat.rf_task_alive = false;
 
 	HAL_GPIO_WritePin(LED_GREEN_GPIO_Port, LED_GREEN_Pin, false);
 	HAL_GPIO_WritePin(LED_BLUE_GPIO_Port, LED_BLUE_Pin, false);
@@ -326,16 +368,19 @@ void main_task(void)
     
 	LOG_DEBUG("Main task started");
 
-    {
-        bool rxUart;
-        dataQueue_t txm;
-        txm.ptr = NULL;
-        NVMA_Get_RX_To_UART(&rxUart);
-        
-        txm.cmd = CMD_RF_RADIO_RX_TO_UART;
-        txm.data = rxUart;
-        xQueueSend(queueRadioHandle,&txm,portMAX_DELAY);
-    }
+    uint8_t rxUart;
+    dataQueue_t txm;
+    txm.ptr = NULL;
+    NVMA_Get_RX_TO_UART(&rxUart);
+    
+    txm.cmd = CMD_RF_RADIO_RX_TO_UART;
+    txm.data = rxUart;
+    xQueueSend(queueRadioHandle,&txm,portMAX_DELAY);
+
+    /* create timer for iwdg (one-shot, will be restarted after successful HB collection) */
+    ctx.timers.IWDG_timer.timer = xTimerCreateStatic("IWDG timer", pdMS_TO_TICKS(1000), pdFALSE, NULL, 
+                                                         GeneralSys_IWDG_Callback,  &ctx.timers.IWDG_timer.timerPlace);
+    xTimerStart(ctx.timers.IWDG_timer.timer, 0);
 
 	for(;;)
 	{

@@ -149,6 +149,8 @@ typedef struct
 #define CMD_MAIN_RF_IS_OFF			      253
 #define CMD_MAIN_RF_RX_PACKET		      252
 #define CMD_MAIN_AT_RX_PACKET		      251
+#define CMD_MAIN_IWDG_REFRESH		      250   // Start heartbeat collection
+#define CMD_MAIN_HB_RESPONSE_RF       249   // RF task heartbeat response
 
 #define CMD_RF_TURN_ON			    254
 #define CMD_RF_TURN_OFF			    253
@@ -157,7 +159,8 @@ typedef struct
 #define CMD_RF_SEND_DATA_LBT		250
 #define CMD_RF_RADIO_HB         249
 #define CMD_RF_RADIO_RX_TO_UART 248
-#define CMD_RF_RADIO_RECONFIG_RX 249
+#define CMD_RF_RADIO_RECONFIG_RX 247
+#define CMD_RF_HB_REQUEST       246   // Heartbeat request from main task
 
 
 

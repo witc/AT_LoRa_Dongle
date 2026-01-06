@@ -590,7 +590,7 @@ void NVMA_Set_RX_To_UART(uint8_t active)
     xSemaphoreGive(xEepromMutex);
 }
 
-void NVMA_Get_RX_To_UART(uint8_t *active)
+void NVMA_Get_RX_TO_UART(uint8_t *active)
 {   
     xSemaphoreTake(xEepromMutex, portMAX_DELAY);
     *active = *((uint8_t *)EE_ADDR_RX_TO_UART);

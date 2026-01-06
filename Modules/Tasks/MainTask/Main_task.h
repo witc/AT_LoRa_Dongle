@@ -28,14 +28,25 @@ typedef struct
 {
 	TimerResource_t	LED_alive;
 	TimerResource_t	LED_RX_done;
+	TimerResource_t	IWDG_timer;
 
 }main_timers_t;
+
+/**
+ * @brief Heartbeat status for IWDG
+ */
+typedef struct
+{
+	bool rf_task_alive;    // RF task responded to heartbeat
+	bool hb_pending;       // Heartbeat request is pending
+} heartbeat_status_t;
 
 
 typedef struct
 {
-	task_state_e	task_state;
-	main_timers_t	timers;
+	task_state_e		task_state;
+	main_timers_t		timers;
+	heartbeat_status_t	heartbeat;
 
 }main_ctx_t;
 

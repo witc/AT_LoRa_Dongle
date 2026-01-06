@@ -129,6 +129,12 @@ void radio_task_on(radio_context_t *ctx, dataQueue_t *rxd)
 			ru_radio_process_commands(RADIO_CMD_START_RX,ctx,rxd);
 			break;
 
+		case CMD_RF_HB_REQUEST:
+			// Respond to heartbeat request from main task
+			sd.cmd = CMD_MAIN_HB_RESPONSE_RF;
+			xQueueSend(queueMainHandle, &sd, 0);  // Non-blocking
+			break;
+
 		default:
 			break;
 	}
@@ -162,7 +168,6 @@ void radio_task(void)
 		if (ret == pdPASS)
 		{
 			radio_states[ctx.rfTaskState.currentState](&ctx, &rxd);
-
 			/* Clear malloc */
 			vPortFree(rxd.ptr);
 			rxd.ptr=NULL;
