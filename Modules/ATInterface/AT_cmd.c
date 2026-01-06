@@ -105,8 +105,10 @@ const AT_Command_Struct AT_Commands[] = {
     /* AUX GPIO commands */
     {"AT+AUX",                      NULL,               SYS_CMD_AUX_SET,                     "AT+AUX=<pin>,<ON|OFF>",            "=<pin>,<ON|OFF>"},
     {"AT+AUX_PULSE",                NULL,               SYS_CMD_AUX_PULSE,                   "AT+AUX_PULSE=<pin>,<period_ms>,<duty_pct>", "=<pin>,<period>,<duty%>"},
-    {"AT+AUX_PULSE_STOP",           NULL,               SYS_CMD_AUX_STOP,                    "AT+AUX_PULSE_STOP=<pin> - Stop PWM on AUX pin", "=<pin>" }
-    //{"AT+AUX?",                     NULL,               SYS_CMD_AUX_QUERY,                   "AT+AUX? - Get AUX pin states",     "?"}
+    {"AT+AUX_PULSE_STOP",           NULL,               SYS_CMD_AUX_STOP,                    "AT+AUX_PULSE_STOP=<pin> - Stop PWM on AUX pin", "=<pin>" },
+    
+    /* System commands */
+    {"AT+UART_BAUD",                NULL,               SYS_CMD_UART_BAUD,                   "AT+UART_BAUD - Set UART baud rate", "=9600|19200|38400|57600|115200|230400, ?"}
 
 };
 

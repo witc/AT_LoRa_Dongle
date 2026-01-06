@@ -21,7 +21,24 @@
 #include "usart.h"
 
 /* USER CODE BEGIN 0 */
+#include "NVMA.h"
 
+/**
+ * @brief Get UART baud rate from EEPROM (simplified version for early init)
+ * @return Valid baud rate or default 115200
+ */
+static uint32_t GetStoredBaudRate(void)
+{
+    uint32_t baud = *((uint32_t *)EE_ADDR_UART_BAUD);
+    
+    // Validate - standard baud rates only (max 230400)
+    if (baud == 9600 || baud == 19200 || baud == 38400 || baud == 57600 ||
+        baud == 115200 || baud == 230400)
+    {
+        return baud;
+    }
+    return NVMA_DEFAULT_UART_BAUD;  // Default 115200
+}
 /* USER CODE END 0 */
 
 UART_HandleTypeDef huart1;
@@ -54,7 +71,12 @@ void MX_USART1_UART_Init(void)
     Error_Handler();
   }
   /* USER CODE BEGIN USART1_Init 2 */
-
+  // Override baud rate from EEPROM and reinitialize
+  huart1.Init.BaudRate = GetStoredBaudRate();
+  if (HAL_UART_Init(&huart1) != HAL_OK)
+  {
+    Error_Handler();
+  }
   /* USER CODE END USART1_Init 2 */
 
 }

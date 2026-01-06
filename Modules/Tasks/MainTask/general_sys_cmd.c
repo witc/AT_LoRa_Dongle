@@ -1648,6 +1648,40 @@ bool GSC_ProcessCommand(eATCommands cmd, uint8_t *data, uint16_t size)
         
             break;
 
+        case SYS_CMD_UART_BAUD:
+        {
+            uint32_t baud;
+            if (isQuery)
+            {
+                NVMA_Get_UART_Baud(&baud);
+                snprintf(response, sizeof(response), "%lu\r\n", baud);
+                hasResponse = true;
+            }
+            else
+            {
+                if (!AT_ParseUint32(data, &baud, 6))  // max 921600 = 6 digits
+                {
+                    AT_SendStringResponse("ERROR: Invalid UART_BAUD value\r\n");
+                    commandHandled = false;
+                    break;
+                }
+                
+                if (!NVMA_Is_Valid_Baud(baud))
+                {
+                    AT_SendStringResponse("ERROR: Invalid baud rate. Use: 9600, 19200, 38400, 57600, 115200, 230400\r\n");
+                    commandHandled = false;
+                    break;
+                }
+                
+                NVMA_Set_UART_Baud(baud);
+                AT_SendStringResponse("OK\r\n");
+                // Small delay to let response be sent before restart
+                osDelay(100);
+                NVIC_SystemReset();
+            }
+            break;
+        }
+
         default:
         {
             commandHandled = false;

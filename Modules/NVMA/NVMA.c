@@ -668,3 +668,51 @@ void NVMA_Get_LR_RX_PldLen(uint8_t *len)
     *len = *((uint8_t *)EE_ADDR_LR_RX_PLDLEN);
     xSemaphoreGive(xEepromMutex);
 }
+/**
+ * @brief Check if baud rate is valid (standard values only)
+ * @param baud Baud rate to check
+ * @return true if valid, false otherwise
+ */
+bool NVMA_Is_Valid_Baud(uint32_t baud)
+{
+    const uint32_t valid_bauds[] = {9600, 19200, 38400, 57600, 115200, 230400};
+    for (size_t i = 0; i < sizeof(valid_bauds) / sizeof(valid_bauds[0]); i++)
+    {
+        if (baud == valid_bauds[i])
+        {
+            return true;
+        }
+    }
+    return false;
+}
+
+/**
+ * @brief Set UART baud rate
+ * @param baud Baud rate (9600, 19200, 38400, 57600, 115200, 230400, 460800, 921600)
+ */
+void NVMA_Set_UART_Baud(uint32_t baud)
+{   
+    xSemaphoreTake(xEepromMutex, portMAX_DELAY);
+    HAL_FLASHEx_DATAEEPROM_Unlock();
+    HAL_FLASHEx_DATAEEPROM_Program(FLASH_TYPEPROGRAMDATA_WORD, EE_ADDR_UART_BAUD, baud);
+    HAL_FLASHEx_DATAEEPROM_Lock();
+    xSemaphoreGive(xEepromMutex);
+}
+
+/**
+ * @brief Get UART baud rate from NVMA
+ * @param baud Pointer to store baud rate
+ * @note Returns default 115200 if stored value is invalid
+ */
+void NVMA_Get_UART_Baud(uint32_t *baud)
+{   
+    xSemaphoreTake(xEepromMutex, portMAX_DELAY);
+    *baud = *((uint32_t *)EE_ADDR_UART_BAUD);
+    xSemaphoreGive(xEepromMutex);
+    
+    // Validate - return default if invalid (e.g. 0xFFFFFFFF on fresh EEPROM)
+    if (!NVMA_Is_Valid_Baud(*baud))
+    {
+        *baud = NVMA_DEFAULT_UART_BAUD;
+    }
+}
