@@ -1015,6 +1015,9 @@ uint32_t sx126x_get_lora_bw_in_hz( sx126x_lora_bw_t bw )
     case SX126X_LORA_BW_500:
         bw_in_hz = 500000UL;
         break;
+    default:
+        bw_in_hz = 0;  // Invalid bandwidth parameter
+        break;
     }
 
     return bw_in_hz;
@@ -1079,6 +1082,12 @@ uint32_t sx126x_get_lora_time_on_air_in_ms( const sx126x_pkt_params_lora_t* pkt_
 uint32_t sx126x_get_lora_symbol_time_us( sx126x_lora_bw_t bw, uint8_t sf )
 {
     uint32_t bw_hz = sx126x_get_lora_bw_in_hz( bw );
+    
+    if( bw_hz == 0 )
+    {
+        return 0;  // Error: invalid bandwidth
+    }
+    
     // Symbol time Ts = 2^SF / BW (in seconds)
     // Ts_us = (2^SF * 1000000) / BW
     return ( ( 1U << sf ) * 1000000U ) / bw_hz;

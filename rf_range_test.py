@@ -346,6 +346,151 @@ class ATLoraDongle:
             return False, str(e), 0
 
 
+def test_eeprom_storage(tx_dongle: ATLoraDongle, rx_dongle: ATLoraDongle) -> bool:
+    """Test EEPROM storage for all configuration parameters
+    
+    Writes various configurations and reads them back to verify correct EEPROM storage.
+    Returns True if all tests pass, False otherwise.
+    """
+    
+    logger.info("\n" + "="*70)
+    logger.info("EEPROM STORAGE VERIFICATION TEST")
+    logger.info("="*70)
+    
+    all_passed = True
+    failed_tests = 0
+    
+    # Individual parameter tests - write value then read back with ?
+    # BW uses index 0-9, not Hz values!
+    param_tests = [
+        # TX parameters
+        {"dongle": tx_dongle, "set_cmd": "AT+LR_TX_SF=7", "get_cmd": "AT+LR_TX_SF?", "expected": "7", "name": "TX SF"},
+        {"dongle": tx_dongle, "set_cmd": "AT+LR_TX_SF=12", "get_cmd": "AT+LR_TX_SF?", "expected": "12", "name": "TX SF (high)"},
+        {"dongle": tx_dongle, "set_cmd": "AT+LR_TX_BW=7", "get_cmd": "AT+LR_TX_BW?", "expected": "7", "name": "TX BW (125kHz)"},  # BW7 = 125kHz
+        {"dongle": tx_dongle, "set_cmd": "AT+LR_TX_BW=9", "get_cmd": "AT+LR_TX_BW?", "expected": "9", "name": "TX BW (500kHz)"},  # BW9 = 500kHz
+        {"dongle": tx_dongle, "set_cmd": "AT+LR_TX_CR=45", "get_cmd": "AT+LR_TX_CR?", "expected": "45", "name": "TX CR"},
+        {"dongle": tx_dongle, "set_cmd": "AT+LR_TX_CR=48", "get_cmd": "AT+LR_TX_CR?", "expected": "48", "name": "TX CR (high)"},
+        {"dongle": tx_dongle, "set_cmd": "AT+LR_TX_POWER=10", "get_cmd": "AT+LR_TX_POWER?", "expected": "10", "name": "TX Power"},
+        {"dongle": tx_dongle, "set_cmd": "AT+LR_TX_POWER=22", "get_cmd": "AT+LR_TX_POWER?", "expected": "22", "name": "TX Power (high)"},
+        {"dongle": tx_dongle, "set_cmd": "AT+LR_TX_IQ_INV=0", "get_cmd": "AT+LR_TX_IQ_INV?", "expected": "0", "name": "TX IQ Inv (off)"},
+        {"dongle": tx_dongle, "set_cmd": "AT+LR_TX_IQ_INV=1", "get_cmd": "AT+LR_TX_IQ_INV?", "expected": "1", "name": "TX IQ Inv (on)"},
+        {"dongle": tx_dongle, "set_cmd": "AT+LR_TX_HEADERMODE=0", "get_cmd": "AT+LR_TX_HEADERMODE?", "expected": "0", "name": "TX Header (explicit)"},
+        {"dongle": tx_dongle, "set_cmd": "AT+LR_TX_HEADERMODE=1", "get_cmd": "AT+LR_TX_HEADERMODE?", "expected": "1", "name": "TX Header (implicit)"},
+        {"dongle": tx_dongle, "set_cmd": "AT+LR_TX_CRC=0", "get_cmd": "AT+LR_TX_CRC?", "expected": "0", "name": "TX CRC (off)"},
+        {"dongle": tx_dongle, "set_cmd": "AT+LR_TX_CRC=1", "get_cmd": "AT+LR_TX_CRC?", "expected": "1", "name": "TX CRC (on)"},
+        {"dongle": tx_dongle, "set_cmd": "AT+LR_TX_PREAMBLE_SIZE=8", "get_cmd": "AT+LR_TX_PREAMBLE_SIZE?", "expected": "8", "name": "TX Preamble"},
+        {"dongle": tx_dongle, "set_cmd": "AT+LR_TX_PREAMBLE_SIZE=16", "get_cmd": "AT+LR_TX_PREAMBLE_SIZE?", "expected": "16", "name": "TX Preamble (high)"},
+        {"dongle": tx_dongle, "set_cmd": "AT+LR_TX_LDRO=0", "get_cmd": "AT+LR_TX_LDRO?", "expected": "0", "name": "TX LDRO (off)"},
+        {"dongle": tx_dongle, "set_cmd": "AT+LR_TX_LDRO=1", "get_cmd": "AT+LR_TX_LDRO?", "expected": "1", "name": "TX LDRO (on)"},
+        {"dongle": tx_dongle, "set_cmd": "AT+LR_TX_LDRO=2", "get_cmd": "AT+LR_TX_LDRO?", "expected": "2", "name": "TX LDRO (auto)"},
+        
+        # RX parameters
+        {"dongle": rx_dongle, "set_cmd": "AT+LR_RX_SF=7", "get_cmd": "AT+LR_RX_SF?", "expected": "7", "name": "RX SF"},
+        {"dongle": rx_dongle, "set_cmd": "AT+LR_RX_SF=12", "get_cmd": "AT+LR_RX_SF?", "expected": "12", "name": "RX SF (high)"},
+        {"dongle": rx_dongle, "set_cmd": "AT+LR_RX_BW=7", "get_cmd": "AT+LR_RX_BW?", "expected": "7", "name": "RX BW (125kHz)"},  # BW7 = 125kHz
+        {"dongle": rx_dongle, "set_cmd": "AT+LR_RX_BW=9", "get_cmd": "AT+LR_RX_BW?", "expected": "9", "name": "RX BW (500kHz)"},  # BW9 = 500kHz
+        {"dongle": rx_dongle, "set_cmd": "AT+LR_RX_CR=45", "get_cmd": "AT+LR_RX_CR?", "expected": "45", "name": "RX CR"},
+        {"dongle": rx_dongle, "set_cmd": "AT+LR_RX_CR=48", "get_cmd": "AT+LR_RX_CR?", "expected": "48", "name": "RX CR (high)"},
+        {"dongle": rx_dongle, "set_cmd": "AT+LR_RX_IQ_INV=0", "get_cmd": "AT+LR_RX_IQ_INV?", "expected": "0", "name": "RX IQ Inv (off)"},
+        {"dongle": rx_dongle, "set_cmd": "AT+LR_RX_IQ_INV=1", "get_cmd": "AT+LR_RX_IQ_INV?", "expected": "1", "name": "RX IQ Inv (on)"},
+        {"dongle": rx_dongle, "set_cmd": "AT+LR_RX_HEADERMODE=0", "get_cmd": "AT+LR_RX_HEADERMODE?", "expected": "0", "name": "RX Header (explicit)"},
+        {"dongle": rx_dongle, "set_cmd": "AT+LR_RX_HEADERMODE=1", "get_cmd": "AT+LR_RX_HEADERMODE?", "expected": "1", "name": "RX Header (implicit)"},
+        {"dongle": rx_dongle, "set_cmd": "AT+LR_RX_CRC=0", "get_cmd": "AT+LR_RX_CRC?", "expected": "0", "name": "RX CRC (off)"},
+        {"dongle": rx_dongle, "set_cmd": "AT+LR_RX_CRC=1", "get_cmd": "AT+LR_RX_CRC?", "expected": "1", "name": "RX CRC (on)"},
+        {"dongle": rx_dongle, "set_cmd": "AT+LR_RX_PREAMBLE_SIZE=8", "get_cmd": "AT+LR_RX_PREAMBLE_SIZE?", "expected": "8", "name": "RX Preamble"},
+        {"dongle": rx_dongle, "set_cmd": "AT+LR_RX_PREAMBLE_SIZE=16", "get_cmd": "AT+LR_RX_PREAMBLE_SIZE?", "expected": "16", "name": "RX Preamble (high)"},
+        {"dongle": rx_dongle, "set_cmd": "AT+LR_RX_LDRO=0", "get_cmd": "AT+LR_RX_LDRO?", "expected": "0", "name": "RX LDRO (off)"},
+        {"dongle": rx_dongle, "set_cmd": "AT+LR_RX_LDRO=1", "get_cmd": "AT+LR_RX_LDRO?", "expected": "1", "name": "RX LDRO (on)"},
+        {"dongle": rx_dongle, "set_cmd": "AT+LR_RX_LDRO=2", "get_cmd": "AT+LR_RX_LDRO?", "expected": "2", "name": "RX LDRO (auto)"},
+        {"dongle": rx_dongle, "set_cmd": "AT+LR_RX_PLDLEN=64", "get_cmd": "AT+LR_RX_PLDLEN?", "expected": "64", "name": "RX PldLen"},
+        {"dongle": rx_dongle, "set_cmd": "AT+LR_RX_PLDLEN=255", "get_cmd": "AT+LR_RX_PLDLEN?", "expected": "255", "name": "RX PldLen (max)"},
+        
+        # Frequency tests (32-bit values)
+        {"dongle": tx_dongle, "set_cmd": "AT+LR_TX_FREQ=868000000", "get_cmd": "AT+LR_TX_FREQ?", "expected": "868000000", "name": "TX Freq"},
+        {"dongle": tx_dongle, "set_cmd": "AT+LR_TX_FREQ=915000000", "get_cmd": "AT+LR_TX_FREQ?", "expected": "915000000", "name": "TX Freq (high)"},
+        {"dongle": rx_dongle, "set_cmd": "AT+LR_RX_FREQ=868000000", "get_cmd": "AT+LR_RX_FREQ?", "expected": "868000000", "name": "RX Freq"},
+        {"dongle": rx_dongle, "set_cmd": "AT+LR_RX_FREQ=915000000", "get_cmd": "AT+LR_RX_FREQ?", "expected": "915000000", "name": "RX Freq (high)"},
+        
+        # Saved packet test (hex data stored in EEPROM)
+        {"dongle": tx_dongle, "set_cmd": "AT+RF_SAVE_PACKET=AABBCC", "get_cmd": "AT+RF_SAVE_PACKET?", "expected": "AABBCC", "name": "Saved Packet", "is_hex": True},
+        {"dongle": tx_dongle, "set_cmd": "AT+RF_SAVE_PACKET=112233445566", "get_cmd": "AT+RF_SAVE_PACKET?", "expected": "112233445566", "name": "Saved Packet (long)", "is_hex": True},
+        
+        # TX period (32-bit value in ms)
+        {"dongle": tx_dongle, "set_cmd": "AT+RF_TX_NVM_PERIOD=1000", "get_cmd": "AT+RF_TX_NVM_PERIOD?", "expected": "1000", "name": "TX Period"},
+        {"dongle": tx_dongle, "set_cmd": "AT+RF_TX_NVM_PERIOD=5000", "get_cmd": "AT+RF_TX_NVM_PERIOD?", "expected": "5000", "name": "TX Period (high)"},
+    ]
+    
+    import re
+    
+    for test in param_tests:
+        dongle = test["dongle"]
+        
+        # Clear any pending data in buffer before SET
+        dongle.serial.reset_input_buffer()
+        time.sleep(0.05)
+        
+        # Set the parameter - expects OK response
+        success, response = dongle.send_command(test["set_cmd"], timeout=2.0)
+        if not success:
+            logger.error(f"  ✗ {test['name']}: Set command failed - {response}")
+            failed_tests += 1
+            all_passed = False
+            continue
+        
+        # Longer delay to ensure EEPROM write completes (EEPROM can be slow)
+        time.sleep(0.15)
+        
+        # Read back the parameter - query returns just value, no OK
+        dongle.serial.write(f"{test['get_cmd']}\r\n".encode())
+        time.sleep(0.2)  # Wait for response
+        
+        response = ""
+        if dongle.serial.in_waiting > 0:
+            response = dongle.serial.read(dongle.serial.in_waiting).decode('utf-8', errors='ignore').strip()
+        
+        # Parse response - look for the value (number in response)
+        # For hex data, look for hex string pattern
+        if test.get("is_hex"):
+            # Look for hex string like AABBCC or 112233445566
+            hex_match = re.search(r'([0-9A-Fa-f]{4,})', response)
+            if hex_match:
+                read_value = hex_match.group(1).upper()
+                expected = test["expected"].upper()
+                if read_value == expected:
+                    logger.info(f"  ✓ {test['name']}: {read_value} == {expected}")
+                else:
+                    logger.error(f"  ✗ {test['name']}: Got {read_value}, expected {expected} - MISMATCH!")
+                    failed_tests += 1
+                    all_passed = False
+            else:
+                logger.error(f"  ✗ {test['name']}: Could not parse hex response: '{response[:50]}'")
+                failed_tests += 1
+                all_passed = False
+        else:
+            value_match = re.search(r'(\d+)', response)
+            if value_match:
+                read_value = value_match.group(1)
+                if read_value == test["expected"]:
+                    logger.info(f"  ✓ {test['name']}: {read_value} == {test['expected']}")
+                else:
+                    logger.error(f"  ✗ {test['name']}: Got {read_value}, expected {test['expected']} - MISMATCH!")
+                    failed_tests += 1
+                    all_passed = False
+            else:
+                logger.error(f"  ✗ {test['name']}: Could not parse response: '{response[:50]}'")
+                failed_tests += 1
+                all_passed = False
+    
+    logger.info("\n" + "="*70)
+    if all_passed:
+        logger.info(f"✓ ALL EEPROM TESTS PASSED ({len(param_tests)} tests)")
+    else:
+        logger.error(f"✗ {failed_tests}/{len(param_tests)} EEPROM TESTS FAILED - Check NVMA implementation")
+    logger.info("="*70 + "\n")
+    
+    return all_passed
+
+
 def find_silicon_labs_ports() -> List[str]:
     """Find COM ports with Silicon Labs devices"""
     ports = []
@@ -601,7 +746,23 @@ def main():
             sys.exit(1)
         logger.info(f"RX dongle OK (received {len(response)} bytes)")
         
+        # Run EEPROM storage verification test first
+        logger.info("\n" + "*"*70)
+        logger.info("* PHASE 1: EEPROM STORAGE VERIFICATION")
+        logger.info("*"*70)
+        eeprom_test_passed = test_eeprom_storage(tx_dongle, rx_dongle)
+        
+        if not eeprom_test_passed:
+            logger.error("\n⚠ EEPROM verification failed - check your AT firmware and NVMA implementation")
+            logger.error("Fix EEPROM issues before running RF range tests")
+            tx_dongle.disconnect()
+            rx_dongle.disconnect()
+            sys.exit(1)
+        
         # Run test suite
+        logger.info("\n" + "*"*70)
+        logger.info("* PHASE 2: RF RANGE TESTS")
+        logger.info("*"*70)
         results = run_full_test_suite(tx_dongle, rx_dongle)
         
         # Print summary

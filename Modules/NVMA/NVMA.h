@@ -32,7 +32,7 @@
 #define EE_ADDR_LR_ACTIVE_RX_TO_UART            (EE_ADDR_LR_PREAM_SIZE_RX + sizeof(uint32_t))
 #define EE_ADDR_LR_SAVED_PCKT_SIZE              (EE_ADDR_LR_ACTIVE_RX_TO_UART + sizeof(uint32_t))
 #define EE_ADDR_LR_TX_RF_PCKT                   (EE_ADDR_LR_SAVED_PCKT_SIZE + sizeof(uint32_t))   // max is 256 B
-#define EE_ADDR_LR_TX_PERIOD_TX                 (EE_ADDR_LR_TX_RF_PCKT + (64*sizeof(uint32_t)))
+#define EE_ADDR_LR_TX_PERIOD_TX                 (EE_ADDR_LR_TX_RF_PCKT + (256*sizeof(uint8_t)))
 #define EE_ADDR_RX_TO_UART                      (EE_ADDR_LR_TX_PERIOD_TX + sizeof(uint32_t))    //uint8_t
 #define EE_ADDR_LR_TX_LDRO                      (EE_ADDR_RX_TO_UART + sizeof(uint32_t))
 #define EE_ADDR_LR_RX_LDRO                      (EE_ADDR_LR_TX_LDRO + sizeof(uint32_t))

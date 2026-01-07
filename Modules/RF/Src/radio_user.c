@@ -262,6 +262,41 @@ uint32_t ru_calculate_toa_ms(uint8_t packetSize)
 }
 
 /**
+ * @brief Convert ral_lora_bw_t to sx126x_lora_bw_t
+ * 
+ * @param ral_bw RAL bandwidth value
+ * @return sx126x_lora_bw_t SX126x bandwidth value
+ */
+static inline sx126x_lora_bw_t ru_convert_ral_to_sx126x_bw( ral_lora_bw_t ral_bw )
+{
+	switch( ral_bw )
+	{
+	case RAL_LORA_BW_007_KHZ:
+		return SX126X_LORA_BW_007;
+	case RAL_LORA_BW_010_KHZ:
+		return SX126X_LORA_BW_010;
+	case RAL_LORA_BW_015_KHZ:
+		return SX126X_LORA_BW_015;
+	case RAL_LORA_BW_020_KHZ:
+		return SX126X_LORA_BW_020;
+	case RAL_LORA_BW_031_KHZ:
+		return SX126X_LORA_BW_031;
+	case RAL_LORA_BW_041_KHZ:
+		return SX126X_LORA_BW_041;
+	case RAL_LORA_BW_062_KHZ:
+		return SX126X_LORA_BW_062;
+	case RAL_LORA_BW_125_KHZ:
+		return SX126X_LORA_BW_125;
+	case RAL_LORA_BW_250_KHZ:
+		return SX126X_LORA_BW_250;
+	case RAL_LORA_BW_500_KHZ:
+		return SX126X_LORA_BW_500;
+	default:
+		return ( sx126x_lora_bw_t ) 0xFF;  // Invalid value
+	}
+}
+
+/**
  * @brief Calculate Symbol Time from current TX settings
  * 
  * @return uint32_t Symbol time in microseconds
@@ -273,7 +308,8 @@ uint32_t ru_calculate_symbol_time_us(void)
 	
 	ru_load_radio_config_tx(&loraParam);
 	
-	return sx126x_get_lora_symbol_time_us(loraParam.mod_params.bw, loraParam.mod_params.sf);
+	sx126x_lora_bw_t sx126x_bw = ru_convert_ral_to_sx126x_bw( loraParam.mod_params.bw );
+	return sx126x_get_lora_symbol_time_us( sx126x_bw, loraParam.mod_params.sf );
 }
 
 bool ru_load_radio_config_rx(ralf_params_lora_t *loraParam)

@@ -86,9 +86,9 @@ const AT_Command_Struct AT_Commands[] = {
     {"AT+RF_TX_HEX",                NULL,               SYS_CMD_RF_TX_HEX,                   "AT+RF_TX_HEX - Transmit data via RF in HEX format",  "=<HEX data>"},
     {"AT+RF_TX_TXT",                NULL,               SYS_CMD_RF_TX_TXT,                   "AT+RF_TX_TXT - Transmit data via RF in text format", "=<Text data>"},
     
-    /* RF NVM packet commands */
-    {"AT+RF_TX_SAVE_PCKT",          NULL,               SYS_CMD_RF_SAVE_PCKT_NVM,            "AT+RF_TX_SAVE_PCKT - Save packet to NVM",         "=<HEX data>, ?"},
-    {"AT+RF_TX_NVM_ONCE",           NULL,               SYS_CMD_RF_TX_NVM_ONCE,              "AT+RF_TX_NVM_ONCE - Transmit saved NVM packet once",  "=1"},
+    /* RF saved packet commands */
+    {"AT+RF_SAVE_PACKET",           NULL,               SYS_CMD_RF_SAVE_PCKT_NVM,            "AT+RF_SAVE_PACKET - Save packet to memory",       "=<HEX data>, ?"},
+    {"AT+RF_TX_SAVED",              NULL,               SYS_CMD_RF_TX_NVM_ONCE,              "AT+RF_TX_SAVED - Send saved packet once",         ""},
     
     /* RF periodic TX commands (NVM packet) */
     {"AT+RF_TX_NVM_PERIOD",         NULL,               SYS_CMD_RF_TX_NVM_PERIOD,            "AT+RF_TX_NVM_PERIOD - Set period for NVM packet TX",   "=<period_ms>, ?"},
