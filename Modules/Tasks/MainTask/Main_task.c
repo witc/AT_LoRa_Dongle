@@ -244,7 +244,7 @@ void main_task_on(main_ctx_t *ctx, dataQueue_t *rxd)
 			if (ctx->heartbeat.hb_pending && ctx->heartbeat.rf_task_alive)
 			{
 				// All tasks alive - refresh IWDG
-				HAL_IWDG_Refresh(&hiwdg);
+				refresh_iwdg();
 				
 				// Clear flags and restart timer for next heartbeat cycle
 				ctx->heartbeat.hb_pending = false;

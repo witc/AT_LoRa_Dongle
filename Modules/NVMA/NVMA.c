@@ -32,6 +32,7 @@ static void NVMA_ClearFlashErrors(void)
 
 void NVMA_Init(void)
 {
+    
     if(xEepromMutex == NULL)
     {
         xEepromMutex = xSemaphoreCreateMutex();

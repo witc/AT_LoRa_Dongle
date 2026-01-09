@@ -21,7 +21,17 @@
 #include "iwdg.h"
 
 /* USER CODE BEGIN 0 */
+#if (DO_NOT_USE_IWDG == true)
+void MX_IWDG_Init(void)
+{
 
+}
+
+void refresh_iwdg(void)
+{
+    // IWDG is stopped in debug mode
+}
+#else
 /* USER CODE END 0 */
 
 IWDG_HandleTypeDef hiwdg;
@@ -53,4 +63,9 @@ void MX_IWDG_Init(void)
 
 /* USER CODE BEGIN 1 */
 
+void refresh_iwdg(void)
+{
+    HAL_IWDG_Refresh(&hiwdg);
+} 
+#endif
 /* USER CODE END 1 */

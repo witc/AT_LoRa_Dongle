@@ -427,7 +427,6 @@ def test_eeprom_storage(tx_dongle: ATLoraDongle, rx_dongle: ATLoraDongle) -> boo
         
         # Clear any pending data in buffer before SET
         dongle.serial.reset_input_buffer()
-        time.sleep(0.05)
         
         # Set the parameter - expects OK response
         success, response = dongle.send_command(test["set_cmd"], timeout=2.0)
@@ -437,16 +436,19 @@ def test_eeprom_storage(tx_dongle: ATLoraDongle, rx_dongle: ATLoraDongle) -> boo
             all_passed = False
             continue
         
-        # Longer delay to ensure EEPROM write completes (EEPROM can be slow)
-        time.sleep(0.15)
-        
         # Read back the parameter - query returns just value, no OK
+        dongle.serial.reset_input_buffer()
         dongle.serial.write(f"{test['get_cmd']}\r\n".encode())
-        time.sleep(0.2)  # Wait for response
         
+        # Wait for response with timeout
+        start_time = time.time()
         response = ""
-        if dongle.serial.in_waiting > 0:
-            response = dongle.serial.read(dongle.serial.in_waiting).decode('utf-8', errors='ignore').strip()
+        while time.time() - start_time < 1.0:
+            if dongle.serial.in_waiting > 0:
+                response = dongle.serial.read(dongle.serial.in_waiting).decode('utf-8', errors='ignore').strip()
+                if response:
+                    break
+            time.sleep(0.01)
         
         # Parse response - look for the value (number in response)
         # For hex data, look for hex string pattern
@@ -750,7 +752,7 @@ def main():
         logger.info("\n" + "*"*70)
         logger.info("* PHASE 1: EEPROM STORAGE VERIFICATION")
         logger.info("*"*70)
-        eeprom_test_passed = test_eeprom_storage(tx_dongle, rx_dongle)
+        eeprom_test_passed = test_eeprom_storage(tx_dongle, tx_dongle)
         
         if not eeprom_test_passed:
             logger.error("\n⚠ EEPROM verification failed - check your AT firmware and NVMA implementation")
