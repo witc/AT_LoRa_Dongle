@@ -74,6 +74,7 @@ typedef enum
     SYS_CMD_RX_LDRO         = 46,
     SYS_CMD_RX_PLDLEN       = 47,
     SYS_CMD_UART_BAUD       = 48,
+    SYS_CMD_RX_FORMAT       = 49,
 
 } eATCommands;
 

@@ -756,3 +756,35 @@ void NVMA_Get_UART_Baud(uint32_t *baud)
         *baud = NVMA_DEFAULT_UART_BAUD;
     }
 }
+
+/**
+ * @brief Set RX output format (HEX or ASCII)
+ * @param format 0=HEX, 1=ASCII
+ */
+void NVMA_Set_RX_Format(uint8_t format)
+{   
+    xSemaphoreTake(xEepromMutex, portMAX_DELAY);
+    NVMA_ClearFlashErrors();
+    HAL_FLASHEx_DATAEEPROM_Unlock();
+    HAL_FLASHEx_DATAEEPROM_Program(FLASH_TYPEPROGRAMDATA_BYTE, EE_ADDR_RX_FORMAT, format);
+    HAL_FLASHEx_DATAEEPROM_Lock();
+    xSemaphoreGive(xEepromMutex);
+}
+
+/**
+ * @brief Get RX output format
+ * @param format Pointer to store format (0=HEX, 1=ASCII)
+ * @note Returns HEX (0) as default if invalid value stored
+ */
+void NVMA_Get_RX_Format(uint8_t *format)
+{   
+    xSemaphoreTake(xEepromMutex, portMAX_DELAY);
+    *format = *((uint8_t *)EE_ADDR_RX_FORMAT);
+    xSemaphoreGive(xEepromMutex);
+    
+    // Validate - return HEX as default if invalid
+    if (*format > RX_FORMAT_ASCII)
+    {
+        *format = RX_FORMAT_HEX;
+    }
+}

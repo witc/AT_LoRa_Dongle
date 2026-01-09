@@ -13,6 +13,7 @@
 #include "general_sys_cmd.h"
 #include "NVMA.h"
 #include <string.h>
+#include <strings.h>  // For strcasecmp
 #include <stdlib.h>
 #include <stdio.h>
 #include "AT_cmd.h"
@@ -421,59 +422,59 @@ void ProcessRFMultiSetCommand(bool tx, char *params)
 
         eATCommands cmd = SYS_CMD_NONE;
 
-        if (strcmp(key, "SF") == 0)
+        if (strcasecmp(key, "SF") == 0)
         {
             if(tx == true)    cmd = SYS_CMD_TX_SF;
             else              cmd = SYS_CMD_RX_SF;
             // Případně ověření hodnoty
         }
-        else if (strcmp(key, "BW") == 0)
+        else if (strcasecmp(key, "BW") == 0)
         {
             if(tx == true) cmd = SYS_CMD_TX_BW;
             else           cmd = SYS_CMD_RX_BW;
             // Případně ověření hodnoty
         }
-        else if (strcmp(key, "CR") == 0)
+        else if (strcasecmp(key, "CR") == 0)
         {
             if(tx == true) cmd = SYS_CMD_TX_CR;
             else           cmd = SYS_CMD_RX_CR;
             // Případně ověření hodnoty
         }
-        else if (strcmp(key, "POWER") == 0)
+        else if (strcasecmp(key, "POWER") == 0)
         {
             if(tx == true) cmd = SYS_CMD_TX_POWER;
             // Případně ověření hodnoty
         }
-        else if (strcmp(key, "FREQ") == 0)
+        else if (strcasecmp(key, "FREQ") == 0)
         {
             if(tx == true) cmd = SYS_CMD_TX_FREQ;
             else           cmd = SYS_CMD_RX_FREQ;
             // Případně ověření hodnoty
         }
-        else if (strcmp(key, "IQINV") == 0)
+        else if (strcasecmp(key, "IQINV") == 0)
         {
             if(tx == true) cmd = SYS_CMD_TX_IQ;
             else           cmd = SYS_CMD_RX_IQ;
         
         }
-        else if (strcmp(key, "HEADERMODE") == 0)
+        else if (strcasecmp(key, "HEADERMODE") == 0)
         {
             if(tx == true) cmd = SYS_CMD_HEADERMODE_TX;
             else           cmd = SYS_CMD_HEADERMODE_RX;
 
         }
-        else if (strcmp(key, "CRC") == 0)
+        else if (strcasecmp(key, "CRC") == 0)
         {
             if(tx == true) cmd = SYS_CMD_CRC_TX;
             else           cmd = SYS_CMD_CRC_RX;
            
         }
-        else if (strcmp(key, "PREAMBLE") == 0)
+        else if (strcasecmp(key, "PREAMBLE") == 0)
         {
             if(tx == true) cmd = SYS_CMD_PREAM_SIZE_TX;
             else           cmd = SYS_CMD_PREAM_SIZE_RX;
         }
-        else if (strcmp(key, "LDRO") == 0)
+        else if (strcasecmp(key, "LDRO") == 0)
         {
             if(tx == true) cmd = SYS_CMD_TX_LDRO;
             else           cmd = SYS_CMD_RX_LDRO;
@@ -1418,11 +1419,11 @@ bool GSC_ProcessCommand(eATCommands cmd, uint8_t *data, uint16_t size)
             }
             else
             {
-                if(strcmp((char*) data, "ON") == 0)
+                if(strcasecmp((char*) data, "ON") == 0)
                 {
                     StartPeriodicTx();
                 }
-                else if(strcmp((char*) data, "OFF") == 0)
+                else if(strcasecmp((char*) data, "OFF") == 0)
                 {
                     StopPeriodicTx();
                 }
@@ -1682,6 +1683,34 @@ bool GSC_ProcessCommand(eATCommands cmd, uint8_t *data, uint16_t size)
             break;
         }
 
+        case SYS_CMD_RX_FORMAT:
+        {
+            uint8_t format;
+            if (isQuery)
+            {
+                NVMA_Get_RX_Format(&format);
+                snprintf(response, sizeof(response), "%s\r\n", (format == RX_FORMAT_ASCII) ? "ASCII" : "HEX");
+                hasResponse = true;
+            }
+            else
+            {
+                if (strcasecmp((char*)data, "HEX") == 0)
+                {
+                    NVMA_Set_RX_Format(RX_FORMAT_HEX);
+                }
+                else if (strcasecmp((char*)data, "ASCII") == 0)
+                {
+                    NVMA_Set_RX_Format(RX_FORMAT_ASCII);
+                }
+                else
+                {
+                    AT_SendStringResponse("ERROR: Invalid format. Use HEX or ASCII\r\n");
+                    commandHandled = false;
+                }
+            }
+            break;
+        }
+
         default:
         {
             commandHandled = false;
@@ -1725,11 +1754,11 @@ bool GSC_ProcessCommand(eATCommands cmd, uint8_t *data, uint16_t size)
  */
 static bool _GSC_Handle_BlueLED(uint8_t *data)
 {
-    if(strcmp((char*) data, "ON") == 0)
+    if(strcasecmp((char*) data, "ON") == 0)
     {
        HAL_GPIO_WritePin(LED_BLUE_GPIO_Port, LED_BLUE_Pin, GPIO_PIN_SET);
     }
-    else if(strcmp((char*) data, "OFF") == 0)
+    else if(strcasecmp((char*) data, "OFF") == 0)
     {
        HAL_GPIO_WritePin(LED_BLUE_GPIO_Port, LED_BLUE_Pin, GPIO_PIN_RESET);
     }
@@ -1792,12 +1821,12 @@ static bool _GSC_Handle_RX_TO_UART(uint8_t *data, uint8_t size)
 
     txm.cmd = CMD_RF_RADIO_RX_TO_UART;
     
-    if(strcmp((char*) data, "ON") == 0)
+    if(strcasecmp((char*) data, "ON") == 0)
     {
         txm.data = 1;
         NVMA_Set_RX_To_UART(1);
     }
-    else if(strcmp((char*) data, "OFF") == 0)
+    else if(strcasecmp((char*) data, "OFF") == 0)
     {
         txm.data = 0;
         NVMA_Set_RX_To_UART(0);

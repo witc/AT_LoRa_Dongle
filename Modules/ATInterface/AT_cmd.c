@@ -12,6 +12,7 @@
 #include "main.h"
 #include "AT_cmd.h"
 #include <ctype.h>
+#include <strings.h>  // For strncasecmp
 #include "Main_task.h"
 #include "semphr.h"
 
@@ -108,7 +109,8 @@ const AT_Command_Struct AT_Commands[] = {
     {"AT+AUX_PULSE_STOP",           NULL,               SYS_CMD_AUX_STOP,                    "AT+AUX_PULSE_STOP=<pin> - Stop PWM on AUX pin", "=<pin>" },
     
     /* System commands */
-    {"AT+UART_BAUD",                NULL,               SYS_CMD_UART_BAUD,                   "AT+UART_BAUD - Set UART baud rate", "=9600|19200|38400|57600|115200|230400, ?"}
+    {"AT+UART_BAUD",                NULL,               SYS_CMD_UART_BAUD,                   "AT+UART_BAUD - Set UART baud rate", "=9600|19200|38400|57600|115200|230400, ?"},
+    {"AT+RF_RX_FORMAT",             NULL,               SYS_CMD_RX_FORMAT,                   "AT+RF_RX_FORMAT - Set RX output format", "=HEX|ASCII, ?"}
 
 };
 
@@ -152,23 +154,6 @@ void AT_Init(AT_cmd_t *p_at_Ctx)
 /**
  * @brief 
  * 
- * @param str 
- */
-static void AT_ToUpperCase(char *str, size_t max_len)
-{
-    size_t i = 0;
-    while (i < max_len && *str) {
-        if (*str >= 'a' && *str <= 'z') {  // Kontrola, zda je znak malé písmeno
-            *str = *str - ('a' - 'A');     // Převod na velké písmeno
-        }
-        str++;
-        i++;
-    }
-}
-
-/**
- * @brief 
- * 
  * @param data 
  */
 static void AT_TrimEndings(char *data)
@@ -194,14 +179,13 @@ void AT_HandleATCommand(uint16_t size)
     bool noParam = false;
     bool isCommand = false;
 
-    AT_ToUpperCase(data,size);
     AT_TrimEndings(data);
 
     for (uint16_t i = 0; i < sizeof(AT_Commands) / sizeof(AT_Command_Struct); i++)
     {   
         size_t commandLen = strlen(AT_Commands[i].command);
 
-        if (strncmp(data, AT_Commands[i].command, commandLen) == 0 &&
+        if (strncasecmp(data, AT_Commands[i].command, commandLen) == 0 &&
             (data[commandLen] == '\0' ||
              data[commandLen] == '=' ||
              data[commandLen] == '?'))
@@ -323,7 +307,7 @@ static void AT_HandleHelp(char *params)
     // Add examples for complex commands
     AT_SendStringResponse("\r\nExamples for complex commands:\r\n");
     AT_SendStringResponse("  AT+LR_TX_SET=SF:9,BW:7,CR:45,Freq:869525000,IQInv:0,HeaderMode:0,CRC:1,Preamble:8,Power:22,LDRO:2\r\n");
-    AT_SendStringResponse("  AT+LR_RX_SET=SF:9,BW:7,CR:45,Freq:869525000,IQInv:1,HeaderMode:0,CRC:1,Preamble:8,LDRO:2\r\n");
+    AT_SendStringResponse("  AT+LR_RX_SET=SF:9,BW:7,CR:45,Freq:869525000,IQInv:0,HeaderMode:0,CRC:1,Preamble:8,LDRO:2\r\n");
 }
 
 /**

@@ -38,9 +38,14 @@
 #define EE_ADDR_LR_RX_LDRO                      (EE_ADDR_LR_TX_LDRO + sizeof(uint32_t))
 #define EE_ADDR_LR_RX_PLDLEN                    (EE_ADDR_LR_RX_LDRO + sizeof(uint32_t))
 #define EE_ADDR_UART_BAUD                       (EE_ADDR_LR_RX_PLDLEN + sizeof(uint32_t))
+#define EE_ADDR_RX_FORMAT                       (EE_ADDR_UART_BAUD + sizeof(uint32_t))
 
 // Default UART baud rate
 #define NVMA_DEFAULT_UART_BAUD                  115200
+
+// RX output format options
+#define RX_FORMAT_HEX                           0
+#define RX_FORMAT_ASCII                         1
 
 
 
@@ -125,5 +130,8 @@ void NVMA_Get_LR_RX_PldLen(uint8_t *len);
 void NVMA_Set_UART_Baud(uint32_t baud);
 void NVMA_Get_UART_Baud(uint32_t *baud);
 bool NVMA_Is_Valid_Baud(uint32_t baud);
+
+void NVMA_Set_RX_Format(uint8_t format);
+void NVMA_Get_RX_Format(uint8_t *format);
 
 #endif // NVMA_H

@@ -130,9 +130,13 @@ bool AT_CustomCommandHandler(char *data,eATCommands atCmd, uint16_t size)
 void AT_SendRfPacketResponse(uint8_t *packet, int16_t rssi, uint16_t length)
 {
     uint8_t response[600]={0}; 
+    uint8_t rxFormat;
 
     uint16_t response_size = 0;
     int ret;
+    
+    // Get configured output format
+    NVMA_Get_RX_Format(&rxFormat);
 
     // Přidání prefixu a délky
     ret = snprintf((char *)&response[response_size], sizeof(response) - response_size, "+RF_RX:%u,", length);
@@ -143,18 +147,34 @@ void AT_SendRfPacketResponse(uint8_t *packet, int16_t rssi, uint16_t length)
     }
     response_size += ret;
 
-    // Převod dat na HEX bez použití sprintf v cyklu
-    static const char hex_digits[] = "0123456789ABCDEF";
-    for (uint16_t i = 0; i < length; i++)
+    if (rxFormat == RX_FORMAT_ASCII)
     {
-        if (response_size + 2 >= (uint16_t)sizeof(response))
+        // ASCII format - copy printable chars, replace non-printable with '.'
+        for (uint16_t i = 0; i < length; i++)
         {
-            // Není dostatek místa v bufferu
-            return;
+            if (response_size + 1 >= (uint16_t)sizeof(response))
+            {
+                return;
+            }
+            uint8_t byte = packet[i];
+            // Print printable ASCII chars (32-126), replace others with '.'
+            response[response_size++] = (byte >= 32 && byte <= 126) ? byte : '.';
         }
-        uint8_t byte = packet[i];
-        response[response_size++] = hex_digits[(byte >> 4) & 0x0F];
-        response[response_size++] = hex_digits[byte & 0x0F];
+    }
+    else
+    {
+        // HEX format (default)
+        static const char hex_digits[] = "0123456789ABCDEF";
+        for (uint16_t i = 0; i < length; i++)
+        {
+            if (response_size + 2 >= (uint16_t)sizeof(response))
+            {
+                return;
+            }
+            uint8_t byte = packet[i];
+            response[response_size++] = hex_digits[(byte >> 4) & 0x0F];
+            response[response_size++] = hex_digits[byte & 0x0F];
+        }
     }
 
     // Přidání RSSI na konec
