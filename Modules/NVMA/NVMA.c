@@ -41,6 +41,161 @@ void NVMA_Init(void)
 }
 
 /**
+ * @brief Factory reset - clear magic value and reinitialize with defaults
+ * @return true if successful, false on failure
+ */
+bool NVMA_FactoryReset(void)
+{
+    // Clear magic value (write 0 or 0xFFFFFFFF to invalidate)
+    xSemaphoreTake(xEepromMutex, portMAX_DELAY);
+    NVMA_ClearFlashErrors();
+    HAL_FLASHEx_DATAEEPROM_Unlock();
+    HAL_FLASHEx_DATAEEPROM_Program(FLASH_TYPEPROGRAMDATA_WORD, EE_ADDR_INIT_MAGIC, 0x00000000);
+    HAL_FLASHEx_DATAEEPROM_Lock();
+    xSemaphoreGive(xEepromMutex);
+    
+    // Verify magic was cleared
+    xSemaphoreTake(xEepromMutex, portMAX_DELAY);
+    uint32_t magic = *((uint32_t *)EE_ADDR_INIT_MAGIC);
+    xSemaphoreGive(xEepromMutex);
+    
+    if (magic == NVMA_INIT_MAGIC_VALUE)
+    {
+        // Failed to clear magic
+        return false;
+    }
+    
+    // Now reinitialize with defaults
+    return NVMA_InitDefaults();
+}
+
+/**
+ * @brief Check if EEPROM was initialized with defaults, if not - write defaults
+ * @return true if defaults were written or already present and verified
+ * @return false if verification failed
+ */
+bool NVMA_InitDefaults(void)
+{
+    uint32_t magic = 0;
+    bool success = true;
+    
+    // Read magic value to check if EEPROM was ever initialized
+    xSemaphoreTake(xEepromMutex, portMAX_DELAY);
+    magic = *((uint32_t *)EE_ADDR_INIT_MAGIC);
+    xSemaphoreGive(xEepromMutex);
+    
+    if (magic != NVMA_INIT_MAGIC_VALUE)
+    {
+        // Write all default values
+        NVMA_Set_LR_Freq_TX(NVMA_DEFAULT_FREQ_TX);
+        NVMA_Set_LR_Freq_RX(NVMA_DEFAULT_FREQ_RX);
+        NVMA_Set_LR_TX_Power(NVMA_DEFAULT_TX_POWER);
+        NVMA_Set_LR_TX_SF(NVMA_DEFAULT_SF);
+        NVMA_Set_LR_RX_SF(NVMA_DEFAULT_SF);
+        NVMA_Set_LR_TX_BW(NVMA_DEFAULT_BW);
+        NVMA_Set_LR_RX_BW(NVMA_DEFAULT_BW);
+        NVMA_Set_LR_TX_IQ(NVMA_DEFAULT_IQ);
+        NVMA_Set_LR_RX_IQ(NVMA_DEFAULT_IQ);
+        NVMA_Set_LR_TX_CR(NVMA_DEFAULT_CR);
+        NVMA_Set_LR_RX_CR(NVMA_DEFAULT_CR);
+        NVMA_Set_LR_HeaderMode_TX(NVMA_DEFAULT_HEADER_MODE);
+        NVMA_Set_LR_HeaderMode_RX(NVMA_DEFAULT_HEADER_MODE);
+        NVMA_Set_LR_CRC_TX(NVMA_DEFAULT_CRC);
+        NVMA_Set_LR_CRC_RX(NVMA_DEFAULT_CRC);
+        NVMA_Set_LR_PreamSize_TX(NVMA_DEFAULT_PREAMBLE);
+        NVMA_Set_LR_PreamSize_RX(NVMA_DEFAULT_PREAMBLE);
+        NVMA_Set_LR_TX_LDRO(NVMA_DEFAULT_LDRO);
+        NVMA_Set_LR_RX_LDRO(NVMA_DEFAULT_LDRO);
+        NVMA_Set_RX_To_UART(NVMA_DEFAULT_RX_TO_UART);
+        NVMA_Set_RX_Format(NVMA_DEFAULT_RX_FORMAT);
+        NVMA_Set_UART_Baud(NVMA_DEFAULT_UART_BAUD);
+        NVMA_Set_LR_TX_Period_TX(NVMA_DEFAULT_TX_PERIOD);
+        NVMA_Set_LR_RX_PldLen(NVMA_DEFAULT_RX_PLDLEN);
+        NVMA_Set_LR_Pckt_Size(0);  // No saved packet
+        
+        // Write magic value to indicate initialization complete
+        xSemaphoreTake(xEepromMutex, portMAX_DELAY);
+        NVMA_ClearFlashErrors();
+        HAL_FLASHEx_DATAEEPROM_Unlock();
+        HAL_FLASHEx_DATAEEPROM_Program(FLASH_TYPEPROGRAMDATA_WORD, EE_ADDR_INIT_MAGIC, NVMA_INIT_MAGIC_VALUE);
+        HAL_FLASHEx_DATAEEPROM_Lock();
+        xSemaphoreGive(xEepromMutex);
+        
+        // Verify magic was written
+        xSemaphoreTake(xEepromMutex, portMAX_DELAY);
+        magic = *((uint32_t *)EE_ADDR_INIT_MAGIC);
+        xSemaphoreGive(xEepromMutex);
+        
+        if (magic != NVMA_INIT_MAGIC_VALUE)
+        {
+            return false;
+        }
+        
+        // Verify ALL parameters
+        uint32_t freq_tx, freq_rx, period, baud;
+        uint16_t pream_tx, pream_rx, pckt_size;
+        uint8_t power, sf_tx, sf_rx, bw_tx, bw_rx, iq_tx, iq_rx;
+        uint8_t cr_tx, cr_rx, hdr_tx, hdr_rx, crc_tx, crc_rx;
+        uint8_t ldro_tx, ldro_rx, rx_uart, rx_format, pldlen;
+        
+        NVMA_Get_LR_Freq_TX(&freq_tx);
+        NVMA_Get_LR_Freq_RX(&freq_rx);
+        NVMA_Get_LR_TX_Power(&power);
+        NVMA_Get_LR_TX_SF(&sf_tx);
+        NVMA_Get_LR_RX_SF(&sf_rx);
+        NVMA_Get_LR_TX_BW(&bw_tx);
+        NVMA_Get_LR_RX_BW(&bw_rx);
+        NVMA_Get_LR_TX_IQ(&iq_tx);
+        NVMA_Get_LR_RX_IQ(&iq_rx);
+        NVMA_Get_LR_TX_CR(&cr_tx);
+        NVMA_Get_LR_RX_CR(&cr_rx);
+        NVMA_Get_LR_HeaderMode_TX(&hdr_tx);
+        NVMA_Get_LR_HeaderMode_RX(&hdr_rx);
+        NVMA_Get_LR_CRC_TX(&crc_tx);
+        NVMA_Get_LR_CRC_RX(&crc_rx);
+        NVMA_Get_LR_PreamSize_TX(&pream_tx);
+        NVMA_Get_LR_PreamSize_RX(&pream_rx);
+        NVMA_Get_LR_TX_LDRO(&ldro_tx);
+        NVMA_Get_LR_RX_LDRO(&ldro_rx);
+        NVMA_Get_RX_TO_UART(&rx_uart);
+        NVMA_Get_RX_Format(&rx_format);
+        NVMA_Get_UART_Baud(&baud);
+        NVMA_Get_LR_TX_Period_TX(&period);
+        NVMA_Get_LR_RX_PldLen(&pldlen);
+        NVMA_Get_LR_Saved_Pckt_Size(&pckt_size);
+        
+        // Verify each parameter
+        if (freq_tx != NVMA_DEFAULT_FREQ_TX) success = false;
+        if (freq_rx != NVMA_DEFAULT_FREQ_RX) success = false;
+        if (power != NVMA_DEFAULT_TX_POWER) success = false;
+        if (sf_tx != NVMA_DEFAULT_SF) success = false;
+        if (sf_rx != NVMA_DEFAULT_SF) success = false;
+        if (bw_tx != NVMA_DEFAULT_BW) success = false;
+        if (bw_rx != NVMA_DEFAULT_BW) success = false;
+        if (iq_tx != NVMA_DEFAULT_IQ) success = false;
+        if (iq_rx != NVMA_DEFAULT_IQ) success = false;
+        if (cr_tx != NVMA_DEFAULT_CR) success = false;
+        if (cr_rx != NVMA_DEFAULT_CR) success = false;
+        if (hdr_tx != NVMA_DEFAULT_HEADER_MODE) success = false;
+        if (hdr_rx != NVMA_DEFAULT_HEADER_MODE) success = false;
+        if (crc_tx != NVMA_DEFAULT_CRC) success = false;
+        if (crc_rx != NVMA_DEFAULT_CRC) success = false;
+        if (pream_tx != NVMA_DEFAULT_PREAMBLE) success = false;
+        if (pream_rx != NVMA_DEFAULT_PREAMBLE) success = false;
+        if (ldro_tx != NVMA_DEFAULT_LDRO) success = false;
+        if (ldro_rx != NVMA_DEFAULT_LDRO) success = false;
+        if (rx_uart != NVMA_DEFAULT_RX_TO_UART) success = false;
+        if (rx_format != NVMA_DEFAULT_RX_FORMAT) success = false;
+        if (baud != NVMA_DEFAULT_UART_BAUD) success = false;
+        if (period != NVMA_DEFAULT_TX_PERIOD) success = false;
+        if (pldlen != NVMA_DEFAULT_RX_PLDLEN) success = false;
+        if (pckt_size != 0) success = false;
+    }
+    
+    return success;
+}
+
+/**
  * @brief 
  * 
  * @param freq 

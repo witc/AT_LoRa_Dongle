@@ -39,6 +39,10 @@
 #define EE_ADDR_LR_RX_PLDLEN                    (EE_ADDR_LR_RX_LDRO + sizeof(uint32_t))
 #define EE_ADDR_UART_BAUD                       (EE_ADDR_LR_RX_PLDLEN + sizeof(uint32_t))
 #define EE_ADDR_RX_FORMAT                       (EE_ADDR_UART_BAUD + sizeof(uint32_t))
+#define EE_ADDR_INIT_MAGIC                      (EE_ADDR_RX_FORMAT + sizeof(uint32_t))
+
+// Magic value to indicate EEPROM has been initialized with defaults
+#define NVMA_INIT_MAGIC_VALUE                   0xA5A5BEEF
 
 // Default UART baud rate
 #define NVMA_DEFAULT_UART_BAUD                  115200
@@ -47,10 +51,29 @@
 #define RX_FORMAT_HEX                           0
 #define RX_FORMAT_ASCII                         1
 
+// Default RF configuration values
+#define NVMA_DEFAULT_FREQ_TX                    869525000
+#define NVMA_DEFAULT_FREQ_RX                    869525000
+#define NVMA_DEFAULT_TX_POWER                   14
+#define NVMA_DEFAULT_SF                         7
+#define NVMA_DEFAULT_BW                         7       // 125 kHz
+#define NVMA_DEFAULT_CR                         45      // 4/5
+#define NVMA_DEFAULT_IQ                         0       // Normal
+#define NVMA_DEFAULT_HEADER_MODE                0       // Explicit
+#define NVMA_DEFAULT_CRC                        1       // Enabled
+#define NVMA_DEFAULT_PREAMBLE                   12
+#define NVMA_DEFAULT_LDRO                       2       // Auto
+#define NVMA_DEFAULT_RX_TO_UART                 1       // Enabled
+#define NVMA_DEFAULT_RX_FORMAT                  RX_FORMAT_HEX
+#define NVMA_DEFAULT_TX_PERIOD                  1000    // 1 second
+#define NVMA_DEFAULT_RX_PLDLEN                  0       // Auto
+
 
 
 
 void NVMA_Init(void);
+bool NVMA_InitDefaults(void);
+bool NVMA_FactoryReset(void);
 
 void NVMA_Set_LR_Freq_TX(uint32_t freq);
 void NVMA_Get_LR_Freq_TX(uint32_t *freq);

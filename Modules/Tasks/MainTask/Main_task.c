@@ -373,6 +373,12 @@ void main_task(void)
     }
 
 	NVMA_Init();
+	
+	// Initialize EEPROM with defaults if not already done
+	if (!NVMA_InitDefaults())
+	{
+	    LOG_ERROR("EEPROM initialization failed!");
+	}
 
 	AT_cmd_t at_ctx;
 	at_ctx.sp_ctx.rxStorage.raw_data = rxBuffer_USART;

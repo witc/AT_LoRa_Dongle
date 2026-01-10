@@ -15,6 +15,7 @@
 #include <strings.h>  // For strncasecmp
 #include "Main_task.h"
 #include "semphr.h"
+#include "NVMA.h"
 
 
 /**
@@ -22,7 +23,7 @@
  * 
  * @param params 
  */
-static void AT_HandleFactorMode(char *params);
+static void AT_HandleFactoryReset(char *params);
 static void AT_HandleHelp(char *params);
 static void AT_HandleRestartSys(char *params);
 static void AT_HandleIdentify(char *params);
@@ -55,7 +56,7 @@ const AT_Command_Struct AT_Commands[] = {
     {"AT",                       AT_HandleHelp,          0,                                 "AT - Basic test command",                         ""},
     {"AT+HELP",                  AT_HandleHelp,          0,                                 "AT+HELP - List all supported commands",           ""},
     {"AT+IDENTIFY",              AT_HandleIdentify,      0,                                 "AT+IDENTIFY - Identify the device",               ""},
-    {"AT+FACTORY_MODE",          AT_HandleFactorMode,    0,                                 "AT+FACTORY_MODE - Enable factory mode",           "=ON, =OFF"},
+    {"AT+FACTORY_RST",           AT_HandleFactoryReset,  0,                                 "AT+FACTORY_RST - Reset all settings to defaults",      ""},
     {"AT+SYS_RESTART",           AT_HandleRestartSys,    0,                                 "AT+SYS_RESTART - Restart the system",             ""},
     {"AT+LED_BLUE",              NULL,                   SYS_LED_BLUE,                      "AT+LED_BLUE - Set LED blue state",                "=ON, =OFF"},
     /* multiple LoRa params*/
@@ -261,21 +262,22 @@ void AT_HandleUartError(void)
  * 
  * @param params 
  */
-static  void AT_HandleFactorMode(char *params)
+static  void AT_HandleFactoryReset(char *params)
 {   
-    if(memcmp(params,"ON",2) == 0)
+    (void)params;  // No parameters needed
+    
+    // Reset EEPROM to factory defaults
+    if (NVMA_FactoryReset())
     {
-        AT_SendStringResponse("Factory mode UI enabled\r\n");
-    }
-    else if(memcmp(params,"OFF",3) == 0)
-    {
-        AT_SendStringResponse("Factory mode UI disabled\r\n");
+        AT_SendStringResponse("OK\r\n");
+        AT_SendStringResponse("Factory reset complete. Rebooting...\r\n");
+        osDelay(100);  // Let message be sent
+        NVIC_SystemReset();
     }
     else
     {
-        AT_SendStringResponse("ERROR\r\n");
+        AT_SendStringResponse("ERROR: Factory reset failed\r\n");
     }
-    
 }
 
 /**
