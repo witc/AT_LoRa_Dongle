@@ -18,7 +18,7 @@ typedef struct
     bool          isHigh;
 } AUX_PinControl_t;
 
-#define AUX_PINS_COUNT 6
+#define AUX_PINS_COUNT 8
 
 
 void AUX_InitTimers(void);

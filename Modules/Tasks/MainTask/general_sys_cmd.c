@@ -1637,7 +1637,7 @@ bool GSC_ProcessCommand(eATCommands cmd, uint8_t *data, uint16_t size)
         case SYS_CMD_AUX_STOP:
             if(_GSC_Handle_AUX_STOP(data, size) == false)
             {
-                AT_SendStringResponse("ERROR: Invalid RX_TO_UART value\r\n");
+                AT_SendStringResponse("ERROR: Invalid AUX_STOP value\r\n");
                 commandHandled = false;
             }
         
@@ -1818,8 +1818,15 @@ static bool _GSC_Handle_AUX_PIN_PWM(uint8_t *data, uint8_t size)
 
     // Oddělení tokenů
     char *token = strtok((char*)data, ",");
-    if (!token || !AT_ParseUint8((uint8_t*)token, &pin, 1) || pin >= AUX_PINS_COUNT)
+    if (!token || !AT_ParseUint8((uint8_t*)token, &pin, 1)) {
+        AT_SendStringResponse("ERROR: Invalid AUX_PULSE pin value\r\n");
         return false;
+    }
+    if (pin < 1 || pin > AUX_PINS_COUNT) {
+        AT_SendStringResponse("ERROR: AUX_PULSE pin out of range (1-8)\r\n");
+        return false;
+    }
+    pin -= 1; // uživatel zadává 1-8, indexujeme 0-7
 
     token = strtok(NULL, ",");
     if (!token || !AT_ParseUint16((uint8_t*)token, &period, 5) || period == 0)
@@ -1846,8 +1853,15 @@ static bool _GSC_Handle_AUX_STOP(uint8_t *data, uint8_t size)
     uint8_t pin;
 
     // Ověření: existuje přesně jeden parametr (pin)
-    if (!data || !AT_ParseUint8(data, &pin, 1) || pin >= AUX_PINS_COUNT)
+    if (!data || !AT_ParseUint8(data, &pin, 1)) {
+        AT_SendStringResponse("ERROR: Invalid AUX_STOP pin value\r\n");
         return false;
+    }
+    if (pin < 1 || pin > AUX_PINS_COUNT) {
+        AT_SendStringResponse("ERROR: AUX_STOP pin out of range (1-8)\r\n");
+        return false;
+    }
+    pin -= 1;
 
     AUX_StopPWM(pin);
     return true;

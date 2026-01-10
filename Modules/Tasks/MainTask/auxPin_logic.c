@@ -6,12 +6,14 @@
 
 
 AUX_PinControl_t auxPins[AUX_PINS_COUNT] = {
-    {aux1_GPIO_Port, aux1_Pin, 0, 0, NULL, false},
-    {aux2_GPIO_Port, aux2_Pin, 0, 0, NULL, false},
-    {aux3_GPIO_Port, aux3_Pin, 0, 0, NULL, false},
-    {aux4_GPIO_Port, aux4_Pin, 0, 0, NULL, false},
-    {aux5_GPIO_Port, aux5_Pin, 0, 0, NULL, false},
-    {aux6_GPIO_Port, aux6_Pin, 0, 0, NULL, false}
+    {aux1_GPIO_Port, aux1_Pin, 0, 0, NULL, false}, // index 0
+    {aux2_GPIO_Port, aux2_Pin, 0, 0, NULL, false}, // index 1
+    {aux3_GPIO_Port, aux3_Pin, 0, 0, NULL, false}, // index 2
+    {aux4_GPIO_Port, aux4_Pin, 0, 0, NULL, false}, // index 3
+    {aux5_GPIO_Port, aux5_Pin, 0, 0, NULL, false}, // index 4
+    {aux6_GPIO_Port, aux6_Pin, 0, 0, NULL, false}, // index 5
+    {aux7_GPIO_Port, aux7_Pin, 0, 0, NULL, false}, // index 6
+    {aux8_GPIO_Port, aux8_Pin, 0, 0, NULL, false}  // index 7
 };
 
 

@@ -110,6 +110,10 @@ typedef struct
 /* USER CODE END EFP */
 
 /* Private defines -----------------------------------------------------------*/
+#define aux8_Pin GPIO_PIN_2
+#define aux8_GPIO_Port GPIOA
+#define aux7_Pin GPIO_PIN_3
+#define aux7_GPIO_Port GPIOA
 #define SX1262_NSS_Pin GPIO_PIN_4
 #define SX1262_NSS_GPIO_Port GPIOA
 #define SX1262_RESET_Pin GPIO_PIN_1

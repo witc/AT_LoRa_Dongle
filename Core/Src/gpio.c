@@ -53,7 +53,8 @@ void MX_GPIO_Init(void)
   __HAL_RCC_GPIOB_CLK_ENABLE();
 
   /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(GPIOA, SX1262_NSS_Pin|SX1262_RF_SW_Pin|aux4_Pin, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(GPIOA, aux8_Pin|aux7_Pin|SX1262_NSS_Pin|SX1262_RF_SW_Pin
+                          |aux4_Pin, GPIO_PIN_RESET);
 
   /*Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(GPIOB, SX1262_RESET_Pin|LED_GREEN_Pin|aux3_Pin|aux2_Pin
@@ -71,16 +72,16 @@ void MX_GPIO_Init(void)
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   HAL_GPIO_Init(GPIOH, &GPIO_InitStruct);
 
-  /*Configure GPIO pins : PA0 PA1 PA2 PA3
-                           PA11 PA15 */
-  GPIO_InitStruct.Pin = GPIO_PIN_0|GPIO_PIN_1|GPIO_PIN_2|GPIO_PIN_3
-                          |GPIO_PIN_11|GPIO_PIN_15;
+  /*Configure GPIO pins : PA0 PA1 PA11 PA15 */
+  GPIO_InitStruct.Pin = GPIO_PIN_0|GPIO_PIN_1|GPIO_PIN_11|GPIO_PIN_15;
   GPIO_InitStruct.Mode = GPIO_MODE_ANALOG;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
 
-  /*Configure GPIO pins : SX1262_NSS_Pin SX1262_RF_SW_Pin aux4_Pin */
-  GPIO_InitStruct.Pin = SX1262_NSS_Pin|SX1262_RF_SW_Pin|aux4_Pin;
+  /*Configure GPIO pins : aux8_Pin aux7_Pin SX1262_NSS_Pin SX1262_RF_SW_Pin
+                           aux4_Pin */
+  GPIO_InitStruct.Pin = aux8_Pin|aux7_Pin|SX1262_NSS_Pin|SX1262_RF_SW_Pin
+                          |aux4_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
