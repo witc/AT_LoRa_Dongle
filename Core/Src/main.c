@@ -116,7 +116,7 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
 
 static void PrintAppInfo(void)
 {
-	char time_string[100];
+	//char time_string[100];
 	//time_t rawTime = (time_t)BUILD_DATE;
 	//struct tm *time_info = localtime(&rawTime);
 	//strftime(time_string, sizeof(time_string), "%Y-%m-%d %H:%M:%S", time_info);
@@ -161,7 +161,11 @@ int main(void)
 {
 
   /* USER CODE BEGIN 1 */
-
+#ifdef STOP_IWDG_IN_DEBUG
+  // Stop IWDG when core is halted during debug (breakpoint)
+  __HAL_RCC_DBGMCU_CLK_ENABLE();
+  __HAL_DBGMCU_FREEZE_IWDG();
+#endif
   /* USER CODE END 1 */
 
   /* MCU Configuration--------------------------------------------------------*/
@@ -170,10 +174,7 @@ int main(void)
   HAL_Init();
 
   /* USER CODE BEGIN Init */
-#ifdef STOP_IWDG_IN_DEBUG
-  // Stop IWDG when core is halted during debug (breakpoint)
-  __HAL_DBGMCU_FREEZE_IWDG();
-#endif
+
   /* USER CODE END Init */
 
   /* Configure the system clock */
@@ -193,6 +194,8 @@ int main(void)
 
   LOG_Initialise();
   PrintAppInfo();
+
+
   /* USER CODE END 2 */
 
   /* Init scheduler */
@@ -299,6 +302,8 @@ void Error_Handler(void)
 void assert_failed(uint8_t *file, uint32_t line)
 {
   /* USER CODE BEGIN 6 */
+  (void)file;
+  (void)line;
   /* User can add his own implementation to report the file name and line number,
      ex: printf("Wrong parameters value: file %s on line %d\r\n", file, line) */
   /* USER CODE END 6 */

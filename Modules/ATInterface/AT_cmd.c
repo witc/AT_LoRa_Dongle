@@ -27,7 +27,6 @@ static void AT_HandleFactoryReset(char *params);
 static void AT_HandleHelp(char *params);
 static void AT_HandleRestartSys(char *params);
 static void AT_HandleIdentify(char *params);
-static void AT_HandleRF_TX_HEX(char *params);
 
 extern UART_HandleTypeDef huart1;
 extern osMessageQueueId_t queueMainHandle;
@@ -58,10 +57,6 @@ const AT_Command_Struct AT_Commands[] = {
     {"AT+IDENTIFY",              AT_HandleIdentify,      0,                                 "AT+IDENTIFY - Identify the device",               ""},
     {"AT+FACTORY_RST",           AT_HandleFactoryReset,  0,                                 "AT+FACTORY_RST - Reset all settings to defaults",      ""},
     {"AT+SYS_RESTART",           AT_HandleRestartSys,    0,                                 "AT+SYS_RESTART - Restart the system",             ""},
-    {"AT+LED_BLUE",              NULL,                   SYS_LED_BLUE,                      "AT+LED_BLUE - Set LED blue state",                "=ON, =OFF"},
-    /* multiple LoRa params*/
-    {"AT+LR_TX_SET",                NULL,               SYS_CMD_TX_COMPLETE_SET,             "AT+LR_TX_SET - Set multiple TX parameters",      "=SF:<5-12>,BW:<0-9>,CR:<45-48>,Freq:<Hz>,IQInv:<0|1>,HeaderMode:<0|1>,CRC:<0|1>,Preamble:<1-65535>,Power:<dBm>,LDRO:<0|1|2>, ?"},
-    {"AT+LR_RX_SET",                NULL,               SYS_CMD_RX_COMPLETE_SET,             "AT+LR_RX_SET - Set multiple RX parameters",      "=SF:<5-12>,BW:<0-9>,CR:<45-48>,Freq:<Hz>,IQInv:<0|1>,HeaderMode:<0|1>,CRC:<0|1>,Preamble:<1-65535>,LDRO:<0|1|2>, ?"},
     /* single LoRa params*/
     {"AT+LR_TX_FREQ",                NULL,               SYS_CMD_TX_FREQ,                     "AT+LR_TX_FREQ - Set TX frequency",                "=<frequency_in_Hz>, ?"},
     {"AT+LR_RX_FREQ",                NULL,               SYS_CMD_RX_FREQ,                     "AT+LR_RX_FREQ - Set RX frequency",                "=<frequency_in_Hz>, ?"},
@@ -91,18 +86,16 @@ const AT_Command_Struct AT_Commands[] = {
     /* RF saved packet commands */
     {"AT+RF_SAVE_PACKET",           NULL,               SYS_CMD_RF_SAVE_PCKT_NVM,            "AT+RF_SAVE_PACKET - Save packet to memory",       "=<HEX data>, ?"},
     {"AT+RF_TX_SAVED",              NULL,               SYS_CMD_RF_TX_NVM_ONCE,              "AT+RF_TX_SAVED - Send saved packet once",         ""},
-    
-    /* RF periodic TX commands (NVM packet) */
-    {"AT+RF_TX_NVM_PERIOD",         NULL,               SYS_CMD_RF_TX_NVM_PERIOD,            "AT+RF_TX_NVM_PERIOD - Set period for NVM packet TX",   "=<period_ms>, ?"},
-    {"AT+RF_TX_PERIODIC_NVM",       NULL,               SYS_CMD_RF_TX_PERIODIC_NVM,          "AT+RF_TX_PERIODIC_NVM - Start/Stop periodic NVM packet TX", "=ON, =OFF, ?"},
+    {"AT+RF_TX_SAVED_REPEAT",       NULL,               SYS_CMD_RF_TX_PERIODIC_NVM,          "AT+RF_TX_SAVED_REPEAT - Start/Stop periodic saved packet TX", "=ON, =OFF, ?"},
+    {"AT+RF_TX_NVM_PERIOD",         NULL,               SYS_CMD_RF_TX_NVM_PERIOD,            "AT+RF_TX_NVM_PERIOD - Set period for saved packet TX",   "=<period_ms>, ?"},
     {"AT+RF_TX_PERIOD_STATUS",      NULL,               SYS_CMD_RF_PERIOD_STATUS,            "AT+RF_TX_PERIOD_STATUS - Get periodic TX status",     "?"},
     
     /* RF RX commands */
     {"AT+RF_RX_TO_UART",            NULL,               SYS_CMD_RF_RX_TO_UART,               "AT+RF_RX_TO_UART - Set RF RX to serial port",            "=<ON|OFF>"},
     
     /* RF TOA command */
-    {"AT+RF_GET_TOA",               NULL,               SYS_CMD_RF_GET_TOA,                  "AT+RF_GET_TOA - Get Time on Air for packet",             "=<packet_size_bytes>"},
-    {"AT+RF_GET_TSYM",              NULL,               SYS_CMD_RF_GET_TSYM,                 "AT+RF_GET_TSYM - Get symbol time in us (from TX config)", ""},
+    {"AT+RF_GET_TOA",               NULL,               SYS_CMD_RF_GET_TOA,                  "AT+RF_GET_TOA - Get TOA (TX config)",             "=<packet_size_bytes>"},
+    {"AT+RF_GET_TSYM",              NULL,               SYS_CMD_RF_GET_TSYM,                 "AT+RF_GET_TSYM - Get symbol time in us (TX config)", ""},
     
     /* AUX GPIO commands */
     {"AT+AUX",                      NULL,               SYS_CMD_AUX_SET,                     "AT+AUX=<pin>,<ON|OFF>",            "=<pin>,<ON|OFF>"},
@@ -111,7 +104,11 @@ const AT_Command_Struct AT_Commands[] = {
     
     /* System commands */
     {"AT+UART_BAUD",                NULL,               SYS_CMD_UART_BAUD,                   "AT+UART_BAUD - Set UART baud rate", "=9600|19200|38400|57600|115200|230400, ?"},
-    {"AT+RF_RX_FORMAT",             NULL,               SYS_CMD_RX_FORMAT,                   "AT+RF_RX_FORMAT - Set RX output format", "=HEX|ASCII, ?"}
+    {"AT+RF_RX_FORMAT",             NULL,               SYS_CMD_RX_FORMAT,                   "AT+RF_RX_FORMAT - Set RX output format", "=HEX|ASCII, ?"},
+    
+    /* multiple LoRa params - set all at once */
+    {"AT+LR_TX_SET",                NULL,               SYS_CMD_TX_COMPLETE_SET,             "AT+LR_TX_SET - Set multiple TX parameters",      "=SF:<5-12>,BW:<0-9>,CR:<45-48>,Freq:<Hz>,IQInv:<0|1>,HeaderMode:<0|1>,CRC:<0|1>,Preamble:<1-65535>,Power:<dBm>,LDRO:<0|1|2>, ?"},
+    {"AT+LR_RX_SET",                NULL,               SYS_CMD_RX_COMPLETE_SET,             "AT+LR_RX_SET - Set multiple RX parameters",      "=SF:<5-12>,BW:<0-9>,CR:<45-48>,Freq:<Hz>,IQInv:<0|1>,HeaderMode:<0|1>,CRC:<0|1>,Preamble:<1-65535>,LDRO:<0|1|2>, ?"}
 
 };
 
@@ -289,21 +286,69 @@ static void AT_HandleHelp(char *params)
 {   
     UNUSED(params);
 
-    AT_SendStringResponse("\r\n");
-    AT_SendStringResponse("Supported AT commands:\r\n");
+    AT_SendStringResponse("\r\nSupported AT commands:\r\n");
 
-    for (uint16_t i = 0; i < sizeof(AT_Commands) / sizeof(AT_Command_Struct); i++)
-    {
-        AT_SendStringResponse((char*)AT_Commands[i].usage);
-
-        if (strlen(AT_Commands[i].parameters) > 0)
-        {
-            AT_SendStringResponse(" (Par: ");
-            AT_SendStringResponse((char*)AT_Commands[i].parameters);
-            AT_SendStringResponse(")");
+    // Základní sekce
+    AT_SendStringResponse("\r\n--- Basic ---\r\n");
+    for (uint16_t i = 0; i < sizeof(AT_Commands) / sizeof(AT_Command_Struct); i++) {
+        if (
+            strcmp(AT_Commands[i].command, "AT") == 0 ||
+            strcmp(AT_Commands[i].command, "AT+HELP") == 0 ||
+            strcmp(AT_Commands[i].command, "AT+IDENTIFY") == 0 ||
+            strcmp(AT_Commands[i].command, "AT+FACTORY_RST") == 0 ||
+            strcmp(AT_Commands[i].command, "AT+SYS_RESTART") == 0 ||
+            strcmp(AT_Commands[i].command, "AT+UART_BAUD") == 0
+        ) {
+            AT_SendStringResponse((char*)AT_Commands[i].usage);
+            if (strlen(AT_Commands[i].parameters) > 0) {
+                AT_SendStringResponse(" (Par: ");
+                AT_SendStringResponse((char*)AT_Commands[i].parameters);
+                AT_SendStringResponse(")");
+            }
+            AT_SendStringResponse("\r\n");
         }
+    }
 
-        AT_SendStringResponse("\r\n");
+    // LoRa sekce
+    AT_SendStringResponse("\r\n--- LoRa Radio ---\r\n");
+    for (uint16_t i = 0; i < sizeof(AT_Commands) / sizeof(AT_Command_Struct); i++) {
+        if (strstr(AT_Commands[i].command, "LR_") != NULL) {
+            AT_SendStringResponse((char*)AT_Commands[i].usage);
+            if (strlen(AT_Commands[i].parameters) > 0) {
+                AT_SendStringResponse(" (Par: ");
+                AT_SendStringResponse((char*)AT_Commands[i].parameters);
+                AT_SendStringResponse(")");
+            }
+            AT_SendStringResponse("\r\n");
+        }
+    }
+
+    // RF sekce
+    AT_SendStringResponse("\r\n--- RF ---\r\n");
+    for (uint16_t i = 0; i < sizeof(AT_Commands) / sizeof(AT_Command_Struct); i++) {
+        if (strstr(AT_Commands[i].command, "RF_") != NULL) {
+            AT_SendStringResponse((char*)AT_Commands[i].usage);
+            if (strlen(AT_Commands[i].parameters) > 0) {
+                AT_SendStringResponse(" (Par: ");
+                AT_SendStringResponse((char*)AT_Commands[i].parameters);
+                AT_SendStringResponse(")");
+            }
+            AT_SendStringResponse("\r\n");
+        }
+    }
+
+    // AUX sekce
+    AT_SendStringResponse("\r\n--- AUX GPIO ---\r\n");
+    for (uint16_t i = 0; i < sizeof(AT_Commands) / sizeof(AT_Command_Struct); i++) {
+        if (strstr(AT_Commands[i].command, "AUX") != NULL) {
+            AT_SendStringResponse((char*)AT_Commands[i].usage);
+            if (strlen(AT_Commands[i].parameters) > 0) {
+                AT_SendStringResponse(" (Par: ");
+                AT_SendStringResponse((char*)AT_Commands[i].parameters);
+                AT_SendStringResponse(")");
+            }
+            AT_SendStringResponse("\r\n");
+        }
     }
 
     // Add examples for complex commands

@@ -210,8 +210,8 @@ void AT_SendRfPacketResponse(uint8_t *packet, int16_t rssi, uint16_t length)
  */
 void main_task_off(main_ctx_t *ctx,dataQueue_t *rxd)
 {
-
-
+    (void)ctx;
+    (void)rxd;
 }
 
 

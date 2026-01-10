@@ -38,7 +38,6 @@ typedef enum
     SYS_CMD_RF_TX_PERIODIC_NVM  = 9, 
     SYS_CMD_RF_SAVE_PCKT_NVM    = 10,
     SYS_CMD_RF_PERIOD_STATUS    = 11,
-    SYS_LED_BLUE                = 12,
 
     /* LoRa SX1262-specific commands */
     SYS_CMD_TX_FREQ         = 20,
@@ -92,6 +91,7 @@ typedef struct AT_cmd
 
 void AT_SendStringResponse(char *response);
 void AT_HandleATCommand(uint16_t size);
+void AT_HandleUartError(void);
 void AT_Init(AT_cmd_t *atCmd);
 
 #endif // AT_CMD_H

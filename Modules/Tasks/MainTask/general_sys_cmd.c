@@ -65,7 +65,6 @@ static TimerHandle_t periodicTxTimer = NULL;
 const uint32_t AllowedBandwidths[] = {7810, 10420, 15630, 20830, 31250, 41670, 62500, 125000, 250000, 500000};
 const size_t AllowedBandwidthCount = sizeof(AllowedBandwidths) / sizeof(AllowedBandwidths[0]);
 
-static bool _GSC_Handle_BlueLED(uint8_t *data);
 static void _GSC_Handle_TX(uint8_t *data, uint8_t size);
 static bool GetCommandLimits(eATCommands cmd, int32_t *minValue, int32_t *maxValue, size_t *maxLength);
 static uint8_t HexStringToByteArray(const char *hexStr, uint8_t *byteArray, size_t byteArraySize);
@@ -74,7 +73,7 @@ static bool _GSC_Handle_RX_TO_UART(uint8_t *data, uint8_t size);
 static bool _GSC_Handle_AUX_PIN_PWM(uint8_t *data, uint8_t size);
 static bool _GSC_Handle_AUX_STOP(uint8_t *data, uint8_t size);
 static void RxReconfigTimerCallback(TimerHandle_t xTimer);
-static void TriggerRxReconfig(void);
+// static void TriggerRxReconfig(void);  // Currently unused
 static void PeriodicTxTimerCallback(TimerHandle_t xTimer);
 static void StartPeriodicTx(void);
 static void StopPeriodicTx(void);
@@ -221,6 +220,7 @@ size_t AT_ParseUint8(const uint8_t *data, uint8_t *value, size_t maxLength)
  */
 static void RxReconfigTimerCallback(TimerHandle_t xTimer)
 {
+    (void)xTimer;
     dataQueue_t txm;
     txm.ptr = NULL;
     txm.cmd = CMD_RF_RADIO_RECONFIG_RX;
@@ -231,6 +231,7 @@ static void RxReconfigTimerCallback(TimerHandle_t xTimer)
  * @brief Spustí/restartuje timer pro RX rekonfiguraci
  * 
  */
+__attribute__((unused))
 static void TriggerRxReconfig(void)
 {
     // Pokud timer ještě neexistuje, vytvoř ho
@@ -635,12 +636,6 @@ bool GSC_ProcessCommand(eATCommands cmd, uint8_t *data, uint16_t size)
 
     switch (cmd)
     {   
-        case SYS_LED_BLUE:
-        {
-            commandHandled = _GSC_Handle_BlueLED(data);
-            break;
-        }
-
         case SYS_CMD_TX_FREQ:
         {   
             uint32_t freq;
@@ -1315,7 +1310,7 @@ bool GSC_ProcessCommand(eATCommands cmd, uint8_t *data, uint16_t size)
         {
             StopPeriodicTx(); // Stop periodic TX if running
             uint8_t packet[256];
-            uint8_t packetSize = strlen((char *)data);
+            size_t packetSize = strlen((char *)data);
             
             AT_SendStringResponse("!! Not Tested !!\r\n");
             if (packetSize == 0 || packetSize >= sizeof(packet))
@@ -1634,10 +1629,9 @@ bool GSC_ProcessCommand(eATCommands cmd, uint8_t *data, uint16_t size)
         case SYS_CMD_AUX_PULSE:
             if(_GSC_Handle_AUX_PIN_PWM(data, size) == false)
             {
-                AT_SendStringResponse("ERROR: Invalid RX_TO_UART value\r\n");
+                AT_SendStringResponse("ERROR: Invalid AUX_PULSE value\r\n");
                 commandHandled = false;
             }
-        
             break;
 
         case SYS_CMD_AUX_STOP:
@@ -1752,31 +1746,6 @@ bool GSC_ProcessCommand(eATCommands cmd, uint8_t *data, uint16_t size)
  * @return true 
  * @return false 
  */
-static bool _GSC_Handle_BlueLED(uint8_t *data)
-{
-    if(strcasecmp((char*) data, "ON") == 0)
-    {
-       HAL_GPIO_WritePin(LED_BLUE_GPIO_Port, LED_BLUE_Pin, GPIO_PIN_SET);
-    }
-    else if(strcasecmp((char*) data, "OFF") == 0)
-    {
-       HAL_GPIO_WritePin(LED_BLUE_GPIO_Port, LED_BLUE_Pin, GPIO_PIN_RESET);
-    }
-    else
-    {
-        return false;
-    }
-
-    return true;
-}
-
-/**
- * @brief 
- * 
- * @param data 
- * @param size 
- * @return staic 
- */
 static void _GSC_Handle_TX(uint8_t *data, uint8_t size)
 {   
     dataQueue_t     txm;
@@ -1816,6 +1785,7 @@ static void _GSC_Handle_TX(uint8_t *data, uint8_t size)
  */
 static bool _GSC_Handle_RX_TO_UART(uint8_t *data, uint8_t size)
 {
+    (void)size;
     dataQueue_t     txm;
     txm.ptr = NULL;
 
@@ -1842,6 +1812,7 @@ static bool _GSC_Handle_RX_TO_UART(uint8_t *data, uint8_t size)
 
 static bool _GSC_Handle_AUX_PIN_PWM(uint8_t *data, uint8_t size)
 {
+    (void)size;
     uint8_t pin, duty;
     uint16_t period;
 
@@ -1871,6 +1842,7 @@ static bool _GSC_Handle_AUX_PIN_PWM(uint8_t *data, uint8_t size)
 
 static bool _GSC_Handle_AUX_STOP(uint8_t *data, uint8_t size)
 {
+    (void)size;
     uint8_t pin;
 
     // Ověření: existuje přesně jeden parametr (pin)
