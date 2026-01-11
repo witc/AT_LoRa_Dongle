@@ -18,7 +18,7 @@
 #define FW_VERSION_MINOR    0
 #define FW_VERSION_PATCH    0
 #define FW_VERSION_STRING   "v1.0.0"
-#define FW_DEVICE_NAME      "AT-USB LoRa_Dongle"
+#define FW_DEVICE_NAME      "Ropxion AT-USB LoRa_Dongle"
 
 /**
  * @brief 

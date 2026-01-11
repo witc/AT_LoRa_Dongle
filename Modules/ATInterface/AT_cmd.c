@@ -54,7 +54,7 @@ typedef struct
 const AT_Command_Struct AT_Commands[] = {
     {"AT",                       AT_HandleHelp,          0,                                 "AT - Basic test command",                         ""},
     {"AT+HELP",                  AT_HandleHelp,          0,                                 "AT+HELP - List all supported commands",           ""},
-    {"AT+IDENTIFY",              AT_HandleIdentify,      0,                                 "AT+IDENTIFY - Identify the device",               ""},
+    {"AT+IDENTIFY",              AT_HandleIdentify,      0,                                 "AT+IDENTIFY - Identify the device (returns unique ID)",               ""},
     {"AT+FACTORY_RST",           AT_HandleFactoryReset,  0,                                 "AT+FACTORY_RST - Reset all settings to defaults",      ""},
     {"AT+SYS_RESTART",           AT_HandleRestartSys,    0,                                 "AT+SYS_RESTART - Restart the system",             ""},
     /* single LoRa params*/
@@ -101,7 +101,7 @@ const AT_Command_Struct AT_Commands[] = {
     {"AT+RF_GET_TSYM",              NULL,               SYS_CMD_RF_GET_TSYM,                 "AT+RF_GET_TSYM - Get symbol time in us (TX config)", ""},
     
     /* AUX GPIO commands */
-    {"AT+AUX",                      NULL,               SYS_CMD_AUX_SET,                     "AT+AUX=<pin(1-8)>,<ON|OFF>", "=<pin>,<ON|OFF>"},
+    {"AT+AUX",                      NULL,               SYS_CMD_AUX_SET,                     "AT+AUX=<pin(1-8)>,<1|0>", "=<pin>,<1|0>"},
     {"AT+AUX_PULSE",                NULL,               SYS_CMD_AUX_PULSE,                   "AT+AUX_PULSE=<pin(1-8)>,<period_ms>,<duty_pct>", "=<pin>,<period>,<duty%>"},
     {"AT+AUX_PULSE_STOP",           NULL,               SYS_CMD_AUX_STOP,                    "AT+AUX_PULSE_STOP=<pin> - Stop PWM on AUX pin", "=<pin>" },
     
@@ -367,8 +367,23 @@ static void AT_HandleHelp(char *params)
  */
 static void AT_HandleIdentify(char *params)
 {
+    char uid_str[32];
+    uint32_t uid0, uid1, uid2;
+    
     UNUSED(params);
-    AT_SendStringResponse(FW_DEVICE_NAME " " FW_VERSION_STRING "\r\n");
+    
+    // Získání unique device ID z STM32 (96 bitů = 3x 32 bitů)
+    uid0 = HAL_GetUIDw0();
+    uid1 = HAL_GetUIDw1();
+    uid2 = HAL_GetUIDw2();
+    
+    // Formátování unique ID jako hexadecimální řetězec (96 bitů = 24 hex znaků)
+    sprintf(uid_str, "%08lX%08lX%08lX", (unsigned long)uid2, (unsigned long)uid1, (unsigned long)uid0);
+    
+    // Odeslání odpovědi: Device Name, Version a Unique ID
+    AT_SendStringResponse(FW_DEVICE_NAME " " FW_VERSION_STRING " UID:");
+    AT_SendStringResponse(uid_str);
+    AT_SendStringResponse("\r\n");
 }
 
 

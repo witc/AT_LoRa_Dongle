@@ -237,26 +237,46 @@ class ATLoraDongle:
             self.serial.timeout = original_timeout
     
     def configure_tx(self, sf: int, bw: int, freq: int, cr: int = 45, power: int = 22, 
-                     iq_inv: int = 0, ldro: int = 2, header_mode: int = 0, crc: int = 1, preamble: int = 8) -> bool:
-        """Configure TX parameters"""
+                     iq_inv: int = 0, ldro: int = 2, header_mode: int = 0, crc: int = 1, preamble: int = 8, 
+                     sync_word: str = "12") -> bool:
+        """Configure TX parameters
+        
+        Args:
+            sync_word: Sync word in hex (default 0x12 = private network)
+        """
+        # Set sync word first
+        sync_cmd = f"AT+LR_TX_SYNCWORD={sync_word}"
+        success, response = self.send_command(sync_cmd)
+        if not success:
+            logger.error(f"{self.name}: TX sync word config failed: {response}")
+            return False
+        
         cmd = f"AT+LR_TX_SET=SF:{sf},BW:{bw},CR:{cr},Freq:{freq},IQInv:{iq_inv},HeaderMode:{header_mode},CRC:{crc},Preamble:{preamble},Power:{power},LDRO:{ldro}"
         # 10 parameters = 10 OK responses expected
         success, response = self.send_command(cmd, expected_ok_count=10)
         if success:
             ldro_name = {0: 'off', 1: 'on', 2: 'auto'}.get(ldro, str(ldro))
-            logger.info(f"{self.name}: TX configured - SF{sf}, BW{bw}, CR{cr}, Pwr:{power}dBm, LDRO:{ldro_name}")
+            logger.info(f"{self.name}: TX configured - SF{sf}, BW{bw}, CR{cr}, Pwr:{power}dBm, LDRO:{ldro_name}, Sync:0x{sync_word}")
         else:
             logger.error(f"{self.name}: TX config failed: {response}")
         return success
     
     def configure_rx(self, sf: int, bw: int, freq: int, cr: int = 45, 
                      iq_inv: int = 0, ldro: int = 2, header_mode: int = 0, crc: int = 1, preamble: int = 8,
-                     rx_payload_len: int = 0) -> bool:
+                     rx_payload_len: int = 0, sync_word: str = "12") -> bool:
         """Configure RX parameters
         
         Args:
             rx_payload_len: Expected payload length for implicit header mode (0=auto/max buffer)
+            sync_word: Sync word in hex (default 0x12 = private network)
         """
+        # Set sync word first
+        sync_cmd = f"AT+LR_RX_SYNCWORD={sync_word}"
+        success, response = self.send_command(sync_cmd)
+        if not success:
+            logger.error(f"{self.name}: RX sync word config failed: {response}")
+            return False
+        
         # For implicit header mode, set expected payload length first
         if header_mode == 1 and rx_payload_len > 0:
             pldlen_cmd = f"AT+LR_RX_PLDLEN={rx_payload_len}"
@@ -275,7 +295,7 @@ class ATLoraDongle:
         success, response = self.send_command(cmd, expected_ok_count=9)
         if success:
             ldro_name = {0: 'off', 1: 'on', 2: 'auto'}.get(ldro, str(ldro))
-            logger.info(f"{self.name}: RX configured - SF{sf}, BW{bw}, CR{cr}, LDRO:{ldro_name}, Hdr:{header_mode}, CRC:{crc}")
+            logger.info(f"{self.name}: RX configured - SF{sf}, BW{bw}, CR{cr}, LDRO:{ldro_name}, Hdr:{header_mode}, CRC:{crc}, Sync:0x{sync_word}")
         else:
             logger.error(f"{self.name}: RX config failed: {response}")
         return success
@@ -489,7 +509,7 @@ def test_eeprom_storage(tx_dongle: ATLoraDongle, rx_dongle: ATLoraDongle) -> boo
         {"dongle": tx_dongle, "set_cmd": "AT+RF_TX_NVM_PERIOD=5000", "get_cmd": "AT+RF_TX_NVM_PERIOD?", "expected": "5000", "name": "TX Period (high)"},
         
         # Sync word (hex byte 0x12=private, 0x34=public)
-        # Note: 0x12 should be stored/returned as "12", 0x34 as "34"
+        # FW expects and returns hex string: "12" = byte 0x12, "34" = byte 0x34
         {"dongle": tx_dongle, "set_cmd": "AT+LR_TX_SYNCWORD=12", "get_cmd": "AT+LR_TX_SYNCWORD?", "expected": "12", "name": "TX SyncWord (private)", "is_hex": True, "timeout": 3.0},
         {"dongle": tx_dongle, "set_cmd": "AT+LR_TX_SYNCWORD=34", "get_cmd": "AT+LR_TX_SYNCWORD?", "expected": "34", "name": "TX SyncWord (public)", "is_hex": True, "timeout": 3.0},
         {"dongle": rx_dongle, "set_cmd": "AT+LR_RX_SYNCWORD=12", "get_cmd": "AT+LR_RX_SYNCWORD?", "expected": "12", "name": "RX SyncWord (private)", "is_hex": True, "timeout": 3.0},
@@ -531,23 +551,42 @@ def test_eeprom_storage(tx_dongle: ATLoraDongle, rx_dongle: ATLoraDongle) -> boo
         # Parse response - look for the value (number in response)
         # For hex data, look for hex string pattern
         if test.get("is_hex"):
-            # Look for hex string like 12, AABBCC or 112233445566
-            hex_match = re.search(r'([0-9A-Fa-f]{2,})', response)
-            if hex_match:
-                read_value = hex_match.group(1).upper()
-                expected = test["expected"].upper()
-                if read_value == expected:
-                    logger.info(f"  ✓ {test['name']}: {read_value} == {expected}")
+            # For saved packet, look for "packet:XXX" pattern
+            if "SAVE_PACKET" in test["get_cmd"]:
+                packet_match = re.search(r'packet:([0-9A-Fa-f]+)', response)
+                if packet_match:
+                    read_value = packet_match.group(1).upper()
+                    expected = test["expected"].upper()
+                    if read_value == expected:
+                        logger.info(f"  ✓ {test['name']}: {read_value} == {expected}")
+                    else:
+                        logger.error(f"  ✗ {test['name']}: Got {read_value}, expected {expected} - MISMATCH!")
+                        logger.error(f"      Raw response: '{response}'")
+                        failed_tests += 1
+                        all_passed = False
                 else:
-                    logger.error(f"  ✗ {test['name']}: Got {read_value}, expected {expected} - MISMATCH!")
-                    logger.debug(f"      Raw response: '{response[:100]}'")
+                    logger.error(f"  ✗ {test['name']}: Could not parse packet response")
+                    logger.error(f"      Raw response: '{response}'")
                     failed_tests += 1
                     all_passed = False
             else:
-                logger.error(f"  ✗ {test['name']}: Could not parse hex response")
-                logger.debug(f"      Raw response: '{response[:100]}'")
-                failed_tests += 1
-                all_passed = False
+                # For other hex data (sync word, etc), look for plain hex string
+                hex_match = re.search(r'([0-9A-Fa-f]{2,})', response)
+                if hex_match:
+                    read_value = hex_match.group(1).upper()
+                    expected = test["expected"].upper()
+                    if read_value == expected:
+                        logger.info(f"  ✓ {test['name']}: {read_value} == {expected}")
+                    else:
+                        logger.error(f"  ✗ {test['name']}: Got {read_value}, expected {expected} - MISMATCH!")
+                        logger.error(f"      Raw response: '{response}'")
+                        failed_tests += 1
+                        all_passed = False
+                else:
+                    logger.error(f"  ✗ {test['name']}: Could not parse hex response")
+                    logger.error(f"      Raw response: '{response}'")
+                    failed_tests += 1
+                    all_passed = False
         else:
             value_match = re.search(r'(\d+)', response)
             if value_match:
@@ -556,10 +595,12 @@ def test_eeprom_storage(tx_dongle: ATLoraDongle, rx_dongle: ATLoraDongle) -> boo
                     logger.info(f"  ✓ {test['name']}: {read_value} == {test['expected']}")
                 else:
                     logger.error(f"  ✗ {test['name']}: Got {read_value}, expected {test['expected']} - MISMATCH!")
+                    logger.error(f"      Raw response: '{response}'")
                     failed_tests += 1
                     all_passed = False
             else:
-                logger.error(f"  ✗ {test['name']}: Could not parse response: '{response[:50]}'")
+                logger.error(f"  ✗ {test['name']}: Could not parse response")
+                logger.error(f"      Raw response: '{response}'")
                 failed_tests += 1
                 all_passed = False
     
@@ -575,7 +616,7 @@ def test_eeprom_storage(tx_dongle: ATLoraDongle, rx_dongle: ATLoraDongle) -> boo
     gpio_test_passed = False
     for pin in [1, 4, 8]:  # Test a few pins
         # Turn ON
-        if not tx_dongle.set_aux_gpio(pin, "ON"):
+        if not tx_dongle.set_aux_gpio(pin, "1"):
             logger.warning(f"  ! AUX{pin} ON failed (možná není implementováno v FW)")
         else:
             logger.info(f"  ✓ AUX{pin} ON")
@@ -583,7 +624,7 @@ def test_eeprom_storage(tx_dongle: ATLoraDongle, rx_dongle: ATLoraDongle) -> boo
         time.sleep(0.1)
         
         # Turn OFF
-        if not tx_dongle.set_aux_gpio(pin, "OFF"):
+        if not tx_dongle.set_aux_gpio(pin, "0"):
             logger.warning(f"  ! AUX{pin} OFF failed")
         else:
             logger.info(f"  ✓ AUX{pin} OFF")
@@ -1034,9 +1075,8 @@ def main():
         if not eeprom_test_passed:
             logger.error("\n⚠ EEPROM verification failed - check your AT firmware and NVMA implementation")
             logger.error("Known issues detected:")
-            logger.error("  1. Sync word: FW vrací 0C/22 místo 12/34 - chyba v NVMA_Get_LR_SyncWord_TX/RX?")
-            logger.error("  2. Saved packet: FW vrací jen AC místo celého paketu - NVMA_Get_LR_TX_RF_PCKT issue?")
-            logger.error("  3. RX Sync word: Timeout - možná chyba v rekonfiguraci RX nebo address overlap?")
+            logger.error("  1. Saved packet: FW vrací jen AC místo celého paketu - NVMA_Get_LR_TX_RF_PCKT issue?")
+            logger.error("  2. RX Sync word: Timeout - možná chyba v rekonfiguraci RX nebo address overlap?")
             logger.error("Fix EEPROM issues before running RF range tests")
             tx_dongle.disconnect()
             rx_dongle.disconnect()

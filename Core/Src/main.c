@@ -116,40 +116,19 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
 
 static void PrintAppInfo(void)
 {
-	//char time_string[100];
-	//time_t rawTime = (time_t)BUILD_DATE;
-	//struct tm *time_info = localtime(&rawTime);
-	//strftime(time_string, sizeof(time_string), "%Y-%m-%d %H:%M:%S", time_info);
-  printf("\n");
-	printf("-------------- Application Info --------------\n");
-	//printf("Version: %lu\n", SW_VERSION_VALUE);
-	//printf("Subversion: %lu\n", SW_SUB_VERSION_VALUE);
-	//printf("Build type: %s\n", BUILD_TYPE);
-	//printf("Build datetime: %s UTC\n", time_string);
-	printf("----------------------------------------------\n");
-	// #if DEBUG
-	// printf("----------------- Debug Info -----------------\n");
-	// static char buffer[21]; // Enough to hold uint64_t in decimal (max 20 digits + null terminator)
-	// int index = 20;
-	// buffer[index] = '\0'; // Null-terminate the string
-
-	// CheckStartType();
-
-	// #if DEBUG
-	// 	// Convert uint64_t to string in reverse order
-	// 	bool printErrorCode = (lastErrorCode != 0);
-	// 	do {
-	// 			buffer[--index] = '0' + (lastErrorCode % 10);
-	// 			lastErrorCode /= 10;
-	// 	} while (lastErrorCode > 0 || index == 0);
-
-	// 	if (printErrorCode)
-	// 	{
-	// 		printf("Last error code: %s\n", &buffer[index]);
-	// 	}
-	// #endif
-	// printf("----------------------------------------------\n");
-	// #endif
+	char version_str[16];
+	sprintf(version_str, "%d.%d.%d", 
+	        FW_VERSION_MAJOR, FW_VERSION_MINOR, FW_VERSION_PATCH);
+	
+	printf("\n");
+	printf("==========================================================\n");
+	printf("              AT-USB LoRa Dongle\n");
+	printf("==========================================================\n");
+	printf("  Device Name:  %s\n", FW_DEVICE_NAME);
+	printf("  Firmware:     %s\n", FW_VERSION_STRING);
+	printf("  Version:      %s\n", version_str);
+	printf("==========================================================\n");
+	printf("\n");
 }
 /* USER CODE END 0 */
 

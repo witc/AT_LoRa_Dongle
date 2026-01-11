@@ -71,6 +71,7 @@ static uint8_t HexStringToByteArray(const char *hexStr, uint8_t *byteArray, size
 static void ByteArrayToHexString(const uint8_t *byteArray, size_t arraySize, char *hexStr, size_t hexStrSize);
 static bool _GSC_Handle_RX_TO_UART(uint8_t *data, uint8_t size);
 static bool _GSC_Handle_AUX_PIN_PWM(uint8_t *data, uint8_t size);
+static bool _GSC_Handle_AUX_PIN_SET(uint8_t *data, uint8_t size);
 static bool _GSC_Handle_AUX_STOP(uint8_t *data, uint8_t size);
 static void RxReconfigTimerCallback(TimerHandle_t xTimer);
 // static void TriggerRxReconfig(void);  // Currently unused
@@ -1497,7 +1498,7 @@ bool GSC_ProcessCommand(eATCommands cmd, uint8_t *data, uint16_t size)
                     uint32_t toa_ms = ru_calculate_toa_ms((uint8_t)pcktSize);
                     NVMA_Get_LR_TX_RF_PCKT(packet, pcktSize);
                     ByteArrayToHexString(packet, pcktSize, hexString, sizeof(hexString));
-                    snprintf(outputBuffer, sizeof(outputBuffer), "packet: %s, size: %u B, TOA: %lu ms", hexString, pcktSize, toa_ms);
+                    snprintf(outputBuffer, sizeof(outputBuffer), "packet:%s, size:%u B, TOA:%lu ms, ", hexString, pcktSize, toa_ms);
                     AT_SendStringResponse(outputBuffer);
                     hasResponse = false; // Už bylo odesláno
                 }
@@ -1674,6 +1675,14 @@ bool GSC_ProcessCommand(eATCommands cmd, uint8_t *data, uint16_t size)
             }
             break;
         }
+
+        case SYS_CMD_AUX_SET:
+            if(_GSC_Handle_AUX_PIN_SET(data, size) == false)
+            {
+                AT_SendStringResponse("ERROR: Invalid AUX_SET value\r\n");
+                commandHandled = false;
+            }
+            break;
 
         case SYS_CMD_AUX_PULSE:
             if(_GSC_Handle_AUX_PIN_PWM(data, size) == false)
@@ -1856,6 +1865,41 @@ static bool _GSC_Handle_RX_TO_UART(uint8_t *data, uint8_t size)
     }
 
     xQueueSend(queueRadioHandle,&txm,portMAX_DELAY);
+    return true;
+}
+
+static bool _GSC_Handle_AUX_PIN_SET(uint8_t *data, uint8_t size)
+{
+    (void)size;
+    uint8_t pin, state;
+
+    // Ověření: existují přesně dva parametry (pin,state)
+    char *token = strtok((char*)data, ",");
+    if (!token || !AT_ParseUint8((uint8_t*)token, &pin, 1)) {
+        return false;
+    }
+    if (pin < 1 || pin > AUX_PINS_COUNT) {
+        return false;
+    }
+    pin -= 1; // uživatel zadává 1-8, indexujeme 0-7
+
+    token = strtok(NULL, ",");
+    if (!token || !AT_ParseUint8((uint8_t*)token, &state, 1)) {
+        return false;
+    }
+    if (state > 1) {
+        return false;
+    }
+
+    // Pokud je další token, chyba
+    if (strtok(NULL, ",") != NULL) {
+        return false;
+    }
+
+    // Nastavení pinu - použijeme auxPins pole s daným indexem
+    AUX_PinControl_t *ctx = &auxPins[pin];
+    HAL_GPIO_WritePin(ctx->port, ctx->pinMask, state ? GPIO_PIN_SET : GPIO_PIN_RESET);
+
     return true;
 }
 

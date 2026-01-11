@@ -20,6 +20,8 @@ typedef struct
 
 #define AUX_PINS_COUNT 8
 
+// Globální pole AUX pinů
+extern AUX_PinControl_t auxPins[AUX_PINS_COUNT];
 
 void AUX_InitTimers(void);
 void AUX_StartPWM(uint8_t index, uint16_t period, uint8_t duty);
