@@ -50,7 +50,8 @@ typedef struct
     const char *parameters;
 } AT_Command_Struct;
 
-
+// Společná reference table
+#define BW_TABLE "BW index: 0=7.81, 1=10.42, 2=15.63, 3=20.83, 4=31.25, 5=41.67, 6=62.5, 7=125, 8=250, 9=500 kHz"
 /* Table of AT commands */
 const AT_Command_Struct AT_Commands[] = {
     {"AT",                       AT_HandleHelp,          0,                                 "AT - Basic test command",                         ""},
@@ -64,8 +65,8 @@ const AT_Command_Struct AT_Commands[] = {
     {"AT+LR_TX_POWER",               NULL,               SYS_CMD_TX_POWER,                    "AT+LR_TX_POWER - Set TX power",                   "=<power_in_dBm>, ?"},
     {"AT+LR_TX_SF",                  NULL,               SYS_CMD_TX_SF,                       "AT+LR_TX_SF - Set TX spreading factor",           "=5 to 12, ?"},
     {"AT+LR_RX_SF",                  NULL,               SYS_CMD_RX_SF,                       "AT+LR_RX_SF - Set RX spreading factor",           "=5 to 12, ?"},
-    {"AT+LR_TX_BW",                  NULL,               SYS_CMD_TX_BW,                       "AT+LR_TX_BW - Set TX bandwidth",                  "=7810 (BW 0) to 500000 Hz (BW 9): {7.81, 10.42, 15.63, 20.83, 31.25, 41.67, 62.5, 125, 250, 500 kHz}"},
-    {"AT+LR_RX_BW",                  NULL,               SYS_CMD_RX_BW,                       "AT+LR_RX_BW - Set RX bandwidth",                  "=7810 (BW 0) to 500000 Hz (BW 9): {7.81, 10.42, 15.63, 20.83, 31.25, 41.67, 62.5, 125, 250, 500 kHz}"},
+    {"AT+LR_TX_BW",                 NULL,               SYS_CMD_TX_BW,                       "AT+LR_TX_BW - Set TX bandwidth",                                 BW_TABLE},
+    {"AT+LR_RX_BW",                 NULL,               SYS_CMD_RX_BW,                       "AT+LR_RX_BW - Set RX bandwidth",                                 BW_TABLE},
     {"AT+LR_TX_IQ_INV",              NULL,               SYS_CMD_TX_IQ,                       "AT+LR_TX_IQ_INV - Set TX IQ inversion",           "=1, =0, ?"},
     {"AT+LR_RX_IQ_INV",              NULL,               SYS_CMD_RX_IQ,                       "AT+LR_RX_IQ_INV - Set RX IQ inversion",           "=1, =0, ?"},
     {"AT+LR_TX_CR",                  NULL,               SYS_CMD_TX_CR,                       "AT+LR_TX_CR - Set TX coding rate",                "=45, =46, =47, =48, ?"},
@@ -95,24 +96,23 @@ const AT_Command_Struct AT_Commands[] = {
     {"AT+RF_TX_PERIOD_STATUS",      NULL,               SYS_CMD_RF_PERIOD_STATUS,            "AT+RF_TX_PERIOD_STATUS - Get periodic TX status",     "?"},
     
     /* RF RX commands */
-    {"AT+RF_RX_TO_UART",            NULL,               SYS_CMD_RF_RX_TO_UART,               "AT+RF_RX_TO_UART - Set RF RX to serial port",            "=<ON|OFF>"},
+    {"AT+RF_RX_TO_UART",            NULL,               SYS_CMD_RF_RX_TO_UART,               "AT+RF_RX_TO_UART - Auto-print received RF data to serial",            "=<ON|OFF>"},
+    {"AT+RF_RX_FORMAT",             NULL,               SYS_CMD_RX_FORMAT,                   "AT+RF_RX_FORMAT - Set RX output format", "=HEX|ASCII, ?"},
     
     /* RF TOA command */
     {"AT+RF_GET_TOA",               NULL,               SYS_CMD_RF_GET_TOA,                  "AT+RF_GET_TOA - Get TOA (TX config)",             "=<packet_size_bytes>"},
     {"AT+RF_GET_TSYM",              NULL,               SYS_CMD_RF_GET_TSYM,                 "AT+RF_GET_TSYM - Get symbol time in us (TX config)", ""},
     
     /* AUX GPIO commands */
-    {"AT+AUX",                      NULL,               SYS_CMD_AUX_SET,                     "AT+AUX=<pin(1-8)>,<1|0>", "=<pin>,<1|0>"},
-    {"AT+AUX_PULSE",                NULL,               SYS_CMD_AUX_PULSE,                   "AT+AUX_PULSE=<pin(1-8)>,<period_ms>,<duty_pct>", "=<pin>,<period>,<duty%>"},
-    {"AT+AUX_PULSE_STOP",           NULL,               SYS_CMD_AUX_STOP,                    "AT+AUX_PULSE_STOP=<pin> - Stop PWM on AUX pin", "=<pin>" },
-    
+    {"AT+AUX",            NULL, SYS_CMD_AUX_SET,   "Set AUX pin state", "=<pin:1-8>,<state:0|1>"},
+    {"AT+AUX_PULSE",      NULL, SYS_CMD_AUX_PULSE, "Start PWM on AUX pin", "=<pin:1-8>,<period_ms>,<duty%:0-100>"},
+    {"AT+AUX_PULSE_STOP", NULL, SYS_CMD_AUX_STOP,  "Stop PWM on AUX pin", "=<pin:1-8>"},
     /* System commands */
     {"AT+UART_BAUD",                NULL,               SYS_CMD_UART_BAUD,                   "AT+UART_BAUD - Set UART baud rate", "=9600|19200|38400|57600|115200|230400, ?"},
-    {"AT+RF_RX_FORMAT",             NULL,               SYS_CMD_RX_FORMAT,                   "AT+RF_RX_FORMAT - Set RX output format", "=HEX|ASCII, ?"},
     
     /* multiple LoRa params - set all at once */
-    {"AT+LR_TX_SET",                NULL,               SYS_CMD_TX_COMPLETE_SET,             "AT+LR_TX_SET - Set multiple TX parameters",      "=SF:<5-12>,BW:<0-9>,CR:<45-48>,Freq:<Hz>,IQInv:<0|1>,HeaderMode:<0|1>,CRC:<0|1>,Preamble:<1-65535>,Power:<dBm>,LDRO:<0|1|2>, ?"},
-    {"AT+LR_RX_SET",                NULL,               SYS_CMD_RX_COMPLETE_SET,             "AT+LR_RX_SET - Set multiple RX parameters",      "=SF:<5-12>,BW:<0-9>,CR:<45-48>,Freq:<Hz>,IQInv:<0|1>,HeaderMode:<0|1>,CRC:<0|1>,Preamble:<1-65535>,LDRO:<0|1|2>, ?"}
+    {"AT+LR_TX_SET",                NULL,               SYS_CMD_TX_COMPLETE_SET,             "AT+LR_TX_SET - Set multiple TX params",      "=SF:<5-12>,BW:<0-9>,CR:<45-48>,Freq:<Hz>,IQInv:<0|1>,HeaderMode:<0|1>,CRC:<0|1>,Preamble:<1-65535>,Power:<dBm>,LDRO:<0|1|2>, ?"},
+    {"AT+LR_RX_SET",                NULL,               SYS_CMD_RX_COMPLETE_SET,             "AT+LR_RX_SET - Set multiple RX params",      "=SF:<5-12>,BW:<0-9>,CR:<45-48>,Freq:<Hz>,IQInv:<0|1>,HeaderMode:<0|1>,CRC:<0|1>,Preamble:<1-65535>,LDRO:<0|1|2>, ?"}
 
 };
 
