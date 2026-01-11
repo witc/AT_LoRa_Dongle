@@ -128,6 +128,8 @@ return 0;
 /* USER CODE BEGIN 4 */
 void vApplicationStackOverflowHook(xTaskHandle xTask, signed char *pcTaskName)
 {
+  UNUSED(xTask);
+  UNUSED(pcTaskName);
    /* Run time stack overflow checking is performed if
    configCHECK_FOR_STACK_OVERFLOW is defined to 1 or 2. This hook function is
    called if a stack overflow is detected. */
@@ -195,6 +197,7 @@ void StartTaskCore(void *argument)
 {
   /* USER CODE BEGIN StartTaskCore */
   /* Infinite loop */
+  UNUSED(argument);
   main_task();
   for(;;)
   {
@@ -213,7 +216,7 @@ void StartTaskCore(void *argument)
 void StartTaskRF(void *argument)
 {
   /* USER CODE BEGIN StartTaskRF */
-  //RF_TaskEntry();
+  UNUSED(argument);
   radio_task();
   /* Infinite loop */
   for(;;)

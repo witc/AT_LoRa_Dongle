@@ -13,7 +13,7 @@
 
 
 #define LOG_TAG "[sPort:]"
-#define LOG_LEVEL LOG_LEVEL_VERBOSE
+#define LOG_LEVEL LOG_LEVEL_NONE
 #include "Log.h"
 
 

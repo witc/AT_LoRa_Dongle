@@ -11,6 +11,7 @@
 
 #include "main.h"
 #include "AT_cmd.h"
+#include <stdio.h>   // For sprintf
 #include <ctype.h>
 #include <strings.h>  // For strncasecmp
 #include "Main_task.h"

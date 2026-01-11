@@ -914,10 +914,8 @@ ral_status_t ral_sx126x_set_lora_sync_word( const void* context, const uint8_t s
     return ( ral_status_t ) sx126x_set_lora_sync_word( context, sync_word );
 }
 
-ral_status_t ral_sx126x_set_flrc_sync_word( const void* context, const uint8_t* sync_word, const uint8_t sync_word_len )
+ral_status_t ral_sx126x_set_flrc_sync_word( const void* context __attribute__((unused)), const uint8_t* sync_word __attribute__((unused)), const uint8_t sync_word_len __attribute__((unused)) )
 {   
-    UNUSED( context );
-    UNUSED( sync_word );
     return RAL_STATUS_UNSUPPORTED_FEATURE;
 }
 
