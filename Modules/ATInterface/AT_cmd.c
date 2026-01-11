@@ -77,6 +77,9 @@ const AT_Command_Struct AT_Commands[] = {
     {"AT+LR_RX_PREAMBLE_SIZE",      NULL,               SYS_CMD_PREAM_SIZE_RX,               "AT+LR_RX_PREAMBLE_SIZE",                         "=<1 to 65535> should be >= TX side,?"},
     {"AT+LR_TX_LDRO",               NULL,               SYS_CMD_TX_LDRO,                     "AT+LR_TX_LDRO - Set TX Low Data Rate Optimization", "=0 (off), =1 (on), =2 (auto), ?"},
     {"AT+LR_RX_LDRO",               NULL,               SYS_CMD_RX_LDRO,                     "AT+LR_RX_LDRO - Set RX Low Data Rate Optimization", "=0 (off), =1 (on), =2 (auto), ?"},
+
+    {"AT+LR_TX_SYNCWORD",           NULL,               SYS_CMD_TX_SYNCWORD,                  "AT+LR_TX_SYNCWORD - Set TX sync word (0x12 or 0x34)", "=<hex_byte>, ?"},
+    {"AT+LR_RX_SYNCWORD",           NULL,               SYS_CMD_RX_SYNCWORD,                  "AT+LR_RX_SYNCWORD - Set RX sync word (0x12 or 0x34)", "=<hex_byte>, ?"},
     {"AT+LR_RX_PLDLEN",             NULL,               SYS_CMD_RX_PLDLEN,                   "AT+LR_RX_PLDLEN - RX payload length (required only for implicit mode)", "=<1-255>, ?"},
  
     /* RF immediate TX commands */
@@ -98,8 +101,8 @@ const AT_Command_Struct AT_Commands[] = {
     {"AT+RF_GET_TSYM",              NULL,               SYS_CMD_RF_GET_TSYM,                 "AT+RF_GET_TSYM - Get symbol time in us (TX config)", ""},
     
     /* AUX GPIO commands */
-    {"AT+AUX",                      NULL,               SYS_CMD_AUX_SET,                     "AT+AUX=<pin>,<ON|OFF>",            "=<pin>,<ON|OFF>"},
-    {"AT+AUX_PULSE",                NULL,               SYS_CMD_AUX_PULSE,                   "AT+AUX_PULSE=<pin>,<period_ms>,<duty_pct>", "=<pin>,<period>,<duty%>"},
+    {"AT+AUX",                      NULL,               SYS_CMD_AUX_SET,                     "AT+AUX=<pin(1-8)>,<ON|OFF>", "=<pin>,<ON|OFF>"},
+    {"AT+AUX_PULSE",                NULL,               SYS_CMD_AUX_PULSE,                   "AT+AUX_PULSE=<pin(1-8)>,<period_ms>,<duty_pct>", "=<pin>,<period>,<duty%>"},
     {"AT+AUX_PULSE_STOP",           NULL,               SYS_CMD_AUX_STOP,                    "AT+AUX_PULSE_STOP=<pin> - Stop PWM on AUX pin", "=<pin>" },
     
     /* System commands */

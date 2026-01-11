@@ -57,6 +57,8 @@ typedef enum
     SYS_CMD_CRC_RX          = 34,
     SYS_CMD_PREAM_SIZE_TX   = 35,
     SYS_CMD_PREAM_SIZE_RX   = 36,
+    SYS_CMD_TX_SYNCWORD     = 50,
+    SYS_CMD_RX_SYNCWORD     = 51,
     SYS_CMD_TX_COMPLETE_SET = 37,
     SYS_CMD_RX_COMPLETE_SET = 38,
 

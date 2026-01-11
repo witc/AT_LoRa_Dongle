@@ -239,7 +239,7 @@ bool ru_load_radio_config_tx(ralf_params_lora_t *loraParam)
 		loraParam->mod_params.ldro = ldro;
 	}
 
-	//NVMA_Get_LR_(&loraParam->sync_word);		//TODO
+	NVMA_Get_LR_SyncWord_TX((uint8_t *)&loraParam->sync_word);
 	
 	return true;
 }
@@ -320,10 +320,10 @@ bool ru_load_radio_config_rx(ralf_params_lora_t *loraParam)
 	uint8_t pldlen;
 
 	NVMA_Get_LR_CRC_RX((uint8_t*)&loraParam->pkt_params.crc_is_on);
-	NVMA_Get_LR_HeaderMode_RX(&loraParam->pkt_params.header_type);
+	NVMA_Get_LR_HeaderMode_RX((uint8_t*)&loraParam->pkt_params.header_type);
 	NVMA_Get_LR_RX_IQ((uint8_t*)&loraParam->pkt_params.invert_iq_is_on);
 	NVMA_Get_LR_PreamSize_RX(&loraParam->pkt_params.preamble_len_in_symb);
-	NVMA_Get_LR_RX_SF(&loraParam->mod_params.sf);
+	NVMA_Get_LR_RX_SF((uint8_t*)&loraParam->mod_params.sf);
 	
 	NVMA_Get_LR_RX_CR(&cr);
 	cr = get_lora_cr_from_user_value(cr);
@@ -354,7 +354,7 @@ bool ru_load_radio_config_rx(ralf_params_lora_t *loraParam)
 		loraParam->pkt_params.pld_len_in_bytes = RF_RX_PACKET_LEN;
 	}
 
-	//NVMA_Get_LR_(&loraParam->sync_word);		//TODO
+	NVMA_Get_LR_SyncWord_RX((uint8_t *)&loraParam->sync_word);
 	
 	return true;
 }

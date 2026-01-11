@@ -1060,6 +1060,55 @@ bool GSC_ProcessCommand(eATCommands cmd, uint8_t *data, uint16_t size)
             break;
         }
 
+         case SYS_CMD_TX_SYNCWORD:
+        {
+            uint8_t sync;
+            if (isQuery)
+            {
+                NVMA_Get_LR_SyncWord_TX(&sync);
+                snprintf(response, sizeof(response), "%02X\r\n", sync);
+                hasResponse = true;
+            }
+            else
+            {
+                // Use HexStringToByteArray for consistent hex parsing
+                uint8_t syncByte;
+                if (HexStringToByteArray((char*)data, &syncByte, 1) != 1)
+                {
+                    AT_SendStringResponse("ERROR: TX_SYNCWORD must be 2 hex digits (e.g. 12 or 34)\r\n");
+                    commandHandled = false;
+                    break;
+                }
+                NVMA_Set_LR_SyncWord_TX(syncByte);
+            }
+            break;
+        }
+
+        case SYS_CMD_RX_SYNCWORD:
+        {
+            uint8_t sync;
+            if (isQuery)
+            {
+                NVMA_Get_LR_SyncWord_RX(&sync);
+                snprintf(response, sizeof(response), "%02X\r\n", sync);
+                hasResponse = true;
+            }
+            else
+            {
+                // Use HexStringToByteArray for consistent hex parsing
+                uint8_t syncByte;
+                if (HexStringToByteArray((char*)data, &syncByte, 1) != 1)
+                {
+                    AT_SendStringResponse("ERROR: RX_SYNCWORD must be 2 hex digits (e.g. 12 or 34)\r\n");
+                    commandHandled = false;
+                    break;
+                }
+                NVMA_Set_LR_SyncWord_RX(syncByte);
+                reconfigure_rx = true;
+            }
+            break;
+        }
+
         case SYS_CMD_HEADERMODE_TX:
         {   
             uint8_t mode;
@@ -1819,11 +1868,11 @@ static bool _GSC_Handle_AUX_PIN_PWM(uint8_t *data, uint8_t size)
     // Oddělení tokenů
     char *token = strtok((char*)data, ",");
     if (!token || !AT_ParseUint8((uint8_t*)token, &pin, 1)) {
-        AT_SendStringResponse("ERROR: Invalid AUX_PULSE pin value\r\n");
+       // AT_SendStringResponse("ERROR: Invalid AUX_PULSE pin value\r\n");
         return false;
     }
     if (pin < 1 || pin > AUX_PINS_COUNT) {
-        AT_SendStringResponse("ERROR: AUX_PULSE pin out of range (1-8)\r\n");
+      //  AT_SendStringResponse("ERROR: AUX_PULSE pin out of range (1-8)\r\n");
         return false;
     }
     pin -= 1; // uživatel zadává 1-8, indexujeme 0-7

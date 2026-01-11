@@ -28,8 +28,9 @@
 #define EE_ADDR_LR_CRC_RX                       (EE_ADDR_LR_CRC_TX + sizeof(uint32_t))
 #define EE_ADDR_LR_PREAM_SIZE_TX                (EE_ADDR_LR_CRC_RX + sizeof(uint32_t))
 #define EE_ADDR_LR_PREAM_SIZE_RX                (EE_ADDR_LR_PREAM_SIZE_TX + sizeof(uint32_t))
-
-#define EE_ADDR_LR_ACTIVE_RX_TO_UART            (EE_ADDR_LR_PREAM_SIZE_RX + sizeof(uint32_t))
+#define EE_ADDR_LR_SYNC_WORD_TX                 (EE_ADDR_LR_PREAM_SIZE_RX + sizeof(uint32_t))
+#define EE_ADDR_LR_SYNC_WORD_RX                 (EE_ADDR_LR_SYNC_WORD_TX + sizeof(uint32_t))
+#define EE_ADDR_LR_ACTIVE_RX_TO_UART            (EE_ADDR_LR_SYNC_WORD_RX + sizeof(uint32_t))
 #define EE_ADDR_LR_SAVED_PCKT_SIZE              (EE_ADDR_LR_ACTIVE_RX_TO_UART + sizeof(uint32_t))
 #define EE_ADDR_LR_TX_RF_PCKT                   (EE_ADDR_LR_SAVED_PCKT_SIZE + sizeof(uint32_t))   // max is 256 B
 #define EE_ADDR_LR_TX_PERIOD_TX                 (EE_ADDR_LR_TX_RF_PCKT + (256*sizeof(uint8_t)))
@@ -42,7 +43,8 @@
 #define EE_ADDR_INIT_MAGIC                      (EE_ADDR_RX_FORMAT + sizeof(uint32_t))
 
 // Magic value to indicate EEPROM has been initialized with defaults
-#define NVMA_INIT_MAGIC_VALUE                   0xA5A5BEEF
+// Change this value when adding new EEPROM fields to force re-initialization
+#define NVMA_INIT_MAGIC_VALUE                   0xA5A5BEF1
 
 // Default UART baud rate
 #define NVMA_DEFAULT_UART_BAUD                  115200
@@ -67,8 +69,7 @@
 #define NVMA_DEFAULT_RX_FORMAT                  RX_FORMAT_HEX
 #define NVMA_DEFAULT_TX_PERIOD                  1000    // 1 second
 #define NVMA_DEFAULT_RX_PLDLEN                  0       // Auto
-
-
+#define NVMA_DEFAULT_SYNC_WORD                  0x12
 
 
 void NVMA_Init(void);
@@ -125,6 +126,11 @@ void NVMA_Get_LR_PreamSize_TX(uint16_t *size);
 
 void NVMA_Set_LR_PreamSize_RX(uint16_t size);
 void NVMA_Get_LR_PreamSize_RX(uint16_t *size);
+
+void NVMA_Set_LR_SyncWord_TX(uint8_t sync_word);
+void NVMA_Get_LR_SyncWord_TX(uint8_t *sync_word);
+void NVMA_Set_LR_SyncWord_RX(uint8_t sync_word);
+void NVMA_Get_LR_SyncWord_RX(uint8_t *sync_word);
 
 void NVMA_Set_LR_Active_RX_To_UART(uint8_t active);
 void NVMA_Get_LR_Active_RX_To_UART(uint8_t *active);

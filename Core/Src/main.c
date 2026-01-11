@@ -120,7 +120,7 @@ static void PrintAppInfo(void)
 	//time_t rawTime = (time_t)BUILD_DATE;
 	//struct tm *time_info = localtime(&rawTime);
 	//strftime(time_string, sizeof(time_string), "%Y-%m-%d %H:%M:%S", time_info);
-
+  printf("\n");
 	printf("-------------- Application Info --------------\n");
 	//printf("Version: %lu\n", SW_VERSION_VALUE);
 	//printf("Subversion: %lu\n", SW_SUB_VERSION_VALUE);
@@ -194,7 +194,6 @@ int main(void)
 
   LOG_Initialise();
   PrintAppInfo();
-
 
   /* USER CODE END 2 */
 

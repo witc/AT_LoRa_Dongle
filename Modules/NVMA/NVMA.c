@@ -1,3 +1,4 @@
+
 /**
  * @file NVMA.c
  * @author your name (you@domain.com)
@@ -112,6 +113,8 @@ bool NVMA_InitDefaults(void)
         NVMA_Set_LR_TX_Period_TX(NVMA_DEFAULT_TX_PERIOD);
         NVMA_Set_LR_RX_PldLen(NVMA_DEFAULT_RX_PLDLEN);
         NVMA_Set_LR_Pckt_Size(0);  // No saved packet
+        NVMA_Set_LR_SyncWord_TX(NVMA_DEFAULT_SYNC_WORD);
+        NVMA_Set_LR_SyncWord_RX(NVMA_DEFAULT_SYNC_WORD);
         
         // Write magic value to indicate initialization complete
         xSemaphoreTake(xEepromMutex, portMAX_DELAY);
@@ -942,4 +945,39 @@ void NVMA_Get_RX_Format(uint8_t *format)
     {
         *format = RX_FORMAT_HEX;
     }
+}
+
+
+void NVMA_Set_LR_SyncWord_TX(uint8_t sync_word)
+{
+    xSemaphoreTake(xEepromMutex, portMAX_DELAY);
+    NVMA_ClearFlashErrors();
+    HAL_FLASHEx_DATAEEPROM_Unlock();
+    HAL_FLASHEx_DATAEEPROM_Program(FLASH_TYPEPROGRAMDATA_BYTE, EE_ADDR_LR_SYNC_WORD_TX, sync_word);
+    HAL_FLASHEx_DATAEEPROM_Lock();
+    xSemaphoreGive(xEepromMutex);
+}
+
+void NVMA_Get_LR_SyncWord_TX(uint8_t *sync_word)
+{
+    xSemaphoreTake(xEepromMutex, portMAX_DELAY);
+    *sync_word = *((uint8_t *)EE_ADDR_LR_SYNC_WORD_TX);
+    xSemaphoreGive(xEepromMutex);
+}
+
+void NVMA_Set_LR_SyncWord_RX(uint8_t sync_word)
+{
+    xSemaphoreTake(xEepromMutex, portMAX_DELAY);
+    NVMA_ClearFlashErrors();
+    HAL_FLASHEx_DATAEEPROM_Unlock();
+    HAL_FLASHEx_DATAEEPROM_Program(FLASH_TYPEPROGRAMDATA_BYTE, EE_ADDR_LR_SYNC_WORD_RX, sync_word);
+    HAL_FLASHEx_DATAEEPROM_Lock();
+    xSemaphoreGive(xEepromMutex);
+}
+
+void NVMA_Get_LR_SyncWord_RX(uint8_t *sync_word)
+{
+    xSemaphoreTake(xEepromMutex, portMAX_DELAY);
+    *sync_word = *((uint8_t *)EE_ADDR_LR_SYNC_WORD_RX);
+    xSemaphoreGive(xEepromMutex);
 }

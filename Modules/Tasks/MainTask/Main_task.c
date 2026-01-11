@@ -15,7 +15,7 @@
 #include "auxPin_logic.h"
 #include "iwdg.h"
 
-#define LOG_LEVEL	LOG_LEVEL_VERBOSE
+#define LOG_LEVEL	LOG_LEVEL_NONE
 #include "Log.h"
 //#include "process_main_task.h"
 

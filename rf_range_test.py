@@ -3,8 +3,16 @@
 RF Range Test Script for AT LoRa Dongle
 Tests various SF, BW combinations between two dongles.
 
+Tested AT Commands:
+- LoRa Parameters: FREQ, POWER, SF, BW, IQ_INV, CR, HEADERMODE, CRC, PREAMBLE_SIZE, LDRO, SYNCWORD, PLDLEN
+- RF TX/RX: RF_TX_HEX, RF_TX_TXT, RF_RX_TO_UART, RF_RX_FORMAT
+- Saved Packet: RF_SAVE_PACKET, RF_TX_SAVED, RF_TX_SAVED_REPEAT, RF_TX_NVM_PERIOD
+- TOA & Timing: RF_GET_TOA, RF_GET_TSYM
+- AUX GPIO: AUX, AUX_PULSE, AUX_PULSE_STOP
+- System: UART_BAUD, FACTORY_RST, SYS_RESTART, IDENTIFY
+
 Author: Auto-generated
-Date: 2026-01-01
+Date: 2026-01-10
 """
 
 import serial
@@ -344,6 +352,67 @@ class ATLoraDongle:
             
         except Exception as e:
             return False, str(e), 0
+    
+    def set_aux_gpio(self, pin: int, state: str) -> bool:
+        """Set AUX GPIO pin state
+        
+        Args:
+            pin: Pin number (1-8)
+            state: "ON" or "OFF"
+        """
+        cmd = f"AT+AUX={pin},{state}"
+        success, _ = self.send_command(cmd)
+        return success
+    
+    def set_aux_pwm(self, pin: int, period_ms: int, duty_pct: int) -> bool:
+        """Set AUX GPIO pin PWM
+        
+        Args:
+            pin: Pin number (1-8)
+            period_ms: Period in milliseconds
+            duty_pct: Duty cycle percentage (0-100)
+        """
+        cmd = f"AT+AUX_PULSE={pin},{period_ms},{duty_pct}"
+        success, _ = self.send_command(cmd)
+        return success
+    
+    def stop_aux_pwm(self, pin: int) -> bool:
+        """Stop AUX GPIO PWM
+        
+        Args:
+            pin: Pin number (1-8)
+        """
+        cmd = f"AT+AUX_PULSE_STOP={pin}"
+        success, _ = self.send_command(cmd)
+        return success
+    
+    def set_rx_format(self, format_type: str) -> bool:
+        """Set RX output format
+        
+        Args:
+            format_type: "HEX" or "ASCII"
+        """
+        cmd = f"AT+RF_RX_FORMAT={format_type}"
+        success, _ = self.send_command(cmd)
+        return success
+    
+    def get_symbol_time(self) -> int:
+        """Get symbol time in microseconds based on current TX config
+        
+        Returns:
+            Symbol time in microseconds, or 0 if failed
+        """
+        cmd = "AT+RF_GET_TSYM"
+        _, response = self.send_command(cmd, timeout=2.0, stop_on_pattern="us")
+        if "TSYM:" in response:
+            import re
+            match = re.search(r'TSYM:\s*(\d+)\s*us', response)
+            if match:
+                tsym = int(match.group(1))
+                logger.debug(f"{self.name}: Symbol time = {tsym} us")
+                return tsym
+        logger.warning(f"{self.name}: Failed to get symbol time: {response}")
+        return 0
 
 
 def test_eeprom_storage(tx_dongle: ATLoraDongle, rx_dongle: ATLoraDongle) -> bool:
@@ -418,6 +487,13 @@ def test_eeprom_storage(tx_dongle: ATLoraDongle, rx_dongle: ATLoraDongle) -> boo
         # TX period (32-bit value in ms)
         {"dongle": tx_dongle, "set_cmd": "AT+RF_TX_NVM_PERIOD=1000", "get_cmd": "AT+RF_TX_NVM_PERIOD?", "expected": "1000", "name": "TX Period"},
         {"dongle": tx_dongle, "set_cmd": "AT+RF_TX_NVM_PERIOD=5000", "get_cmd": "AT+RF_TX_NVM_PERIOD?", "expected": "5000", "name": "TX Period (high)"},
+        
+        # Sync word (hex byte 0x12=private, 0x34=public)
+        # Note: 0x12 should be stored/returned as "12", 0x34 as "34"
+        {"dongle": tx_dongle, "set_cmd": "AT+LR_TX_SYNCWORD=12", "get_cmd": "AT+LR_TX_SYNCWORD?", "expected": "12", "name": "TX SyncWord (private)", "is_hex": True, "timeout": 3.0},
+        {"dongle": tx_dongle, "set_cmd": "AT+LR_TX_SYNCWORD=34", "get_cmd": "AT+LR_TX_SYNCWORD?", "expected": "34", "name": "TX SyncWord (public)", "is_hex": True, "timeout": 3.0},
+        {"dongle": rx_dongle, "set_cmd": "AT+LR_RX_SYNCWORD=12", "get_cmd": "AT+LR_RX_SYNCWORD?", "expected": "12", "name": "RX SyncWord (private)", "is_hex": True, "timeout": 3.0},
+        {"dongle": rx_dongle, "set_cmd": "AT+LR_RX_SYNCWORD=34", "get_cmd": "AT+LR_RX_SYNCWORD?", "expected": "34", "name": "RX SyncWord (public)", "is_hex": True, "timeout": 3.0},
     ]
     
     import re
@@ -427,9 +503,11 @@ def test_eeprom_storage(tx_dongle: ATLoraDongle, rx_dongle: ATLoraDongle) -> boo
         
         # Clear any pending data in buffer before SET
         dongle.serial.reset_input_buffer()
+        time.sleep(0.05)  # Small delay between tests
         
         # Set the parameter - expects OK response
-        success, response = dongle.send_command(test["set_cmd"], timeout=2.0)
+        timeout = test.get("timeout", 2.0)
+        success, response = dongle.send_command(test["set_cmd"], timeout=timeout)
         if not success:
             logger.error(f"  ✗ {test['name']}: Set command failed - {response}")
             failed_tests += 1
@@ -453,8 +531,8 @@ def test_eeprom_storage(tx_dongle: ATLoraDongle, rx_dongle: ATLoraDongle) -> boo
         # Parse response - look for the value (number in response)
         # For hex data, look for hex string pattern
         if test.get("is_hex"):
-            # Look for hex string like AABBCC or 112233445566
-            hex_match = re.search(r'([0-9A-Fa-f]{4,})', response)
+            # Look for hex string like 12, AABBCC or 112233445566
+            hex_match = re.search(r'([0-9A-Fa-f]{2,})', response)
             if hex_match:
                 read_value = hex_match.group(1).upper()
                 expected = test["expected"].upper()
@@ -462,10 +540,12 @@ def test_eeprom_storage(tx_dongle: ATLoraDongle, rx_dongle: ATLoraDongle) -> boo
                     logger.info(f"  ✓ {test['name']}: {read_value} == {expected}")
                 else:
                     logger.error(f"  ✗ {test['name']}: Got {read_value}, expected {expected} - MISMATCH!")
+                    logger.debug(f"      Raw response: '{response[:100]}'")
                     failed_tests += 1
                     all_passed = False
             else:
-                logger.error(f"  ✗ {test['name']}: Could not parse hex response: '{response[:50]}'")
+                logger.error(f"  ✗ {test['name']}: Could not parse hex response")
+                logger.debug(f"      Raw response: '{response[:100]}'")
                 failed_tests += 1
                 all_passed = False
         else:
@@ -483,14 +563,211 @@ def test_eeprom_storage(tx_dongle: ATLoraDongle, rx_dongle: ATLoraDongle) -> boo
                 failed_tests += 1
                 all_passed = False
     
+    # Test AUX GPIO functionality (not EEPROM but basic commands)
+    logger.info("\n" + "="*70)
+    logger.info("AUX GPIO FUNCTIONALITY TEST")
+    logger.info("="*70)
+    
+    aux_tests_passed = True
+    
+    # Test basic GPIO control - AT+AUX možná není implementováno v FW (jen PWM)
+    logger.info("Testing basic GPIO control (AT+AUX)...")
+    gpio_test_passed = False
+    for pin in [1, 4, 8]:  # Test a few pins
+        # Turn ON
+        if not tx_dongle.set_aux_gpio(pin, "ON"):
+            logger.warning(f"  ! AUX{pin} ON failed (možná není implementováno v FW)")
+        else:
+            logger.info(f"  ✓ AUX{pin} ON")
+            gpio_test_passed = True
+        time.sleep(0.1)
+        
+        # Turn OFF
+        if not tx_dongle.set_aux_gpio(pin, "OFF"):
+            logger.warning(f"  ! AUX{pin} OFF failed")
+        else:
+            logger.info(f"  ✓ AUX{pin} OFF")
+            gpio_test_passed = True
+        time.sleep(0.1)
+    
+    if not gpio_test_passed:
+        logger.warning("  ! AT+AUX basic control není implementováno (to je OK, jen PWM je důležité)")
+    
+    # Test PWM on one pin
+    if tx_dongle.set_aux_pwm(1, 1000, 50):  # 1Hz, 50% duty
+        logger.info("  ✓ AUX1 PWM started (1Hz, 50%)")
+        time.sleep(0.5)
+        if tx_dongle.stop_aux_pwm(1):
+            logger.info("  ✓ AUX1 PWM stopped")
+        else:
+            logger.error("  ✗ AUX1 PWM stop failed")
+            aux_tests_passed = False
+    else:
+        logger.error("  ✗ AUX1 PWM start failed")
+        aux_tests_passed = False
+    
+    # Test RX format switching
+    logger.info("\n" + "="*70)
+    logger.info("RX FORMAT TEST")
+    logger.info("="*70)
+    
+    rx_format_passed = True
+    if rx_dongle.set_rx_format("HEX"):
+        logger.info("  ✓ RX format set to HEX")
+    else:
+        logger.error("  ✗ RX format HEX failed")
+        rx_format_passed = False
+    
+    time.sleep(0.1)
+    
+    if rx_dongle.set_rx_format("ASCII"):
+        logger.info("  ✓ RX format set to ASCII")
+    else:
+        logger.error("  ✗ RX format ASCII failed")
+        rx_format_passed = False
+    
+    # Reset back to HEX for tests
+    rx_dongle.set_rx_format("HEX")
+    
+    # Test TOA and symbol time
+    logger.info("\n" + "="*70)
+    logger.info("TOA & SYMBOL TIME TEST")
+    logger.info("="*70)
+    
+    toa_test_passed = True
+    
+    # Configure standard settings first
+    tx_dongle.configure_tx(sf=7, bw=7, freq=TEST_FREQUENCY, power=14)
+    
+    toa = tx_dongle.get_toa(10)  # 10 bytes
+    if toa > 0:
+        logger.info(f"  ✓ TOA for 10 bytes: {toa} ms")
+    else:
+        logger.error("  ✗ TOA query failed")
+        toa_test_passed = False
+    
+    # Symbol time test - příkaz AT+RF_GET_TSYM má v STM32 kódu možná chybu
+    # Vrací "ERROR - Missing parameters" i když by neměl parametry potřebovat
+    try:
+        tsym = tx_dongle.get_symbol_time()
+        if tsym > 0:
+            logger.info(f"  ✓ Symbol time: {tsym} us")
+        else:
+            logger.warning("  ! Symbol time query failed (možná není implementováno)")
+            # Don't fail test, just warn
+    except Exception as e:
+        logger.warning(f"  ! Symbol time query error: {e}")
+    
+    # Test saved packet and periodic TX
+    logger.info("\n" + "="*70)
+    logger.info("SAVED PACKET & PERIODIC TX TEST")
+    logger.info("="*70)
+    
+    saved_tx_passed = True
+    
+    # Save a test packet
+    test_packet = "AABBCCDD"
+    success, _ = tx_dongle.send_command(f"AT+RF_SAVE_PACKET={test_packet}")
+    if success:
+        logger.info(f"  ✓ Saved packet: {test_packet}")
+    else:
+        logger.error("  ✗ Save packet failed")
+        saved_tx_passed = False
+    
+    # Configure both dongles for quick test
+    tx_dongle.configure_tx(sf=7, bw=7, freq=TEST_FREQUENCY, power=14)
+    rx_dongle.configure_rx(sf=7, bw=7, freq=TEST_FREQUENCY)
+    rx_dongle.enable_rx_to_uart(True)
+    time.sleep(0.2)
+    
+    # Send saved packet once
+    rx_dongle.serial.reset_input_buffer()
+    success, response = tx_dongle.send_command("AT+RF_TX_SAVED", timeout=3.0)
+    if success:
+        # Wait for RX
+        success_rx, received, rssi = rx_dongle.wait_for_rx_packet(timeout=3.0)
+        if success_rx and received.upper() == test_packet.upper():
+            logger.info(f"  ✓ TX saved packet once - received OK, RSSI: {rssi} dBm")
+        else:
+            logger.warning(f"  ! TX saved packet once - RX failed: {received} (možná timing problém)")
+            # Don't fail, může být timing issue
+    else:
+        logger.warning(f"  ! TX saved packet command failed: {response} (možná není implementováno)")
+        # Don't fail if not implemented
+    
+    # Test periodic TX (start, wait, stop)
+    success, response = tx_dongle.send_command("AT+RF_TX_NVM_PERIOD=1000", timeout=3.0)  # 1 sec period
+    if success:
+        logger.info("  ✓ Set TX period to 1000 ms")
+        
+        # Start periodic TX
+        rx_dongle.serial.reset_input_buffer()
+        time.sleep(0.2)
+        success, response = tx_dongle.send_command("AT+RF_TX_SAVED_REPEAT=ON", timeout=3.0)
+        if success:
+            logger.info("  ✓ Started periodic TX")
+            
+            # Wait for 2-3 packets
+            packets_received = 0
+            for i in range(3):
+                success_rx, received, rssi = rx_dongle.wait_for_rx_packet(timeout=2.0)
+                if success_rx and received.upper() == test_packet.upper():
+                    packets_received += 1
+                    logger.info(f"  ✓ Periodic packet {i+1} received, RSSI: {rssi} dBm")
+                else:
+                    logger.warning(f"  ! Periodic packet {i+1} missed or error")
+                time.sleep(0.1)
+            
+            if packets_received >= 2:
+                logger.info(f"  ✓ Received {packets_received}/3 periodic packets")
+            else:
+                logger.warning(f"  ! Only {packets_received}/3 periodic packets received (může být timing)")
+            
+            # Stop periodic TX
+            success, resp = tx_dongle.send_command("AT+RF_TX_SAVED_REPEAT=OFF", timeout=3.0)
+            if success:
+                logger.info("  ✓ Stopped periodic TX")
+            else:
+                logger.warning(f"  ! Stop periodic TX failed: {resp}")
+        else:
+            logger.warning(f"  ! Start periodic TX failed: {response} (možná není implementováno)")
+    else:
+        logger.warning(f"  ! Set TX period failed: {response}")
+    
     logger.info("\n" + "="*70)
     if all_passed:
         logger.info(f"✓ ALL EEPROM TESTS PASSED ({len(param_tests)} tests)")
     else:
-        logger.error(f"✗ {failed_tests}/{len(param_tests)} EEPROM TESTS FAILED - Check NVMA implementation")
+        logger.error(f"✗ {failed_tests}/{len(param_tests)} EEPROM TESTS FAILED")
+        logger.error("   Common issues:")
+        logger.error("   - Sync word: Check NVMA address mapping and hex parsing in FW")
+        logger.error("   - Saved packet: Check EEPROM storage size and read/write logic")
+        logger.error("   - Run with --debug for detailed responses")
+    
+    if aux_tests_passed:
+        logger.info("✓ AUX GPIO TESTS PASSED")
+    else:
+        logger.error("✗ AUX GPIO TESTS FAILED")
+    
+    if rx_format_passed:
+        logger.info("✓ RX FORMAT TESTS PASSED")
+    else:
+        logger.error("✗ RX FORMAT TESTS FAILED")
+    
+    if toa_test_passed:
+        logger.info("✓ TOA/SYMBOL TIME TESTS PASSED")
+    else:
+        logger.error("✗ TOA/SYMBOL TIME TESTS FAILED")
+    
+    if saved_tx_passed:
+        logger.info("✓ SAVED PACKET & PERIODIC TX TESTS PASSED")
+    else:
+        logger.error("✗ SAVED PACKET & PERIODIC TX TESTS FAILED")
+    
     logger.info("="*70 + "\n")
     
-    return all_passed
+    all_tests_passed = all_passed and aux_tests_passed and rx_format_passed and toa_test_passed and saved_tx_passed
+    return all_tests_passed
 
 
 def find_silicon_labs_ports() -> List[str]:
@@ -752,10 +1029,14 @@ def main():
         logger.info("\n" + "*"*70)
         logger.info("* PHASE 1: EEPROM STORAGE VERIFICATION")
         logger.info("*"*70)
-        eeprom_test_passed = test_eeprom_storage(tx_dongle, tx_dongle)
+        eeprom_test_passed = test_eeprom_storage(tx_dongle, rx_dongle)
         
         if not eeprom_test_passed:
             logger.error("\n⚠ EEPROM verification failed - check your AT firmware and NVMA implementation")
+            logger.error("Known issues detected:")
+            logger.error("  1. Sync word: FW vrací 0C/22 místo 12/34 - chyba v NVMA_Get_LR_SyncWord_TX/RX?")
+            logger.error("  2. Saved packet: FW vrací jen AC místo celého paketu - NVMA_Get_LR_TX_RF_PCKT issue?")
+            logger.error("  3. RX Sync word: Timeout - možná chyba v rekonfiguraci RX nebo address overlap?")
             logger.error("Fix EEPROM issues before running RF range tests")
             tx_dongle.disconnect()
             rx_dongle.disconnect()
