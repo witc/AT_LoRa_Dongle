@@ -111,7 +111,7 @@ const AT_Command_Struct AT_Commands[] = {
     {"AT+UART_BAUD",                NULL,               SYS_CMD_UART_BAUD,                   "AT+UART_BAUD - Set UART baud rate", "=9600|19200|38400|57600|115200|230400, ?"},
     
     /* multiple LoRa params - set all at once */
-    {"AT+LR_TX_SET",                NULL,               SYS_CMD_TX_COMPLETE_SET,             "AT+LR_TX_SET - Set multiple TX params",      "=SF:<5-12>,BW:<0-9>,CR:<45-48>,Freq:<Hz>,IQInv:<0|1>,HeaderMode:<0|1>,CRC:<0|1>,Preamble:<1-65535>,Power:<dBm>,LDRO:<0|1|2>, ?"},
+    {"AT+LR_TX_SET",                NULL,               SYS_CMD_TX_COMPLETE_SET,             "AT+LR_TX_SET - Set multiple TX params",      "=SF:<5-12>,BW:<0-9>,CR:<45-48>,Freq:<Hz>,IQInv:<0|1>,HeaderMode:<0|1>,CRC:<0|1>,Preamble:<1-65535>,LDRO:<0|1|2>,Power:<dBm>, ?"},
     {"AT+LR_RX_SET",                NULL,               SYS_CMD_RX_COMPLETE_SET,             "AT+LR_RX_SET - Set multiple RX params",      "=SF:<5-12>,BW:<0-9>,CR:<45-48>,Freq:<Hz>,IQInv:<0|1>,HeaderMode:<0|1>,CRC:<0|1>,Preamble:<1-65535>,LDRO:<0|1|2>, ?"}
 
 };
