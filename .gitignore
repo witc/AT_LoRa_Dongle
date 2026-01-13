@@ -1,6 +1,9 @@
 
 .vscode/
 /build/
+build_*/
+build.ninja
+.ninja_*
 
 # Clangd/LSP
 .clangd

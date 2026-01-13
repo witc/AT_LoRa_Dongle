@@ -128,7 +128,7 @@ static void PrintAppInfo(void)
 	printf("  Device Name:  %s\n", FW_DEVICE_NAME);
 	printf("  Firmware:     %s\n", FW_VERSION_STRING);
 	printf("  Version:      %s\n", version_str);
-	printf("  Hardware:     %s %s\n", HW_RF_FREQ_BAND, HW_RF_OSC_TYPE);
+	printf("  Hardware:     %s %s %s\n", HW_RF_FREQ_BAND, HW_RF_OSC_TYPE, HW_BOARD_VERSION_STRING);
 	printf("==========================================================\n");
 	printf("\n");
 }

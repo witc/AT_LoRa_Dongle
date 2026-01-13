@@ -125,8 +125,8 @@ typedef struct
 #define SX1262_BUSY_GPIO_Port GPIOB
 #define LED_GREEN_Pin GPIO_PIN_15
 #define LED_GREEN_GPIO_Port GPIOB
-#define SX1262_RF_SW_Pin GPIO_PIN_8
-#define SX1262_RF_SW_GPIO_Port GPIOA
+#define SX1262_RF_SW_Pin GPIO_PIN_12
+#define SX1262_RF_SW_GPIO_Port GPIOB
 #define aux4_Pin GPIO_PIN_12
 #define aux4_GPIO_Port GPIOA
 #define aux3_Pin GPIO_PIN_3
@@ -144,6 +144,8 @@ typedef struct
 
 /* USER CODE BEGIN Private defines */
 
+/* Include hardware configuration - must be after pin definitions above */
+#include "hw_config.h"
 
 /**
  * @brief Command identifiers for the main task

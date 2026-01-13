@@ -73,11 +73,23 @@
         },
         {
             "name": "915-tcxo-debug",
-            "displayName": "915 MHz TCXO (Debug)",
-            "description": "915 MHz band with TCXO oscillator - Debug build",
+            "displayName": "915 MHz TCXO v1.0 (Debug)",
+            "description": "915 MHz TCXO, Board v1.0 - Debug",
             "inherits": "default",
             "cacheVariables": {
                 "HW_VARIANT": "915_TCXO",
+                "HW_BOARD_REV": "1_0",
+                "CMAKE_BUILD_TYPE": "Debug"
+            }
+        },
+        {
+            "name": "915-tcxo-v2-debug",
+            "displayName": "915 MHz TCXO v2.0 (Debug)",
+            "description": "915 MHz TCXO, Board v2.0 - Debug",
+            "inherits": "default",
+            "cacheVariables": {
+                "HW_VARIANT": "915_TCXO",
+                "HW_BOARD_REV": "2_0",
                 "CMAKE_BUILD_TYPE": "Debug"
             }
         },
@@ -130,6 +142,10 @@
         {
             "name": "915-tcxo-debug",
             "configurePreset": "915-tcxo-debug"
+        },
+        {
+            "name": "915-tcxo-v2-debug",
+            "configurePreset": "915-tcxo-v2-debug"
         },
         {
             "name": "915-tcxo-release",
