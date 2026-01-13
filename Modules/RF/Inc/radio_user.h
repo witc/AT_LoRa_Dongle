@@ -13,6 +13,7 @@
 
 
 #define RF_HEART_BEAT_TIMEOUT_MS			(3*CONST_1_MIN)
+#define RF_EVENT_LED_TIMEOUT_MS				(100)
 
 /*
  *

@@ -29,8 +29,14 @@ static void _RF_HeartBeat_Callback(TimerHandle_t timer)
 	dataQueue_t txm;
 	txm.ptr = NULL;
 
-	txm.cmd = CMD_RF_RADIO_HB;
+	txm.cmd = CMD_RF_RADIO_HB;	//TODO
 	xQueueSend(queueRadioHandle,&txm,portMAX_DELAY);
+}
+
+static void _RF_EventLed_Callback(TimerHandle_t timer)
+{
+	UNUSED(timer);
+	HW_LED_RF_EVENT_OFF();
 }
 
 /*
@@ -156,6 +162,8 @@ void radio_task(void)
 
 	ctx.timers.rfHBTimer.timer = xTimerCreateStatic("RF_TimerHeartBeat", pdMS_TO_TICKS(RF_HEART_BEAT_TIMEOUT_MS),
    	    		pdFALSE, NULL, _RF_HeartBeat_Callback,  &ctx.timers.rfHBTimer.timerPlace);
+	ctx.timers.rfEventLedTimer.timer = xTimerCreateStatic("RF_Event_LED", pdMS_TO_TICKS(RF_EVENT_LED_TIMEOUT_MS), 
+							pdFALSE, NULL, _RF_EventLed_Callback, &ctx.timers.rfEventLedTimer.timerPlace);
 
 	ru_sx1262_assign(&ctx);
 

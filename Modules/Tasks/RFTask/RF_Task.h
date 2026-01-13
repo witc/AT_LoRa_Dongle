@@ -111,8 +111,10 @@ typedef struct RF_StateAutomat
 typedef struct
 {
 	//TimerResource_t	rfTimer;
-	TimerResource_t	rfHBTimer;	// pokud SX122 nevykona delsi dobu zadnou akci,
+	TimerResource_t	rfHBTimer;	// pokud SX1262 nevykona delsi dobu zadnou akci,
 								// tak ho znovu aktivujeme
+	TimerResource_t rfEventLedTimer; // LED indikace udalosti (RX/TX)
+
 
 }RFTimers_t;
 

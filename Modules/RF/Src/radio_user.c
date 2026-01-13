@@ -5,6 +5,7 @@
  *      Author: Uzivatel
  */
 
+#include "cmsis_os2.h"
 #include "main.h"
 #include "RF_Config.h"
 #include "radio_user.h"
@@ -380,7 +381,7 @@ bool ru_radioCleanAndStandby(ral_standby_cfg_t standbyMode, radio_context_t *ctx
 	ral_clear_irq_status(ral, RAL_IRQ_ALL);
 
 	/* restart HB timer */
-	osTimerStart(ctx->timers.rfHBTimer.timer,(RF_HEART_BEAT_TIMEOUT_MS));
+	osTimerStart(ctx->timers.rfHBTimer.timer,pdMS_TO_TICKS(RF_HEART_BEAT_TIMEOUT_MS));
 
 	return true;
 }
@@ -605,6 +606,10 @@ void ru_radio_process_commands(RFCommands_e cmd,radio_context_t *ctx, const data
 			pkt = (packet_info_t*)rxm->ptr;
 			ru_radioCleanAndStandby(RAL_STANDBY_CFG_XOSC,ctx);
 			ru_radio_send_packet(pkt->packet,pkt->size,ctx);
+
+			HW_LED_RF_EVENT_ON();
+			osTimerStart(ctx->timers.rfEventLedTimer.timer,pdMS_TO_TICKS(RF_EVENT_LED_TIMEOUT_MS));
+
 			vPortFree(pkt->packet);
 			LOG_INFO("RF data sent: %d B, TOA: %lu ms", pkt->size, ru_calculate_toa_ms(pkt->size));
 
@@ -681,6 +686,9 @@ void ru_radio_process_IRQ(radio_context_t *ctx)
 						txm.ptr = rx_pkt;
 
 						xQueueSend(queueMainHandle,&txm,portMAX_DELAY);
+
+						HW_LED_RF_EVENT_ON();
+						osTimerStart(ctx->timers.rfEventLedTimer.timer,pdMS_TO_TICKS(RF_EVENT_LED_TIMEOUT_MS));
 					}
 					
 		    	}

@@ -67,13 +67,13 @@ static void _Main_Alive_Callback(TimerHandle_t xTimer)
 
 /**
  * @brief Construct a new main rx done callback object
- * 
- * @param xTimer 
+ *
+ * @param xTimer
  */
 static void _Main_Rx_done_Callback(TimerHandle_t xTimer)
 {
     (void)xTimer;
-    HAL_GPIO_WritePin(LED_BLUE_GPIO_Port, LED_BLUE_Pin, GPIO_PIN_RESET);
+    HAL_GPIO_WritePin(LED_AT_RX_GPIO_Port, LED_AT_RX_Pin, GPIO_PIN_RESET);
 }
 
 
@@ -243,7 +243,7 @@ void main_task_on(main_ctx_t *ctx, dataQueue_t *rxd)
             if(AtCmdProcessed)
             {
                 HAL_GPIO_WritePin(LED_BLUE_GPIO_Port, LED_BLUE_Pin, GPIO_PIN_SET);
-                osTimerStart(ctx->timers.LED_RX_done.timer, pdMS_TO_TICKS(100));
+                osTimerStart(ctx->timers.LED_AT_RX_done.timer, pdMS_TO_TICKS(100));
             }
             
 			xSemaphoreGive(xBinarySemaphore_USART);
@@ -347,16 +347,16 @@ void main_task(void)
 	ctx.heartbeat.hb_pending = false;
 	ctx.heartbeat.rf_task_alive = false;
 
-	HAL_GPIO_WritePin(LED_GREEN_GPIO_Port, LED_GREEN_Pin, false);
-	HAL_GPIO_WritePin(LED_BLUE_GPIO_Port, LED_BLUE_Pin, false);
+	// Initialize all LEDs (turn off)
+	HW_LED_INIT();
 
 	_Main_QueueSemaphore = xSemaphoreCreateMutexStatic(&_Main_QueueSemaphoreBuffer);
 
     ctx.timers.LED_alive.timer = xTimerCreateStatic("LED alive timer", pdMS_TO_TICKS(100), pdFALSE, NULL, 
                                                          _Main_Alive_Callback,  &ctx.timers.LED_alive.timerPlace);
 
-    ctx.timers.LED_RX_done.timer = xTimerCreateStatic("LED RX done", pdMS_TO_TICKS(100), pdFALSE, NULL, 
-                                                        _Main_Rx_done_Callback,  &ctx.timers.LED_RX_done.timerPlace);
+    ctx.timers.LED_AT_RX_done.timer = xTimerCreateStatic("LED RX done", pdMS_TO_TICKS(100), pdFALSE, NULL, 
+                                                        _Main_Rx_done_Callback,  &ctx.timers.LED_AT_RX_done.timerPlace);
 
 	osTimerStart(ctx.timers.LED_alive.timer, pdMS_TO_TICKS(100));
 
