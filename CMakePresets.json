@@ -12,67 +12,139 @@
             }
         },
         {
-            "name": "868-xtal-debug",
-            "displayName": "868 MHz XTAL (Debug)",
-            "description": "868 MHz band with XTAL oscillator - Debug build",
+            "name": "868-xtal-v1-debug",
+            "displayName": "868 MHz XTAL v1.0 (Debug)",
+            "description": "868 MHz XTAL, Board v1.0 - Debug",
             "inherits": "default",
             "cacheVariables": {
                 "HW_VARIANT": "868_XTAL",
+                "HW_BOARD_REV": "1_0",
                 "CMAKE_BUILD_TYPE": "Debug"
             }
         },
         {
-            "name": "868-xtal-release",
-            "displayName": "868 MHz XTAL (Release)",
-            "description": "868 MHz band with XTAL oscillator - Release build",
+            "name": "868-xtal-v1-release",
+            "displayName": "868 MHz XTAL v1.0 (Release)",
+            "description": "868 MHz XTAL, Board v1.0 - Release",
             "inherits": "default",
             "cacheVariables": {
                 "HW_VARIANT": "868_XTAL",
+                "HW_BOARD_REV": "1_0",
                 "CMAKE_BUILD_TYPE": "Release"
             }
         },
         {
-            "name": "868-tcxo-debug",
-            "displayName": "868 MHz TCXO (Debug)",
-            "description": "868 MHz band with TCXO oscillator - Debug build",
+            "name": "868-xtal-v2-debug",
+            "displayName": "868 MHz XTAL v2.0 (Debug)",
+            "description": "868 MHz XTAL, Board v2.0 - Debug",
             "inherits": "default",
             "cacheVariables": {
-                "HW_VARIANT": "868_TCXO",
+                "HW_VARIANT": "868_XTAL",
+                "HW_BOARD_REV": "2_0",
                 "CMAKE_BUILD_TYPE": "Debug"
             }
         },
         {
-            "name": "868-tcxo-release",
-            "displayName": "868 MHz TCXO (Release)",
-            "description": "868 MHz band with TCXO oscillator - Release build",
+            "name": "868-xtal-v2-release",
+            "displayName": "868 MHz XTAL v2.0 (Release)",
+            "description": "868 MHz XTAL, Board v2.0 - Release",
             "inherits": "default",
             "cacheVariables": {
-                "HW_VARIANT": "868_TCXO",
+                "HW_VARIANT": "868_XTAL",
+                "HW_BOARD_REV": "2_0",
                 "CMAKE_BUILD_TYPE": "Release"
             }
         },
         {
-            "name": "915-xtal-debug",
-            "displayName": "915 MHz XTAL (Debug)",
-            "description": "915 MHz band with XTAL oscillator - Debug build",
+            "name": "868-tcxo-v1-debug",
+            "displayName": "868 MHz TCXO v1.0 (Debug)",
+            "description": "868 MHz TCXO, Board v1.0 - Debug",
             "inherits": "default",
             "cacheVariables": {
-                "HW_VARIANT": "915_XTAL",
+                "HW_VARIANT": "868_TCXO",
+                "HW_BOARD_REV": "1_0",
                 "CMAKE_BUILD_TYPE": "Debug"
             }
         },
         {
-            "name": "915-xtal-release",
-            "displayName": "915 MHz XTAL (Release)",
-            "description": "915 MHz band with XTAL oscillator - Release build",
+            "name": "868-tcxo-v1-release",
+            "displayName": "868 MHz TCXO v1.0 (Release)",
+            "description": "868 MHz TCXO, Board v1.0 - Release",
             "inherits": "default",
             "cacheVariables": {
-                "HW_VARIANT": "915_XTAL",
+                "HW_VARIANT": "868_TCXO",
+                "HW_BOARD_REV": "1_0",
                 "CMAKE_BUILD_TYPE": "Release"
             }
         },
         {
-            "name": "915-tcxo-debug",
+            "name": "868-tcxo-v2-debug",
+            "displayName": "868 MHz TCXO v2.0 (Debug)",
+            "description": "868 MHz TCXO, Board v2.0 - Debug",
+            "inherits": "default",
+            "cacheVariables": {
+                "HW_VARIANT": "868_TCXO",
+                "HW_BOARD_REV": "2_0",
+                "CMAKE_BUILD_TYPE": "Debug"
+            }
+        },
+        {
+            "name": "868-tcxo-v2-release",
+            "displayName": "868 MHz TCXO v2.0 (Release)",
+            "description": "868 MHz TCXO, Board v2.0 - Release",
+            "inherits": "default",
+            "cacheVariables": {
+                "HW_VARIANT": "868_TCXO",
+                "HW_BOARD_REV": "2_0",
+                "CMAKE_BUILD_TYPE": "Release"
+            }
+        },
+        {
+            "name": "915-xtal-v1-debug",
+            "displayName": "915 MHz XTAL v1.0 (Debug)",
+            "description": "915 MHz XTAL, Board v1.0 - Debug",
+            "inherits": "default",
+            "cacheVariables": {
+                "HW_VARIANT": "915_XTAL",
+                "HW_BOARD_REV": "1_0",
+                "CMAKE_BUILD_TYPE": "Debug"
+            }
+        },
+        {
+            "name": "915-xtal-v1-release",
+            "displayName": "915 MHz XTAL v1.0 (Release)",
+            "description": "915 MHz XTAL, Board v1.0 - Release",
+            "inherits": "default",
+            "cacheVariables": {
+                "HW_VARIANT": "915_XTAL",
+                "HW_BOARD_REV": "1_0",
+                "CMAKE_BUILD_TYPE": "Release"
+            }
+        },
+        {
+            "name": "915-xtal-v2-debug",
+            "displayName": "915 MHz XTAL v2.0 (Debug)",
+            "description": "915 MHz XTAL, Board v2.0 - Debug",
+            "inherits": "default",
+            "cacheVariables": {
+                "HW_VARIANT": "915_XTAL",
+                "HW_BOARD_REV": "2_0",
+                "CMAKE_BUILD_TYPE": "Debug"
+            }
+        },
+        {
+            "name": "915-xtal-v2-release",
+            "displayName": "915 MHz XTAL v2.0 (Release)",
+            "description": "915 MHz XTAL, Board v2.0 - Release",
+            "inherits": "default",
+            "cacheVariables": {
+                "HW_VARIANT": "915_XTAL",
+                "HW_BOARD_REV": "2_0",
+                "CMAKE_BUILD_TYPE": "Release"
+            }
+        },
+        {
+            "name": "915-tcxo-v1-debug",
             "displayName": "915 MHz TCXO v1.0 (Debug)",
             "description": "915 MHz TCXO, Board v1.0 - Debug",
             "inherits": "default",
@@ -80,6 +152,17 @@
                 "HW_VARIANT": "915_TCXO",
                 "HW_BOARD_REV": "1_0",
                 "CMAKE_BUILD_TYPE": "Debug"
+            }
+        },
+        {
+            "name": "915-tcxo-v1-release",
+            "displayName": "915 MHz TCXO v1.0 (Release)",
+            "description": "915 MHz TCXO, Board v1.0 - Release",
+            "inherits": "default",
+            "cacheVariables": {
+                "HW_VARIANT": "915_TCXO",
+                "HW_BOARD_REV": "1_0",
+                "CMAKE_BUILD_TYPE": "Release"
             }
         },
         {
@@ -94,62 +177,91 @@
             }
         },
         {
-            "name": "915-tcxo-release",
-            "displayName": "915 MHz TCXO (Release)",
-            "description": "915 MHz band with TCXO oscillator - Release build",
+            "name": "915-tcxo-v2-release",
+            "displayName": "915 MHz TCXO v2.0 (Release)",
+            "description": "915 MHz TCXO, Board v2.0 - Release",
             "inherits": "default",
             "cacheVariables": {
                 "HW_VARIANT": "915_TCXO",
+                "HW_BOARD_REV": "2_0",
                 "CMAKE_BUILD_TYPE": "Release"
             }
         },
         {
             "name": "Debug",
-            "inherits": "915-tcxo-debug",
+            "inherits": "915-tcxo-v1-debug",
             "hidden": true
         },
         {
             "name": "Release",
-            "inherits": "915-tcxo-release",
+            "inherits": "915-tcxo-v1-release",
             "hidden": true
         }
     ],
     "buildPresets": [
         {
-            "name": "868-xtal-debug",
-            "configurePreset": "868-xtal-debug"
+            "name": "868-xtal-v1-debug",
+            "configurePreset": "868-xtal-v1-debug"
         },
         {
-            "name": "868-xtal-release",
-            "configurePreset": "868-xtal-release"
+            "name": "868-xtal-v1-release",
+            "configurePreset": "868-xtal-v1-release"
         },
         {
-            "name": "868-tcxo-debug",
-            "configurePreset": "868-tcxo-debug"
+            "name": "868-xtal-v2-debug",
+            "configurePreset": "868-xtal-v2-debug"
         },
         {
-            "name": "868-tcxo-release",
-            "configurePreset": "868-tcxo-release"
+            "name": "868-xtal-v2-release",
+            "configurePreset": "868-xtal-v2-release"
         },
         {
-            "name": "915-xtal-debug",
-            "configurePreset": "915-xtal-debug"
+            "name": "868-tcxo-v1-debug",
+            "configurePreset": "868-tcxo-v1-debug"
         },
         {
-            "name": "915-xtal-release",
-            "configurePreset": "915-xtal-release"
+            "name": "868-tcxo-v1-release",
+            "configurePreset": "868-tcxo-v1-release"
         },
         {
-            "name": "915-tcxo-debug",
-            "configurePreset": "915-tcxo-debug"
+            "name": "868-tcxo-v2-debug",
+            "configurePreset": "868-tcxo-v2-debug"
+        },
+        {
+            "name": "868-tcxo-v2-release",
+            "configurePreset": "868-tcxo-v2-release"
+        },
+        {
+            "name": "915-xtal-v1-debug",
+            "configurePreset": "915-xtal-v1-debug"
+        },
+        {
+            "name": "915-xtal-v1-release",
+            "configurePreset": "915-xtal-v1-release"
+        },
+        {
+            "name": "915-xtal-v2-debug",
+            "configurePreset": "915-xtal-v2-debug"
+        },
+        {
+            "name": "915-xtal-v2-release",
+            "configurePreset": "915-xtal-v2-release"
+        },
+        {
+            "name": "915-tcxo-v1-debug",
+            "configurePreset": "915-tcxo-v1-debug"
+        },
+        {
+            "name": "915-tcxo-v1-release",
+            "configurePreset": "915-tcxo-v1-release"
         },
         {
             "name": "915-tcxo-v2-debug",
             "configurePreset": "915-tcxo-v2-debug"
         },
         {
-            "name": "915-tcxo-release",
-            "configurePreset": "915-tcxo-release"
+            "name": "915-tcxo-v2-release",
+            "configurePreset": "915-tcxo-v2-release"
         }
     ]
 }
