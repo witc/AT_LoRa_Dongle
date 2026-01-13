@@ -99,7 +99,7 @@ void ru_sx1262_assign( radio_context_t	*ctx)
 	ctx->rfConfig.radioHal.pin_RF_SWITCH_1.pin=SX1262_RF_SW_Pin;
 	ctx->rfConfig.radioHal.pin_RF_SWITCH_2.port=0;
 	ctx->rfConfig.radioHal.pin_RF_SWITCH_2.pin=0;
-	ctx->rfConfig.radioHal.TCXO_is_used=true;
+	ctx->rfConfig.radioHal.TCXO_is_used=RF_USE_TCXO;
 	ctx->rfConfig.radioHal.DIO2_AS_RF_SWITCH=true;
 	ctx->rfConfig.radioHal.target=&hspi1;
 	//ctx->rfConfig.radioHal.AtomicActionEnter=vTaskSuspendAll;

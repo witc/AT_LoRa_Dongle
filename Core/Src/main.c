@@ -29,6 +29,7 @@
 /* USER CODE BEGIN Includes */
 #include "AT_cmd.h"
 #include "cmsis_os2.h"
+#include "hw_config.h"
 
 extern osMessageQueueId_t queueRadioHandle;
 
@@ -117,9 +118,9 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
 static void PrintAppInfo(void)
 {
 	char version_str[16];
-	sprintf(version_str, "%d.%d.%d", 
+	sprintf(version_str, "%d.%d.%d",
 	        FW_VERSION_MAJOR, FW_VERSION_MINOR, FW_VERSION_PATCH);
-	
+
 	printf("\n");
 	printf("==========================================================\n");
 	printf("              AT-USB LoRa Dongle\n");
@@ -127,6 +128,7 @@ static void PrintAppInfo(void)
 	printf("  Device Name:  %s\n", FW_DEVICE_NAME);
 	printf("  Firmware:     %s\n", FW_VERSION_STRING);
 	printf("  Version:      %s\n", version_str);
+	printf("  Hardware:     %s %s\n", HW_RF_FREQ_BAND, HW_RF_OSC_TYPE);
 	printf("==========================================================\n");
 	printf("\n");
 }

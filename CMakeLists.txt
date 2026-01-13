@@ -18,6 +18,27 @@ if(NOT CMAKE_BUILD_TYPE)
     set(CMAKE_BUILD_TYPE "Debug")
 endif()
 
+# Hardware variant selection
+set(HW_VARIANT "915_TCXO" CACHE STRING "Hardware variant: 868_XTAL, 868_TCXO, 915_XTAL, or 915_TCXO")
+set_property(CACHE HW_VARIANT PROPERTY STRINGS "868_XTAL" "868_TCXO" "915_XTAL" "915_TCXO")
+
+message(STATUS "Hardware variant: ${HW_VARIANT}")
+
+# Map HW_VARIANT to preprocessor define
+if(HW_VARIANT STREQUAL "868_XTAL")
+    set(HW_DEFINE "HW_RF_868_XTAL")
+elseif(HW_VARIANT STREQUAL "868_TCXO")
+    set(HW_DEFINE "HW_RF_868_TCXO")
+elseif(HW_VARIANT STREQUAL "915_XTAL")
+    set(HW_DEFINE "HW_RF_915_XTAL")
+elseif(HW_VARIANT STREQUAL "915_TCXO")
+    set(HW_DEFINE "HW_RF_915_TCXO")
+else()
+    message(FATAL_ERROR "Invalid HW_VARIANT: ${HW_VARIANT}. Must be one of: 868_XTAL, 868_TCXO, 915_XTAL, 915_TCXO")
+endif()
+
+message(STATUS "Using hardware define: ${HW_DEFINE}")
+
 # Set the project name
 set(CMAKE_PROJECT_NAME CmakeTest)
 
@@ -87,6 +108,7 @@ target_include_directories(${CMAKE_PROJECT_NAME} PRIVATE
 # Add project symbols (macros)
 target_compile_definitions(${CMAKE_PROJECT_NAME} PRIVATE
     # Add user defined symbols
+    ${HW_DEFINE}
 )
 
 # Stop IWDG when debugging (only in Debug build)

@@ -3,16 +3,16 @@
 #ifndef MODULES_RF_INC_RF_CONFIG_H_
 #define MODULES_RF_INC_RF_CONFIG_H_
 
+#include "hw_config.h"
 
-//TODO: not working
-#define RF_DIO1_NVIC		EXTI2_3_IRQn	
-#define RF_DIO1_EXTI_LINE	EXTI_IMR_IM5	
+#define RF_DIO1_NVIC		EXTI2_3_IRQn
+#define RF_DIO1_EXTI_LINE	EXTI_IMR_IM5
 
 // RADIO
 #define SX1262
 #define TCXO_SETUP_TIME_MS                   5 // [ms]
 #define RADIO_TCXO_SETUP_TIME				(TCXO_SETUP_TIME_MS << 6) //Delay duration = RADIO_TCXO_SETUP_TIME *15.625 Âµs
-#define RF_USE_TCXO							true
+#define RF_USE_TCXO							HW_USE_TCXO
 
 
 #define DEBUG_FREQ_OFFSET					0

@@ -1,3 +1,19 @@
 
 .vscode/
 /build/
+
+# Clangd/LSP
+.clangd
+.cache/
+compile_commands.json
+
+# Build artifacts
+*.o
+*.elf
+*.bin
+*.hex
+*.map
+*.d
+
+# Claude Code temporary files
+tmpclaude-*-cwd

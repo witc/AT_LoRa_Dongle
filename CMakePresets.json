@@ -12,50 +12,128 @@
             }
         },
         {
-            "name": "Debug",
+            "name": "868-xtal-debug",
+            "displayName": "868 MHz XTAL (Debug)",
+            "description": "868 MHz band with XTAL oscillator - Debug build",
             "inherits": "default",
             "cacheVariables": {
+                "HW_VARIANT": "868_XTAL",
                 "CMAKE_BUILD_TYPE": "Debug"
             }
         },
         {
-            "name": "RelWithDebInfo",
+            "name": "868-xtal-release",
+            "displayName": "868 MHz XTAL (Release)",
+            "description": "868 MHz band with XTAL oscillator - Release build",
             "inherits": "default",
             "cacheVariables": {
-                "CMAKE_BUILD_TYPE": "RelWithDebInfo"
-            }
-        },
-        {
-            "name": "Release",
-            "inherits": "default",
-            "cacheVariables": {
+                "HW_VARIANT": "868_XTAL",
                 "CMAKE_BUILD_TYPE": "Release"
             }
         },
         {
-            "name": "MinSizeRel",
+            "name": "868-tcxo-debug",
+            "displayName": "868 MHz TCXO (Debug)",
+            "description": "868 MHz band with TCXO oscillator - Debug build",
             "inherits": "default",
             "cacheVariables": {
-                "CMAKE_BUILD_TYPE": "MinSizeRel"
+                "HW_VARIANT": "868_TCXO",
+                "CMAKE_BUILD_TYPE": "Debug"
             }
+        },
+        {
+            "name": "868-tcxo-release",
+            "displayName": "868 MHz TCXO (Release)",
+            "description": "868 MHz band with TCXO oscillator - Release build",
+            "inherits": "default",
+            "cacheVariables": {
+                "HW_VARIANT": "868_TCXO",
+                "CMAKE_BUILD_TYPE": "Release"
+            }
+        },
+        {
+            "name": "915-xtal-debug",
+            "displayName": "915 MHz XTAL (Debug)",
+            "description": "915 MHz band with XTAL oscillator - Debug build",
+            "inherits": "default",
+            "cacheVariables": {
+                "HW_VARIANT": "915_XTAL",
+                "CMAKE_BUILD_TYPE": "Debug"
+            }
+        },
+        {
+            "name": "915-xtal-release",
+            "displayName": "915 MHz XTAL (Release)",
+            "description": "915 MHz band with XTAL oscillator - Release build",
+            "inherits": "default",
+            "cacheVariables": {
+                "HW_VARIANT": "915_XTAL",
+                "CMAKE_BUILD_TYPE": "Release"
+            }
+        },
+        {
+            "name": "915-tcxo-debug",
+            "displayName": "915 MHz TCXO (Debug)",
+            "description": "915 MHz band with TCXO oscillator - Debug build",
+            "inherits": "default",
+            "cacheVariables": {
+                "HW_VARIANT": "915_TCXO",
+                "CMAKE_BUILD_TYPE": "Debug"
+            }
+        },
+        {
+            "name": "915-tcxo-release",
+            "displayName": "915 MHz TCXO (Release)",
+            "description": "915 MHz band with TCXO oscillator - Release build",
+            "inherits": "default",
+            "cacheVariables": {
+                "HW_VARIANT": "915_TCXO",
+                "CMAKE_BUILD_TYPE": "Release"
+            }
+        },
+        {
+            "name": "Debug",
+            "inherits": "915-tcxo-debug",
+            "hidden": true
+        },
+        {
+            "name": "Release",
+            "inherits": "915-tcxo-release",
+            "hidden": true
         }
     ],
     "buildPresets": [
         {
-            "name": "Debug",
-            "configurePreset": "Debug"
+            "name": "868-xtal-debug",
+            "configurePreset": "868-xtal-debug"
         },
         {
-            "name": "RelWithDebInfo",
-            "configurePreset": "RelWithDebInfo"
+            "name": "868-xtal-release",
+            "configurePreset": "868-xtal-release"
         },
         {
-            "name": "Release",
-            "configurePreset": "Release"
+            "name": "868-tcxo-debug",
+            "configurePreset": "868-tcxo-debug"
         },
         {
-            "name": "MinSizeRel",
-            "configurePreset": "MinSizeRel"
+            "name": "868-tcxo-release",
+            "configurePreset": "868-tcxo-release"
+        },
+        {
+            "name": "915-xtal-debug",
+            "configurePreset": "915-xtal-debug"
+        },
+        {
+            "name": "915-xtal-release",
+            "configurePreset": "915-xtal-release"
+        },
+        {
+            "name": "915-tcxo-debug",
+            "configurePreset": "915-tcxo-debug"
+        },
+        {
+            "name": "915-tcxo-release",
+            "configurePreset": "915-tcxo-release"
         }
     ]
 }
