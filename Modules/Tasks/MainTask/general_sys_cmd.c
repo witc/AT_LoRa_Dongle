@@ -78,7 +78,30 @@ static void RxReconfigTimerCallback(TimerHandle_t xTimer);
 void PeriodicTxTimerCallback(TimerHandle_t xTimer);  // Non-static - used in Main_task.c
 static void StartPeriodicTx(void);
 static void StopPeriodicTx(void);
- 
+static bool ParseBoolValue(const char *data, uint8_t *value);
+
+/**
+ * @brief Parse boolean value accepting both "1"/"0" and "ON"/"OFF" formats
+ *
+ * @param data Input string
+ * @param value Output: 0 or 1
+ * @return true if successfully parsed, false otherwise
+ */
+static bool ParseBoolValue(const char *data, uint8_t *value)
+{
+    if (strcmp(data, "1") == 0 || strcasecmp(data, "ON") == 0)
+    {
+        *value = 1;
+        return true;
+    }
+    else if (strcmp(data, "0") == 0 || strcasecmp(data, "OFF") == 0)
+    {
+        *value = 0;
+        return true;
+    }
+    return false;
+}
+
 /**
  * @brief Parse data to uint32_t
  * 
@@ -1358,7 +1381,7 @@ bool GSC_ProcessCommand(eATCommands cmd, uint8_t *data, uint16_t size)
                 break;
             }
             StopPeriodicTx(); // Stop periodic TX if running
-            
+
             // Transmit saved NVM packet once
             if (!AT_ParseUint8(data, &tx,maxLength))
             {
@@ -1431,22 +1454,33 @@ bool GSC_ProcessCommand(eATCommands cmd, uint8_t *data, uint16_t size)
             // Start/Stop periodic NVM packet TX
             if (isQuery)
             {
-                AT_SendStringResponse("TODO\r\n");  //TODO - cheme odpovidat?
+                if(pvTimerGetTimerID(periodicTxTimer))
+                {
+                    AT_SendStringResponse("1\r\n");
+                }
+                else
+                {
+                    AT_SendStringResponse("0\r\n");
+                }
                 commandHandled = false;
             }
             else
             {
-                if(strcasecmp((char*) data, "ON") == 0)
+                uint8_t value;
+                if (ParseBoolValue((char*)data, &value))
                 {
-                    StartPeriodicTx();
-                }
-                else if(strcasecmp((char*) data, "OFF") == 0)
-                {
-                    StopPeriodicTx();
+                    if (value == 1)
+                    {
+                        StartPeriodicTx();
+                    }
+                    else
+                    {
+                        StopPeriodicTx();
+                    }
                 }
                 else
                 {
-                    AT_SendStringResponse("ERROR: Invalid value (use ON or OFF)\r\n");
+                    AT_SendStringResponse("ERROR: Invalid value (use 1/ON or 0/OFF)\r\n");
                     commandHandled = false;
                     break;
                 }
@@ -1820,16 +1854,12 @@ static bool _GSC_Handle_RX_TO_UART(uint8_t *data, uint8_t size)
     txm.ptr = NULL;
 
     txm.cmd = CMD_RF_RADIO_RX_TO_UART;
-    
-    if(strcasecmp((char*) data, "ON") == 0)
+
+    uint8_t value;
+    if (ParseBoolValue((char*)data, &value))
     {
-        txm.data = 1;
-        NVMA_Set_RX_To_UART(1);
-    }
-    else if(strcasecmp((char*) data, "OFF") == 0)
-    {
-        txm.data = 0;
-        NVMA_Set_RX_To_UART(0);
+        txm.data = value;
+        NVMA_Set_RX_To_UART(value);
     }
     else
     {

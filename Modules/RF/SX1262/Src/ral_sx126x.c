@@ -1138,8 +1138,6 @@ ral_status_t ral_sx126x_get_lora_rx_consumption_in_ua( const void* context, cons
 
     ral_sx126x_bsp_get_reg_mode( context, &radio_reg_mode );
 
-    // TODO: find the bw dependent values
-
     if( radio_reg_mode == SX126X_REG_MODE_DCDC )
     {
         *pwr_consumption_in_ua =
