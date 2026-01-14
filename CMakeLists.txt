@@ -132,7 +132,12 @@ target_compile_definitions(${CMAKE_PROJECT_NAME} PRIVATE
 # Stop IWDG when debugging (only in Debug build)
 if(CMAKE_BUILD_TYPE STREQUAL "Debug")
     target_compile_definitions(${CMAKE_PROJECT_NAME} PRIVATE STOP_IWDG_IN_DEBUG)
-    target_compile_definitions(${CMAKE_PROJECT_NAME} PRIVATE DO_NOT_USE_IWDG=false)
+   # target_compile_definitions(${CMAKE_PROJECT_NAME} PRIVATE DO_NOT_USE_IWDG=false)
+endif()
+
+if(CMAKE_BUILD_TYPE STREQUAL "Release")
+    target_compile_definitions(${CMAKE_PROJECT_NAME} PRIVATE STOP_IWDG_IN_DEBUG)
+   # target_compile_definitions(${CMAKE_PROJECT_NAME} PRIVATE DO_NOT_USE_IWDG=false)
 endif()
 
 # Add linked libraries

@@ -45,10 +45,10 @@
 /* Frequency Band Configuration */
 #if defined(HW_RF_868_XTAL) || defined(HW_RF_868_TCXO)
     #define HW_RF_FREQ_BAND     "868 MHz"
-    #define HW_RF_BASE_FREQ     868000000UL
+    #define HW_RF_BASE_FREQ     869525000UL
 #elif defined(HW_RF_915_XTAL) || defined(HW_RF_915_TCXO)
     #define HW_RF_FREQ_BAND     "915 MHz"
-    #define HW_RF_BASE_FREQ     915000000UL
+    #define HW_RF_BASE_FREQ     923300000UL
 #else
     #error "No hardware variant defined! Please define one of: HW_RF_868_XTAL, HW_RF_868_TCXO, HW_RF_915_XTAL, HW_RF_915_TCXO"
 #endif

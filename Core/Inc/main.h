@@ -157,6 +157,7 @@ typedef struct
 #define CMD_MAIN_AT_RX_PACKET		      251
 #define CMD_MAIN_IWDG_REFRESH		      250   // Start heartbeat collection
 #define CMD_MAIN_HB_RESPONSE_RF       249   // RF task heartbeat response
+#define CMD_MAIN_RF_TX_DONE           248
 
 #define CMD_RF_TURN_ON			    254
 #define CMD_RF_TURN_OFF			    253

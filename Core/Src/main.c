@@ -167,6 +167,7 @@ int main(void)
 
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
+  HW_GPIO_PostInit();  // Board-specific GPIO initialization
   MX_DMA_Init();
   MX_USART1_UART_Init();
   MX_SPI1_Init();
@@ -261,7 +262,7 @@ void SystemClock_Config(void)
   */
 void Error_Handler(void)
 {
- _exit();
+ _exit(-1);
   /* USER CODE END Error_Handler_Debug */
 }
 

@@ -72,6 +72,10 @@
 #define LED_AT_RX_GPIO_Port LED_RED_GPIO_Port
 #define HW_HAS_LED_AT_RX    1
 
+/* LED control macros for AT RX indication - v2.0 uses RED */
+#define HW_LED_AT_RX_ON()   HAL_GPIO_WritePin(LED_RED_GPIO_Port, LED_RED_Pin, GPIO_PIN_SET)
+#define HW_LED_AT_RX_OFF()  HAL_GPIO_WritePin(LED_RED_GPIO_Port, LED_RED_Pin, GPIO_PIN_RESET)
+
 /* Logical LED mapping for RF RX Event - v2.0 uses BLUE */
 #define HW_LED_RF_EVENT_ON()   HAL_GPIO_WritePin(LED_BLUE_GPIO_Port, LED_BLUE_Pin, GPIO_PIN_SET)
 #define HW_LED_RF_EVENT_OFF()  HAL_GPIO_WritePin(LED_BLUE_GPIO_Port, LED_BLUE_Pin, GPIO_PIN_RESET)
@@ -81,6 +85,26 @@
     HAL_GPIO_WritePin(LED_GREEN_GPIO_Port, LED_GREEN_Pin, GPIO_PIN_RESET); \
     HAL_GPIO_WritePin(LED_BLUE_GPIO_Port, LED_BLUE_Pin, GPIO_PIN_RESET); \
     HAL_GPIO_WritePin(LED_RED_GPIO_Port, LED_RED_Pin, GPIO_PIN_RESET); \
+} while(0)
+
+/* Board-specific GPIO post-initialization */
+/* v2.0: Initialize RED LED (PB13) and RF_SW (PB12) - not configured in MX_GPIO_Init() */
+#define HW_GPIO_PostInit() do { \
+    GPIO_InitTypeDef GPIO_InitStruct = {0}; \
+    /* Initialize RED LED (PB13) */ \
+    GPIO_InitStruct.Pin = LED_RED_Pin; \
+    GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP; \
+    GPIO_InitStruct.Pull = GPIO_NOPULL; \
+    GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW; \
+    HAL_GPIO_Init(LED_RED_GPIO_Port, &GPIO_InitStruct); \
+    HAL_GPIO_WritePin(LED_RED_GPIO_Port, LED_RED_Pin, GPIO_PIN_RESET); \
+    /* Initialize RF_SW (PB12) */ \
+    GPIO_InitStruct.Pin = SX1262_RF_SW_Pin; \
+    GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP; \
+    GPIO_InitStruct.Pull = GPIO_NOPULL; \
+    GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW; \
+    HAL_GPIO_Init(SX1262_RF_SW_GPIO_Port, &GPIO_InitStruct); \
+    HAL_GPIO_WritePin(SX1262_RF_SW_GPIO_Port, SX1262_RF_SW_Pin, GPIO_PIN_RESET); \
 } while(0)
 
 /* Auxiliary pins */
