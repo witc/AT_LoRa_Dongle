@@ -58,7 +58,7 @@
 #include "hw_config.h"
 #define NVMA_DEFAULT_FREQ_TX                    HW_RF_BASE_FREQ
 #define NVMA_DEFAULT_FREQ_RX                    HW_RF_BASE_FREQ
-#define NVMA_DEFAULT_TX_POWER                   14
+#define NVMA_DEFAULT_TX_POWER                   22
 #define NVMA_DEFAULT_SF                         7
 #define NVMA_DEFAULT_BW                         7       // 125 kHz
 #define NVMA_DEFAULT_CR                         45      // 4/5

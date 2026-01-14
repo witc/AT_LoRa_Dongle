@@ -92,7 +92,7 @@ The firmware will display the selected hardware configuration at startup:
 ==========================================================
               AT-USB LoRa Dongle
 ==========================================================
-  Device Name:  Ropxion AT-USB LoRa_Dongle
+  Device Name:  Ropixon AT-USB LoRa_Dongle
   Firmware:     v1.0.0
   Version:      1.0.0
   Hardware:     915 MHz TCXO

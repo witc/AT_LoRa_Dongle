@@ -91,10 +91,10 @@ const AT_Command_Struct AT_Commands[] = {
     /* RF saved packet commands */
     {"AT+RF_SAVE_PACKET",           NULL,               SYS_CMD_RF_SAVE_PCKT_NVM,            "AT+RF_SAVE_PACKET - Save packet to memory",       "=<HEX data>, ?"},
     {"AT+RF_TX_SAVED",              NULL,               SYS_CMD_RF_TX_NVM_ONCE,              "AT+RF_TX_SAVED - Send saved packet once",         ""},
-    {"AT+RF_TX_SAVED_REPEAT",       NULL,               SYS_CMD_RF_TX_PERIODIC_NVM,          "AT+RF_TX_SAVED_REPEAT - Start/Stop periodic saved packet TX", "=ON, =OFF, ?"},
+    {"AT+RF_TX_SAVED_REPEAT",       NULL,               SYS_CMD_RF_TX_PERIODIC_NVM,          "AT+RF_TX_SAVED_REPEAT - Start/Stop periodic saved packet TX", "=ON, =OFF, ?"},    //TODO sjendotit ON/OFF s 1/0
     {"AT+RF_TX_NVM_PERIOD",         NULL,               SYS_CMD_RF_TX_NVM_PERIOD,            "AT+RF_TX_NVM_PERIOD - Set period for saved packet TX",   "=<period_ms>, ?"},
     {"AT+RF_TX_PERIOD_STATUS",      NULL,               SYS_CMD_RF_PERIOD_STATUS,            "AT+RF_TX_PERIOD_STATUS - Get periodic TX status",     "?"},
-    
+    //TODO make CW command later
     /* RF RX commands */
     {"AT+RF_RX_TO_UART",            NULL,               SYS_CMD_RF_RX_TO_UART,               "AT+RF_RX_TO_UART - Auto-print received RF data to serial",            "=<ON|OFF>"},
     {"AT+RF_RX_FORMAT",             NULL,               SYS_CMD_RX_FORMAT,                   "AT+RF_RX_FORMAT - Set RX output format", "=HEX|ASCII, ?"},

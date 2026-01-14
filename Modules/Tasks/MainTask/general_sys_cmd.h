@@ -25,6 +25,7 @@ typedef struct {
 
 
 bool GSC_ProcessCommand(eATCommands cmd, uint8_t *data, uint16_t size);
+void GSC_SetPeriodicTxTimer(TimerHandle_t timer);
 
 #endif // GENERAL_SYS_CMD_H
 

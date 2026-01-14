@@ -58,9 +58,9 @@ extern osMessageQueueId_t queueRadioHandle;
 static TimerHandle_t rxReconfigTimer = NULL;
 #define RX_RECONFIG_DELAY_MS 50  // Prodleva před odesláním rekonfigurace
 
-// Timer pro periodický TX
+// Timer handle pro periodické RF vysílání
 static TimerHandle_t periodicTxTimer = NULL;
-// Timer ID se používá jako flag aktivního stavu (NULL = neaktivní, non-NULL = aktivní)
+
 
 const uint32_t AllowedBandwidths[] = {7810, 10420, 15630, 20830, 31250, 41670, 62500, 125000, 250000, 500000};
 const size_t AllowedBandwidthCount = sizeof(AllowedBandwidths) / sizeof(AllowedBandwidths[0]);
@@ -75,7 +75,7 @@ static bool _GSC_Handle_AUX_PIN_SET(uint8_t *data, uint8_t size);
 static bool _GSC_Handle_AUX_STOP(uint8_t *data, uint8_t size);
 static void RxReconfigTimerCallback(TimerHandle_t xTimer);
 // static void TriggerRxReconfig(void);  // Currently unused
-static void PeriodicTxTimerCallback(TimerHandle_t xTimer);
+void PeriodicTxTimerCallback(TimerHandle_t xTimer);  // Non-static - used in Main_task.c
 static void StartPeriodicTx(void);
 static void StopPeriodicTx(void);
  
@@ -228,53 +228,13 @@ static void RxReconfigTimerCallback(TimerHandle_t xTimer)
     xQueueSend(queueRadioHandle, &txm, portMAX_DELAY);
 }
 
-/**
- * @brief Spustí/restartuje timer pro RX rekonfiguraci
- * 
- */
-__attribute__((unused))
-static void TriggerRxReconfig(void)
-{
-    // Pokud timer ještě neexistuje, vytvoř ho
-    if (rxReconfigTimer == NULL)
-    {
-        rxReconfigTimer = xTimerCreate(
-            "RxReconfigTimer",
-            pdMS_TO_TICKS(RX_RECONFIG_DELAY_MS),
-            pdFALSE,  // One-shot timer
-            NULL,
-            RxReconfigTimerCallback
-        );
-        
-        if (rxReconfigTimer == NULL)
-        {
-            // Pokud se nepodařilo vytvořit timer, pošli zprávu okamžitě
-            dataQueue_t txm;
-            txm.ptr = NULL;
-            txm.cmd = CMD_RF_RADIO_RECONFIG_RX;
-            xQueueSend(queueRadioHandle, &txm, portMAX_DELAY);
-            return;
-        }
-    }
-    
-    // Restart timeru (pokud již běží, restartuje se)
-    if (xTimerIsTimerActive(rxReconfigTimer) == pdTRUE)
-    {
-        xTimerReset(rxReconfigTimer, portMAX_DELAY);
-    }
-    else
-    {
-        xTimerStart(rxReconfigTimer, portMAX_DELAY);
-    }
-}
-
 
 /**
  * @brief Callback funkce pro periodický TX timer
  * 
  * @param xTimer 
  */
-static void PeriodicTxTimerCallback(TimerHandle_t xTimer)
+void PeriodicTxTimerCallback(TimerHandle_t xTimer)
 {
     // Kontrola zda nebyl timer zastaven (callback mohl být ve frontě)
     // Timer ID se mění okamžitě (ne přes frontu), takže vidíme aktuální stav
@@ -295,59 +255,68 @@ static void PeriodicTxTimerCallback(TimerHandle_t xTimer)
 }
 
 /**
- * @brief Spustí periodický TX timer
- * 
+ * @brief Nastaví handle timeru pro periodické vysílání
+ *
+ * Tato funkce je volána z Main_task.c po vytvoření timeru,
+ * aby byl timer handle dostupný pro Start/StopPeriodicTx() funkce.
+ *
+ * @param timer Handle timeru z FreeRTOS
  */
-static void StartPeriodicTx(void)
+void GSC_SetPeriodicTxTimer(TimerHandle_t timer)
 {
-    uint32_t period;
-    
-    // Načtení periody z NVM
-    NVMA_Get_LR_TX_Period_TX(&period);
-    
-    // Pokud timer ještě neexistuje, vytvoř ho
-    if (periodicTxTimer == NULL)
-    {
-        periodicTxTimer = xTimerCreate(
-            "PeriodicTxTimer",
-            pdMS_TO_TICKS(period),
-            pdTRUE,  // Auto-reload timer (periodický)
-            NULL,
-            PeriodicTxTimerCallback
-        );
-        
-        if (periodicTxTimer == NULL)
-        {
-            AT_SendStringResponse("ERROR: Failed to create periodic TX timer\r\n");
-            return;
-        }
-
-    }
-    else
-    {
-        // Aktualizace periody existujícího timeru
-        xTimerChangePeriod(periodicTxTimer, pdMS_TO_TICKS(period), portMAX_DELAY);
-    }
-    
-    // Spuštění timeru - nastavení Timer ID jako flag aktivního stavu
-    vTimerSetTimerID(periodicTxTimer, (void*)1);
-    xTimerStart(periodicTxTimer, portMAX_DELAY);
-
-    PeriodicTxTimerCallback(periodicTxTimer); // Okamžité spuštění prvního přenosu
+    periodicTxTimer = timer;
 }
 
 /**
- * @brief Zastaví periodický TX timer
- * 
+ * @brief Spustí periodické RF vysílání
+ *
+ * Načte periodu z NVM a spustí timer. Pokud timer již běží,
+ * restartuje ho s novou periodou z NVM.
+ */
+static void StartPeriodicTx(void)
+{
+    if (periodicTxTimer == NULL)
+    {
+        AT_SendStringResponse("ERROR: Periodic TX timer not initialized\r\n");
+        return;
+    }
+
+    // Načtení periody z NVM
+    uint32_t period;
+    NVMA_Get_LR_TX_Period_TX(&period);
+
+    // Nastavení timer ID na non-NULL (active flag)
+    // Pokud již běží, restart s novou periodou z NVM
+    vTimerSetTimerID(periodicTxTimer, (void*)1);
+
+    // Změna periody a start/restart timeru
+    xTimerChangePeriod(periodicTxTimer, pdMS_TO_TICKS(period), 0);
+    xTimerStart(periodicTxTimer, 0);
+
+    AT_SendStringResponse("OK: Periodic TX started\r\n");
+}
+
+/**
+ * @brief Zastaví periodické RF vysílání
+ *
+ * Nastaví timer ID na NULL (callback se tím pádem přeskočí)
+ * a zastaví timer.
  */
 static void StopPeriodicTx(void)
 {
-    if (periodicTxTimer != NULL)
+    if (periodicTxTimer == NULL)
     {
-        // Nejdříve Timer ID na NULL (okamžitá změna), pak stop
-        vTimerSetTimerID(periodicTxTimer, NULL);
-        xTimerStop(periodicTxTimer, portMAX_DELAY);
+        AT_SendStringResponse("ERROR: Periodic TX timer not initialized\r\n");
+        return;
     }
+
+    // Nastavení timer ID na NULL (stopped flag) - callback toto zkontroluje
+    vTimerSetTimerID(periodicTxTimer, NULL);
+
+    // Zastavení timeru
+    xTimerStop(periodicTxTimer, 0);
+
+   // AT_SendStringResponse("OK: Periodic TX stopped\r\n");
 }
 
 
@@ -1352,6 +1321,7 @@ bool GSC_ProcessCommand(eATCommands cmd, uint8_t *data, uint16_t size)
                 commandHandled = false;
                 break;
             }
+            StopPeriodicTx(); // Stop periodic TX if running
             _GSC_Handle_TX(packet, packetSize);
             break;
         }
@@ -1370,6 +1340,7 @@ bool GSC_ProcessCommand(eATCommands cmd, uint8_t *data, uint16_t size)
                 break;
             }
 
+            StopPeriodicTx(); // Stop periodic TX if running
             memcpy(packet, data, packetSize);
             _GSC_Handle_TX(packet, packetSize);
             break;
@@ -1386,7 +1357,8 @@ bool GSC_ProcessCommand(eATCommands cmd, uint8_t *data, uint16_t size)
                 commandHandled = false;
                 break;
             }
-
+            StopPeriodicTx(); // Stop periodic TX if running
+            
             // Transmit saved NVM packet once
             if (!AT_ParseUint8(data, &tx,maxLength))
             {
@@ -1459,7 +1431,7 @@ bool GSC_ProcessCommand(eATCommands cmd, uint8_t *data, uint16_t size)
             // Start/Stop periodic NVM packet TX
             if (isQuery)
             {
-                AT_SendStringResponse("TODO\r\n");
+                AT_SendStringResponse("TODO\r\n");  //TODO - cheme odpovidat?
                 commandHandled = false;
             }
             else
@@ -1474,7 +1446,7 @@ bool GSC_ProcessCommand(eATCommands cmd, uint8_t *data, uint16_t size)
                 }
                 else
                 {
-                    AT_SendStringResponse("ERROR: Invalid TX_PERIODIC_NVM value (use ON or OFF)\r\n");
+                    AT_SendStringResponse("ERROR: Invalid value (use ON or OFF)\r\n");
                     commandHandled = false;
                     break;
                 }

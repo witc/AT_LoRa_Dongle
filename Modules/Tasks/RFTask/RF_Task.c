@@ -29,7 +29,7 @@ static void _RF_HeartBeat_Callback(TimerHandle_t timer)
 	dataQueue_t txm;
 	txm.ptr = NULL;
 
-	txm.cmd = CMD_RF_RADIO_HB;	//TODO
+	txm.cmd = CMD_RF_RADIO_HB;	//TODO nepouzvame
 	xQueueSend(queueRadioHandle,&txm,portMAX_DELAY);
 }
 

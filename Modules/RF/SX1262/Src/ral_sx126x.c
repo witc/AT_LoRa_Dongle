@@ -205,7 +205,6 @@ static const uint32_t ral_sx126x_convert_tx_dbm_to_ua_reg_mode_ldo_hp[] = {
     119800,  //  22 dBm
 };
 
-// TODO: check values
 #define SX126X_GFSK_RX_CONSUMPTION_DCDC 4200
 #define SX126X_GFSK_RX_BOOSTED_CONSUMPTION_DCDC 4800
 

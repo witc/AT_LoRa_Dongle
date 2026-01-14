@@ -118,7 +118,7 @@ void ru_sx1262_assign( radio_context_t	*ctx)
 	ctx->rfConfig.loraParam_rx.pkt_params.invert_iq_is_on=RF_RX_IQ_INVERT;
 	ctx->rfConfig.loraParam_rx.pkt_params.preamble_len_in_symb=8;
 	ctx->rfConfig.loraParam_rx.pkt_params.pld_len_in_bytes = RF_RX_PACKET_LEN;
-	ctx->rfConfig.loraParam_rx.sync_word = 0x12;	//TODO kompatibilita, 0x12 pro 0x1424 - private, nebo 0x34 pro 0x3444 - public
+	ctx->rfConfig.loraParam_rx.sync_word = 0x12;	
 
 	/* config tx */
 	ctx->rfConfig.loraParam_tx.mod_params.bw=RF_TX_BW;
@@ -132,7 +132,7 @@ void ru_sx1262_assign( radio_context_t	*ctx)
 	ctx->rfConfig.loraParam_tx.pkt_params.invert_iq_is_on=RF_TX_IQ_INVERT;
 	ctx->rfConfig.loraParam_tx.pkt_params.preamble_len_in_symb=8;
 	ctx->rfConfig.loraParam_tx.pkt_params.pld_len_in_bytes = 1;
-	ctx->rfConfig.loraParam_tx.sync_word = 0x12;	//TODO kompatibilita, 0x12 pro 0x1424 - private, nebo 0x34 pro 0x3444 - public
+	ctx->rfConfig.loraParam_tx.sync_word = 0x12;	
 
 
 	ctx->rfConfig.ralf = ( ralf_t ) RALF_SX126X_INSTANTIATE( &ctx->rfConfig.radioHal );
@@ -155,7 +155,7 @@ bool ru_radioInit(radio_context_t *ctx)
 	ral_t* ral;
 	ralf_t* ralf;
 	ral = &ctx->rfConfig.ralf.ral;
-	ralf = &ctx->rfConfig.ralf;	//TODO neni to stejne jako to nad tim?
+	ralf = &ctx->rfConfig.ralf;	
 
 	ret+=ral_reset(ral);
 	ret+=ral_wakeup(ral);
@@ -422,7 +422,7 @@ bool ru_radio_send_packet(uint8_t *data, uint8_t size, radio_context_t	*ctx)
 	ral_t* ral;
 	ralf_t* ralf;
 
-	ralf = &ctx->rfConfig.ralf;	//TODO neni to stejne jako to nad tim?
+	ralf = &ctx->rfConfig.ralf;	
 	ral = &ctx->rfConfig.ralf.ral;
 
 	ral_set_dio_irq_params(ral, RAL_IRQ_TX_DONE );
@@ -430,7 +430,6 @@ bool ru_radio_send_packet(uint8_t *data, uint8_t size, radio_context_t	*ctx)
 	ctx->rfConfig.loraParam_tx.pkt_params.pld_len_in_bytes = size;
 	ru_load_radio_config_tx(&ctx->rfConfig.loraParam_tx);
 
-	//ral_set_lora_pkt_params(ral,&ctx->rfConfig.loraParam_tx.pkt_params); //TODO asi je obsazeno v tom nize
 	ralf_setup_lora(ralf, &ctx->rfConfig.loraParam_tx);
 
 	LOG_INFO("TX params: Freq: %lu Hz, SF: %d, BW: %d, CR: %d/%d, Preamble: %d symb, CRC: %s, IQ Inv: %s",
@@ -705,6 +704,10 @@ void ru_radio_process_IRQ(radio_context_t *ctx)
 
 		case RF_MODE_TX:
 			ru_radio_start_rx(ctx);
+
+			txm.cmd = CMD_MAIN_RF_TX_DONE;
+			txm.ptr = NULL;
+			xQueueSend(queueMainHandle,&txm,portMAX_DELAY);
 			break;
 
 		case RF_MODE_CAD:

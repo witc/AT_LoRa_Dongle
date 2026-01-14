@@ -9,6 +9,7 @@
 #define INC_MAIN_TASK_H_
 
 #include "at_cmd.h"
+#include "main.h"
 /**
  * @brief 
  * 
@@ -29,6 +30,7 @@ typedef struct
 	TimerResource_t	LED_alive;
 	TimerResource_t	LED_AT_RX_done;
 	TimerResource_t	IWDG_timer;
+	TimerResource_t Periodic_RF_TX;
 
 }main_timers_t;
 

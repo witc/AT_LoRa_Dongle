@@ -7,6 +7,7 @@
 
 #include "main.h"
 #include "main_task.h"
+#include "projdefs.h"
 #include "radio_user.h"
 #include "semphr.h"
 #include "AT_cmd.h"
@@ -29,6 +30,9 @@ extern osMessageQId queueMainHandle;
 
 void main_task_off(main_ctx_t *ctx,dataQueue_t *rxd);
 void main_task_on(main_ctx_t *ctx,dataQueue_t *rxd);
+
+// Callback for periodic TX timer (defined in general_sys_cmd.c)
+extern void PeriodicTxTimerCallback(TimerHandle_t xTimer);
 
 volatile uint32_t GL_debug=0;
 
@@ -70,10 +74,10 @@ static void _Main_Alive_Callback(TimerHandle_t xTimer)
  *
  * @param xTimer
  */
-static void _Main_Rx_done_Callback(TimerHandle_t xTimer)
+static void _Main_RX_AT_done_Callback(TimerHandle_t xTimer)
 {
     (void)xTimer;
-    HAL_GPIO_WritePin(LED_AT_RX_GPIO_Port, LED_AT_RX_Pin, GPIO_PIN_RESET);
+    HW_LED_AT_RX_OFF();
 }
 
 
@@ -238,11 +242,26 @@ void main_task_on(main_ctx_t *ctx, dataQueue_t *rxd)
 
 			break;
 
+        case CMD_MAIN_RF_TX_DONE:
+            // Kontrola zda je aktivní periodické vysílání (timer ID != NULL)
+            if (pvTimerGetTimerID(ctx->timers.Periodic_RF_TX.timer) != NULL)
+            {
+                // Periodické TX je aktivní, restart timeru pro další vysílání
+                // Perioda se načítá z NVM při každém cyklu (umožňuje změnu periody za běhu)
+                uint32_t period;
+                NVMA_Get_LR_TX_Period_TX(&period);
+                xTimerChangePeriod(ctx->timers.Periodic_RF_TX.timer,
+                                  pdMS_TO_TICKS(period), 0);
+                xTimerStart(ctx->timers.Periodic_RF_TX.timer, 0);
+            }
+            // Pokud je timer ID NULL, periodické TX bylo zastaveno - nedělat nic
+            break;
+
 		case CMD_MAIN_AT_RX_PACKET:
 			AtCmdProcessed = GSC_ProcessCommand((eATCommands) rxd->tmp_8, rxShadowBuffer_USART, rxd->tmp_16);
             if(AtCmdProcessed)
             {
-                HAL_GPIO_WritePin(LED_BLUE_GPIO_Port, LED_BLUE_Pin, GPIO_PIN_SET);
+                HW_LED_AT_RX_ON();
                 osTimerStart(ctx->timers.LED_AT_RX_done.timer, pdMS_TO_TICKS(100));
             }
             
@@ -356,7 +375,7 @@ void main_task(void)
                                                          _Main_Alive_Callback,  &ctx.timers.LED_alive.timerPlace);
 
     ctx.timers.LED_AT_RX_done.timer = xTimerCreateStatic("LED RX done", pdMS_TO_TICKS(100), pdFALSE, NULL, 
-                                                        _Main_Rx_done_Callback,  &ctx.timers.LED_AT_RX_done.timerPlace);
+                                                        _Main_RX_AT_done_Callback,  &ctx.timers.LED_AT_RX_done.timerPlace);
 
 	osTimerStart(ctx.timers.LED_alive.timer, pdMS_TO_TICKS(100));
 
@@ -406,6 +425,13 @@ void main_task(void)
     /* create timer for iwdg (one-shot, will be restarted after successful HB collection) */
     ctx.timers.IWDG_timer.timer = xTimerCreateStatic("IWDG timer", pdMS_TO_TICKS(1000), pdFALSE, NULL, 
                                                          GeneralSys_IWDG_Callback,  &ctx.timers.IWDG_timer.timerPlace);
+    
+    ctx.timers.Periodic_RF_TX.timer = xTimerCreateStatic("RF Periodic timer", pdMS_TO_TICKS(1000), pdFALSE, NULL,
+     PeriodicTxTimerCallback, &ctx.timers.Periodic_RF_TX.timerPlace);
+
+    // Nastavení timer handle pro Start/StopPeriodicTx() v general_sys_cmd.c
+    GSC_SetPeriodicTxTimer(ctx.timers.Periodic_RF_TX.timer);
+
     xTimerStart(ctx.timers.IWDG_timer.timer, 0);
 
 	for(;;)

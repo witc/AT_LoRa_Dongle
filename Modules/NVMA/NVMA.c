@@ -112,7 +112,7 @@ bool NVMA_InitDefaults(void)
         NVMA_Set_UART_Baud(NVMA_DEFAULT_UART_BAUD);
         NVMA_Set_LR_TX_Period_TX(NVMA_DEFAULT_TX_PERIOD);
         NVMA_Set_LR_RX_PldLen(NVMA_DEFAULT_RX_PLDLEN);
-        NVMA_Set_LR_Pckt_Size(0);  // No saved packet
+        NVMA_Set_LR_Pckt_Size(0);  // No saved packet TODO
         NVMA_Set_LR_SyncWord_TX(NVMA_DEFAULT_SYNC_WORD);
         NVMA_Set_LR_SyncWord_RX(NVMA_DEFAULT_SYNC_WORD);
         
