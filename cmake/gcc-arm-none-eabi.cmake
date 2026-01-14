@@ -28,12 +28,7 @@ set(TARGET_FLAGS "-mcpu=cortex-m0plus ")
 
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${TARGET_FLAGS}")
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wall -Wextra -Wpedantic -fdata-sections -ffunction-sections")
-if(CMAKE_BUILD_TYPE MATCHES Debug)
-    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O0 -g3")
-endif()
-if(CMAKE_BUILD_TYPE MATCHES Release)
-    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O0 -g3")
-endif()
+# Optimization flags are now set in CMakePresets.json via CMAKE_C_FLAGS_DEBUG and CMAKE_C_FLAGS_RELEASE
 
 set(CMAKE_ASM_FLAGS "${CMAKE_C_FLAGS} -x assembler-with-cpp -MMD -MP")
 set(CMAKE_CXX_FLAGS "${CMAKE_C_FLAGS} -fno-rtti -fno-exceptions -fno-threadsafe-statics")
