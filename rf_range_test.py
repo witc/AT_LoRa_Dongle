@@ -33,7 +33,8 @@ logger = logging.getLogger(__name__)
 # Test configuration
 TEST_PACKET_HEX = "010203"  # 3 bytes
 TEST_FREQUENCY = 869525000
-BAUD_RATE = 115200
+BAUD_RATES_TO_TRY = [115200, 230400]  # Try common baud rate first, then max supported
+TARGET_BAUD_RATE = 230400  # Target baud rate to set after detection (max supported by dongle)
 TIMEOUT = 5.0  # seconds
 
 # RF Parameters to test
@@ -59,7 +60,7 @@ def should_skip_test(sf: int, bw: int) -> bool:
     """Check if test should be skipped based on filter settings"""
     if SKIP_SLOW_TESTS:
         # Skip slow combinations: low bandwidth + high spreading factor
-        if bw <= 4 or sf >= 10:
+        if bw <= 7 or sf >= 10:
             return True
     return False
 
@@ -134,25 +135,150 @@ class TestResult:
 
 class ATLoraDongle:
     """Class to communicate with AT LoRa Dongle"""
-    
+
     def __init__(self, port: str, name: str = "Dongle"):
         self.port = port
         self.name = name
         self.serial: Optional[serial.Serial] = None
-        
-    def connect(self) -> bool:
-        """Connect to the dongle"""
+        self.detected_baudrate: Optional[int] = None
+
+    def detect_baudrate(self) -> Optional[int]:
+        """Detect the baud rate by trying AT command on each supported rate"""
+        logger.info(f"{self.name}: Detecting baud rate...")
+
+        for baud_rate in BAUD_RATES_TO_TRY:
+            try:
+                logger.info(f"{self.name}: Trying {baud_rate} baud...")
+
+                # Try to open connection
+                test_serial = serial.Serial(
+                    port=self.port,
+                    baudrate=baud_rate,
+                    timeout=1.0,
+                    write_timeout=1.0
+                )
+                test_serial.reset_input_buffer()
+                test_serial.reset_output_buffer()
+
+                # Send AT command and check for response
+                test_serial.write(b"AT\r\n")
+
+                # Read response
+                response = ""
+                start_time = time.time()
+                while time.time() - start_time < 1.0:
+                    if test_serial.in_waiting > 0:
+                        response += test_serial.read(test_serial.in_waiting).decode('utf-8', errors='ignore')
+                        # Check if we got a valid AT response (help text or OK)
+                        if len(response) > 10 and ("AT+" in response or "OK" in response):
+                            test_serial.close()
+                            logger.info(f"{self.name}: ✓ Detected baud rate: {baud_rate}")
+                            return baud_rate
+                    time.sleep(0.01)  # Minimal poll delay
+
+                test_serial.close()
+                logger.debug(f"{self.name}: No valid response at {baud_rate} baud")
+
+            except Exception as e:
+                logger.debug(f"{self.name}: Error testing {baud_rate} baud: {e}")
+                continue
+
+        logger.error(f"{self.name}: Failed to detect baud rate on any supported speed")
+        return None
+
+    def set_baudrate(self, new_baudrate: int) -> bool:
+        """Change dongle baud rate and reconnect Python serial port
+
+        Args:
+            new_baudrate: New baud rate to set (e.g. 230400)
+
+        Returns:
+            True if successful, False otherwise
+        """
+        if not self.serial or not self.serial.is_open:
+            logger.error(f"{self.name}: Cannot set baud rate - not connected")
+            return False
+
         try:
+            logger.info(f"{self.name}: Setting baud rate to {new_baudrate}...")
+
+            # Send command to change dongle baud rate
+            # Note: Dongle will restart after this command
+            cmd = f"AT+UART_BAUD={new_baudrate}\r\n"
+            self.serial.write(cmd.encode())
+            self.serial.flush()  # Ensure command is sent
+
+            # Close current connection
+            self.serial.close()
+
+            # Wait for dongle to restart with new baud rate
+            logger.info(f"{self.name}: Waiting for dongle to restart...")
+            time.sleep(1.5)  # Minimum time for restart
+
+            # Reconnect at new baud rate
             self.serial = serial.Serial(
                 port=self.port,
-                baudrate=BAUD_RATE,
+                baudrate=new_baudrate,
                 timeout=TIMEOUT,
                 write_timeout=TIMEOUT
             )
-            time.sleep(0.5)  # Wait for connection to stabilize
             self.serial.reset_input_buffer()
             self.serial.reset_output_buffer()
-            logger.info(f"{self.name}: Connected to {self.port}")
+
+            # Verify communication at new speed with AT command
+            self.serial.write(b"AT\r\n")
+            response = ""
+            start_time = time.time()
+            while time.time() - start_time < 1.0:
+                if self.serial.in_waiting > 0:
+                    response += self.serial.read(self.serial.in_waiting).decode('utf-8', errors='ignore')
+                    if "AT+" in response or "OK" in response:
+                        logger.info(f"{self.name}: ✓ Successfully switched to {new_baudrate} baud")
+                        self.detected_baudrate = new_baudrate
+                        self.serial.reset_input_buffer()
+                        return True
+                time.sleep(0.01)  # Minimal poll delay
+
+            logger.error(f"{self.name}: No response at new baud rate {new_baudrate}")
+            return False
+
+        except Exception as e:
+            logger.error(f"{self.name}: Error setting baud rate: {e}")
+            return False
+
+    def connect(self, baudrate: Optional[int] = None) -> bool:
+        """Connect to the dongle
+
+        Args:
+            baudrate: Specific baud rate to use. If None, will auto-detect.
+        """
+        try:
+            # Auto-detect if not specified
+            if baudrate is None:
+                baudrate = self.detect_baudrate()
+                if baudrate is None:
+                    return False
+                self.detected_baudrate = baudrate
+            else:
+                self.detected_baudrate = baudrate
+
+            self.serial = serial.Serial(
+                port=self.port,
+                baudrate=baudrate,
+                timeout=TIMEOUT,
+                write_timeout=TIMEOUT
+            )
+            self.serial.reset_input_buffer()
+            self.serial.reset_output_buffer()
+            logger.info(f"{self.name}: Connected to {self.port} at {baudrate} baud")
+
+            # If not already at target baud rate, switch to it
+            if baudrate != TARGET_BAUD_RATE:
+                logger.info(f"{self.name}: Switching from {baudrate} to {TARGET_BAUD_RATE} baud...")
+                if not self.set_baudrate(TARGET_BAUD_RATE):
+                    logger.warning(f"{self.name}: Failed to switch to {TARGET_BAUD_RATE} baud, staying at {baudrate}")
+                    # Continue anyway - we have a working connection
+
             return True
         except Exception as e:
             logger.error(f"{self.name}: Failed to connect to {self.port}: {e}")
@@ -523,8 +649,7 @@ def test_eeprom_storage(tx_dongle: ATLoraDongle, rx_dongle: ATLoraDongle) -> boo
         
         # Clear any pending data in buffer before SET
         dongle.serial.reset_input_buffer()
-        time.sleep(0.05)  # Small delay between tests
-        
+
         # Set the parameter - expects OK response
         timeout = test.get("timeout", 2.0)
         success, response = dongle.send_command(test["set_cmd"], timeout=timeout)
@@ -621,15 +746,13 @@ def test_eeprom_storage(tx_dongle: ATLoraDongle, rx_dongle: ATLoraDongle) -> boo
         else:
             logger.info(f"  ✓ AUX{pin} ON")
             gpio_test_passed = True
-        time.sleep(0.1)
-        
+
         # Turn OFF
         if not tx_dongle.set_aux_gpio(pin, "0"):
             logger.warning(f"  ! AUX{pin} OFF failed")
         else:
             logger.info(f"  ✓ AUX{pin} OFF")
             gpio_test_passed = True
-        time.sleep(0.1)
     
     if not gpio_test_passed:
         logger.warning("  ! AT+AUX basic control není implementováno (to je OK, jen PWM je důležité)")
@@ -637,7 +760,6 @@ def test_eeprom_storage(tx_dongle: ATLoraDongle, rx_dongle: ATLoraDongle) -> boo
     # Test PWM on one pin
     if tx_dongle.set_aux_pwm(1, 1000, 50):  # 1Hz, 50% duty
         logger.info("  ✓ AUX1 PWM started (1Hz, 50%)")
-        time.sleep(0.5)
         if tx_dongle.stop_aux_pwm(1):
             logger.info("  ✓ AUX1 PWM stopped")
         else:
@@ -658,9 +780,7 @@ def test_eeprom_storage(tx_dongle: ATLoraDongle, rx_dongle: ATLoraDongle) -> boo
     else:
         logger.error("  ✗ RX format HEX failed")
         rx_format_passed = False
-    
-    time.sleep(0.1)
-    
+
     if rx_dongle.set_rx_format("ASCII"):
         logger.info("  ✓ RX format set to ASCII")
     else:
@@ -719,8 +839,7 @@ def test_eeprom_storage(tx_dongle: ATLoraDongle, rx_dongle: ATLoraDongle) -> boo
     tx_dongle.configure_tx(sf=7, bw=7, freq=TEST_FREQUENCY, power=14)
     rx_dongle.configure_rx(sf=7, bw=7, freq=TEST_FREQUENCY)
     rx_dongle.enable_rx_to_uart(True)
-    time.sleep(0.2)
-    
+
     # Send saved packet once
     rx_dongle.serial.reset_input_buffer()
     success, response = tx_dongle.send_command("AT+RF_TX_SAVED", timeout=3.0)
@@ -740,10 +859,10 @@ def test_eeprom_storage(tx_dongle: ATLoraDongle, rx_dongle: ATLoraDongle) -> boo
     success, response = tx_dongle.send_command("AT+RF_TX_NVM_PERIOD=1000", timeout=3.0)  # 1 sec period
     if success:
         logger.info("  ✓ Set TX period to 1000 ms")
-        
+
+
         # Start periodic TX
         rx_dongle.serial.reset_input_buffer()
-        time.sleep(0.2)
         success, response = tx_dongle.send_command("AT+RF_TX_SAVED_REPEAT=ON", timeout=3.0)
         if success:
             logger.info("  ✓ Started periodic TX")
@@ -757,7 +876,6 @@ def test_eeprom_storage(tx_dongle: ATLoraDongle, rx_dongle: ATLoraDongle) -> boo
                     logger.info(f"  ✓ Periodic packet {i+1} received, RSSI: {rssi} dBm")
                 else:
                     logger.warning(f"  ! Periodic packet {i+1} missed or error")
-                time.sleep(0.1)
             
             if packets_received >= 2:
                 logger.info(f"  ✓ Received {packets_received}/3 periodic packets")
@@ -842,18 +960,15 @@ def run_single_test(tx_dongle: ATLoraDongle, rx_dongle: ATLoraDongle,
     
     # Calculate expected packet size for implicit header mode
     packet_size_bytes = len(TEST_PACKET_HEX) // 2
-    
+
     # Configure RX first (pass payload length for implicit header mode)
-    if not rx_dongle.configure_rx(sf, bw, freq, cr=cr, iq_inv=iq_inv, ldro=ldro, 
+    if not rx_dongle.configure_rx(sf, bw, freq, cr=cr, iq_inv=iq_inv, ldro=ldro,
                                    header_mode=header_mode, crc=crc, preamble=preamble,
                                    rx_payload_len=packet_size_bytes):
         result.error_msg = "RX configuration failed"
         return result
-    
-    # Small delay for RX to start listening
-    time.sleep(0.2)
-    
-    # Configure TX
+
+    # Configure TX (no delay needed - RX is ready immediately after config)
     if not tx_dongle.configure_tx(sf, bw, freq, cr=cr, power=power, iq_inv=iq_inv, ldro=ldro,
                                    header_mode=header_mode, crc=crc, preamble=preamble):
         result.error_msg = "TX configuration failed"
@@ -961,23 +1076,25 @@ def run_full_test_suite(tx_dongle: ATLoraDongle, rx_dongle: ATLoraDongle) -> Lis
 
 def print_results_summary(results: List[TestResult]):
     """Print a summary table of all test results"""
-    
+
     print("="*140)
     print("TEST RESULTS SUMMARY")
     print("="*140)
     print(f"{'SF':<4} {'BW':<10} {'CR':<5} {'IQ':<5} {'Hdr':<5} {'CRC':<4} {'Result':<10} {'RSSI':<10} {'Wait(ms)':<10} {'Error'}")
     print("-"*140)
-    
+
     success_count = 0
     fail_count = 0
-    
+    rssi_values = []  # Collect RSSI values from successful tests
+
     for r in results:
         status = "✓ PASS" if r.success else "✗ FAIL"
         if r.success:
             success_count += 1
+            rssi_values.append(r.rssi)
         else:
             fail_count += 1
-            
+
         bw_name = BW_NAMES.get(r.bw, f"BW{r.bw}")
         cr_name = CR_NAMES.get(r.cr, str(r.cr))
         iq_name = "Inv" if r.iq_inv else "Norm"
@@ -985,36 +1102,27 @@ def print_results_summary(results: List[TestResult]):
         crc_name = CRC_NAMES.get(r.crc, str(r.crc))
         rssi_str = f"{r.rssi} dBm" if r.success else "-"
         print(f"{r.sf:<4} {bw_name:<10} {cr_name:<5} {iq_name:<5} {hdr_name:<5} {crc_name:<4} {status:<10} {rssi_str:<10} {r.rx_time_ms*1000:<10.0f} {r.error_msg[:25]}")
-    
+
     print("-"*140)
     print(f"Total: {len(results)} tests | Passed: {success_count} | Failed: {fail_count} | Success rate: {success_count/len(results)*100:.1f}%")
+
+    # Calculate RSSI statistics
+    if rssi_values:
+        rssi_avg = sum(rssi_values) / len(rssi_values)
+        rssi_sorted = sorted(rssi_values)
+        rssi_median = rssi_sorted[len(rssi_sorted) // 2] if len(rssi_sorted) % 2 == 1 else (rssi_sorted[len(rssi_sorted) // 2 - 1] + rssi_sorted[len(rssi_sorted) // 2]) / 2
+        rssi_min = min(rssi_values)
+        rssi_max = max(rssi_values)
+
+        print("\nRSSI STATISTICS (successful tests only):")
+        print(f"  Average: {rssi_avg:.1f} dBm")
+        print(f"  Median:  {rssi_median:.1f} dBm")
+        print(f"  Min:     {rssi_min} dBm")
+        print(f"  Max:     {rssi_max} dBm")
+    else:
+        print("\nNo successful tests - no RSSI statistics available")
+
     print("="*140)
-    
-    # Print matrix view
-    print("\nRESULTS MATRIX (SF vs BW):")
-    print("-"*60)
-    
-    # Header
-    print(f"{'SF':<4}", end="")
-    for bw in BW_OPTIONS:
-        print(f"{bw:<6}", end="")
-    print()
-    
-    # Data rows
-    for sf in SF_RANGE:
-        print(f"{sf:<4}", end="")
-        for bw in BW_OPTIONS:
-            # Find result for this SF/BW combination
-            result = next((r for r in results if r.sf == sf and r.bw == bw), None)
-            if result:
-                symbol = "✓" if result.success else "✗"
-            else:
-                symbol = "-"
-            print(f"{symbol:<6}", end="")
-        print()
-    
-    print("-"*60)
-    print("BW Legend:", ", ".join([f"{k}={v}" for k, v in BW_NAMES.items()]))
 
 
 def main():
