@@ -168,6 +168,7 @@ typedef struct
 #define CMD_RF_RADIO_RX_TO_UART 248
 #define CMD_RF_RADIO_RECONFIG_RX 247
 #define CMD_RF_HB_REQUEST       246   // Heartbeat request from main task
+#define CMD_RF_TX_CW            245   // Start/Stop TX CW mode
 
 
 

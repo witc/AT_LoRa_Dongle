@@ -141,6 +141,19 @@ void radio_task_on(radio_context_t *ctx, dataQueue_t *rxd)
 			xQueueSend(queueMainHandle, &sd, 0);  // Non-blocking
 			break;
 
+		case CMD_RF_TX_CW:
+			if (rxd->data == 1)
+			{
+				// Start TX CW mode
+				ru_radio_process_commands(RADIO_CMD_TX_CW, ctx, rxd);
+			}
+			else
+			{
+				// Stop TX CW mode - go to standby
+				ru_radio_process_commands(RADIO_CMD_STANDBY, ctx, rxd);
+			}
+			break;
+
 		default:
 			break;
 	}

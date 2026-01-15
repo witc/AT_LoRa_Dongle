@@ -32,7 +32,7 @@ logger = logging.getLogger(__name__)
 
 # Test configuration
 TEST_PACKET_HEX = "010203"  # 3 bytes
-TEST_FREQUENCY = 869525000
+TEST_FREQUENCY = 777777777
 BAUD_RATES_TO_TRY = [115200, 230400]  # Try common baud rate first, then max supported
 TARGET_BAUD_RATE = 230400  # Target baud rate to set after detection (max supported by dongle)
 TIMEOUT = 5.0  # seconds
@@ -54,13 +54,13 @@ FIXED_POWER = 22  # TX power in dBm
 FIXED_LDRO = 2  # LDRO: 0=off, 1=on, 2=auto (always auto)
 
 # Test filtering options
-SKIP_SLOW_TESTS = True  # Skip slow combinations: BW <= 5 and SF >= 10
+SKIP_SLOW_TESTS = False  # Skip slow combinations: BW <= 5 and SF >= 10
 
 def should_skip_test(sf: int, bw: int) -> bool:
     """Check if test should be skipped based on filter settings"""
     if SKIP_SLOW_TESTS:
         # Skip slow combinations: low bandwidth + high spreading factor
-        if bw <= 7 or sf >= 10:
+        if bw <= 8 or sf >= 7:
             return True
     return False
 

@@ -1533,6 +1533,40 @@ bool GSC_ProcessCommand(eATCommands cmd, uint8_t *data, uint16_t size)
             break;
         }
 
+        case SYS_CMD_TX_CW:
+        {
+            // Start/Stop TX CW mode
+            if (isQuery)
+            {
+                AT_SendStringResponse("Use =1 (ON) or =0 (OFF)\r\n");
+                commandHandled = false;
+            }
+            else
+            {
+                uint8_t value;
+                if (ParseBoolValue((char*)data, &value))
+                {
+                    dataQueue_t queueData;
+                    queueData.cmd = CMD_RF_TX_CW;
+                    queueData.data = value;
+                    queueData.ptr = NULL;
+
+                    if (xQueueSend(queueRadioHandle, &queueData, pdMS_TO_TICKS(100)) != pdPASS)
+                    {
+                        AT_SendStringResponse("ERROR: Failed to send CW command to RF task\r\n");
+                        commandHandled = false;
+                    }
+                }
+                else
+                {
+                    AT_SendStringResponse("ERROR: Invalid value (use 1/ON or 0/OFF)\r\n");
+                    commandHandled = false;
+                    break;
+                }
+            }
+            break;
+        }
+
         case SYS_CMD_RF_PERIOD_STATUS:
         {
             AT_SendStringResponse("TODO\r\n");
@@ -1540,7 +1574,7 @@ bool GSC_ProcessCommand(eATCommands cmd, uint8_t *data, uint16_t size)
             break;
             // Get periodic TX status
             // if (isQuery)
-            // {    
+            // {
             //     NVMA_Set_LR_TX_Period_TX(&status);
             //     AT_FormatUint8Response(status, (uint8_t *)response, &response_size);
             //     hasResponse = true;

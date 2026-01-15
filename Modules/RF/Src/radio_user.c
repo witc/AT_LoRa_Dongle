@@ -574,7 +574,9 @@ radio_modes_e	ru_get_radio_last_status( radio_context_t	*ctx)
 void ru_radio_process_commands(RFCommands_e cmd,radio_context_t *ctx, const dataQueue_t *rxm)
 {
 	ral_t* ral;
+	ralf_t* ralf;
 	ral = &ctx->rfConfig.ralf.ral;
+	ralf = &ctx->rfConfig.ralf;
 	packet_info_t *pkt;
 
 	switch (cmd)
@@ -595,10 +597,20 @@ void ru_radio_process_commands(RFCommands_e cmd,radio_context_t *ctx, const data
 			break;
 
 		case RADIO_CMD_TX_CW:
-			ru_radioCleanAndStandby(RAL_STANDBY_CFG_RC,ctx);
+			ru_radioCleanAndStandby(RAL_STANDBY_CFG_XOSC,ctx);
+			ru_load_radio_config_tx(&ctx->rfConfig.loraParam_tx);
+
+			ralf_setup_lora(ralf, &ctx->rfConfig.loraParam_tx);
+
+			// Now enable TX CW mode
 			ru_radio_rfSwitch(true, ctx);
 			ral_set_tx_cw(ral);
+
+			HW_LED_RF_EVENT_ON();
+			osTimerStart(ctx->timers.rfEventLedTimer.timer,pdMS_TO_TICKS(RF_EVENT_LED_TIMEOUT_MS));
+			
 			ctx->rfConfig.lastMode = RF_MODE_TX;
+			LOG_INFO("TX CW started at %lu Hz", ctx->rfConfig.loraParam_tx.rf_freq_in_hz);
 			break;
 
 		case RADIO_CMD_SEND_UNIVERSAL_PAYLOAD_NOW:
