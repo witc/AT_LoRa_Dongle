@@ -47,7 +47,7 @@
 #define NVMA_INIT_MAGIC_VALUE                   0xA5A5BEF1
 
 // Default UART baud rate
-#define NVMA_DEFAULT_UART_BAUD                  115200
+#define NVMA_DEFAULT_UART_BAUD                  230400
 
 // RX output format options
 #define RX_FORMAT_HEX                           0
