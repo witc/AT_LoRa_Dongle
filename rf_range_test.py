@@ -32,7 +32,7 @@ logger = logging.getLogger(__name__)
 
 # Test configuration
 TEST_PACKET_HEX = "010203"  # 3 bytes
-TEST_FREQUENCY = 777777777
+TEST_FREQUENCY = 869525000
 BAUD_RATES_TO_TRY = [115200, 230400]  # Try common baud rate first, then max supported
 TARGET_BAUD_RATE = 230400  # Target baud rate to set after detection (max supported by dongle)
 TIMEOUT = 5.0  # seconds
@@ -473,9 +473,9 @@ class ATLoraDongle:
         start_time = time.time()
         buffer = ""
         
-        # Pattern for RX packet: +RF_RX:<len>,<hex_data>,RSSI:<rssi>
+        # Pattern for RX packet: +RX:<len>,<hex_data>,RSSI:<rssi>
         import re
-        pattern = re.compile(r'\+RF_RX:(\d+),([0-9A-Fa-f]+),RSSI:(-?\d+)')
+        pattern = re.compile(r'\+RX:(\d+),([0-9A-Fa-f]+),RSSI:(-?\d+)')
         
         try:
             while time.time() - start_time < timeout:
@@ -1144,8 +1144,8 @@ def main():
         logger.warning(f"Found {len(ports)} devices, using first two: {ports[0]}, {ports[1]}")
     
     # Create dongle instances
-    tx_dongle = ATLoraDongle(ports[0], "TX_Dongle")
-    rx_dongle = ATLoraDongle(ports[1], "RX_Dongle")
+    tx_dongle = ATLoraDongle(ports[1], "TX_Dongle")
+    rx_dongle = ATLoraDongle(ports[0], "RX_Dongle")
     
     try:
         # Connect to both dongles
