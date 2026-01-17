@@ -1355,7 +1355,6 @@ bool GSC_ProcessCommand(eATCommands cmd, uint8_t *data, uint16_t size)
             uint8_t packet[256];
             size_t packetSize = strlen((char *)data);
             
-            AT_SendStringResponse("!! Not Tested !!\r\n");
             if (packetSize == 0 || packetSize >= sizeof(packet))
             {
                 AT_SendStringResponse("ERROR: Invalid text data\r\n");

@@ -143,7 +143,7 @@ void AT_SendRfPacketResponse(uint8_t *packet, int16_t rssi, uint16_t length)
     NVMA_Get_RX_Format(&rxFormat);
 
     // Přidání prefixu a délky
-    ret = snprintf((char *)&response[response_size], sizeof(response) - response_size, "+RF_RX:%u,", length);
+    ret = snprintf((char *)&response[response_size], sizeof(response) - response_size, "+RF:%u,", length);
     if (ret < 0 || ret >= (int)(sizeof(response) - response_size))
     {
         // Chyba při formátování nebo nedostatek místa v bufferu

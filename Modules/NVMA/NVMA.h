@@ -44,7 +44,7 @@
 
 // Magic value to indicate EEPROM has been initialized with defaults
 // Change this value when adding new EEPROM fields to force re-initialization
-#define NVMA_INIT_MAGIC_VALUE                   0xA5A5BEF1
+#define NVMA_INIT_MAGIC_VALUE                   0xA5A5BE3C
 
 // Default UART baud rate
 #define NVMA_DEFAULT_UART_BAUD                  230400
