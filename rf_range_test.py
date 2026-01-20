@@ -43,11 +43,11 @@ BW_OPTIONS = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]  # All bandwidth options
 # BW mapping: 0=7.81kHz, 1=10.42kHz, 2=15.63kHz, 3=20.83kHz, 4=31.25kHz, 
 #             5=41.67kHz, 6=62.5kHz, 7=125kHz, 8=250kHz, 9=500kHz
 
-CR_OPTIONS = [45, 46, 47, 48]  # Coding rates: 4/5, 4/6, 4/7, 4/8
-IQ_INV_OPTIONS = [0, 1]  # IQ inversion: 0=normal, 1=inverted
+CR_OPTIONS = [45, 48]  # Coding rates: 4/5, 4/6, 4/7, 4/8
+IQ_INV_OPTIONS = [0]  # IQ inversion: 0=normal (testujeme pouze bez inverze)
 HEADER_MODE_OPTIONS = [0, 1]  # Header mode: 0=explicit, 1=implicit
-CRC_OPTIONS = [0, 1]  # CRC: 0=disabled, 1=enabled
-PREAMBLE_OPTIONS = [8]  # Preamble length in symbols (can add: 8, 16, 32, etc.)
+CRC_OPTIONS = [ 1]  # CRC: 0=disabled, 1=enabled
+PREAMBLE_OPTIONS = [16]  # Preamble length in symbols (can add: 8, 16, 32, etc.)
 
 # Fixed parameters (not iterated)
 FIXED_POWER = 22  # TX power in dBm
@@ -983,8 +983,8 @@ def run_single_test(tx_dongle: ATLoraDongle, rx_dongle: ATLoraDongle,
     else:
         logger.info(f"TOA: {toa_ms} ms (from firmware)")
     
-    # Timeout = TOA + 25% margin (minimum 100ms for command processing)
-    rx_timeout_ms = max(100, toa_ms * 1.25)
+    # Timeout = TOA + 60% margin (minimum 100ms for command processing)
+    rx_timeout_ms = max(100, toa_ms * 1.6)
     rx_timeout_s = rx_timeout_ms / 1000
     logger.info(f"RX timeout set to: {rx_timeout_ms:.0f} ms (TOA {toa_ms} ms + 25%)")
     
