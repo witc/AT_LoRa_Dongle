@@ -23,6 +23,9 @@ When sending packets, no additional "wrapping" or encryption of data is used - y
 Additional functions:
 AT LoRa dongle has 8 aux pins - you can set its logical level or activate PWM on it - just through the AT commands.
 
+![AT LoRa Dongle Hardware](HW_image.png)
+*AT LoRa Dongle - hardware overview*
+
 **For quick start:**
 
 **1)** Install driver for serial interface CP2102 according to your system: [Download drivers](https://www.silabs.com/interface/usb-bridges/classic/device.cp2102?tab=softwareandtools)
