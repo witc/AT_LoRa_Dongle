@@ -383,7 +383,9 @@ static void AT_HandleIdentify(char *params)
     sprintf(uid_str, "%08lX%08lX%08lX", (unsigned long)uid2, (unsigned long)uid1, (unsigned long)uid0);
     
     // Odeslání odpovědi: Device Name, Version a Unique ID
-    AT_SendStringResponse(FW_DEVICE_NAME " " FW_VERSION_STRING " UID:");
+    char info_str[64];
+    snprintf(info_str, sizeof(info_str), "%s v%d.%d.%d UID:", FW_DEVICE_NAME, FW_VERSION_MAJOR, FW_VERSION_MINOR, FW_VERSION_PATCH);
+    AT_SendStringResponse(info_str);
     AT_SendStringResponse(uid_str);
     AT_SendStringResponse("\r\n");
 }

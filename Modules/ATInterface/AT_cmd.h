@@ -14,11 +14,10 @@
 #include "portSTM32L071xx.h"
 
 /* Firmware version */
-#define FW_VERSION_MAJOR    1   //TODO ten vypis verezi je nejak moc
+#define FW_VERSION_MAJOR    1
 #define FW_VERSION_MINOR    0
 #define FW_VERSION_PATCH    0
-#define FW_VERSION_STRING   "v1.0.0"
-#define FW_DEVICE_NAME      "Ropixon AT-USB LoRa_Dongle"
+#define FW_DEVICE_NAME      "Ropixon AT-USB LoRa Dongle"
 
 /**
  * @brief 

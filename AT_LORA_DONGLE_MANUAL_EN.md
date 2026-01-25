@@ -1,14 +1,55 @@
 # Ropixon AT LoRa Dongle - User Manual
 
-## What is AT LoRa Dongle?
-
 **Ropixon AT-USB LoRa Dongle** enables sending and receiving all **LoRa** packets! Just configure it properly using intuitive **AT commands** via serial line.
 
-- No programming required
-- Suitable for rapid development, testing, or creating your own wireless LoRa link for greater distances than Wi-Fi, BLE, or other wireless modulations like FSK or OOK
-- Maximum Link Budget is 155.1 dB!
+- No programming required.
+- It's suitable for rapid development, testing, or creating your own wireless LoRa link.
+
+## What is it for?
+
+AT LoRa Dongle is suitable for:
+
+- **Testing and development** of LoRa applications
+- **Point-to-Point communication** over long distances
+- **Range tests** - measuring capable of LoRa connection distance
+- **Sensor networks** - collecting data from remote sensors
+- **RF testing** - testing RF parameters, CW transmission
+- **Scanning** - capturing random packets transmitted over the air
+
+## Overview
 
 When sending packets, no additional "wrapping" or encryption of data is used - you always send RAW (hex or ASCII) data. The same applies to reception.
+
+Additional functions:
+AT LoRa dongle has 8 aux pins - you can set its logical level or activate PWM on it - just through the AT commands.
+
+**For quick start:**
+
+**1)** Install driver for serial interface CP2102 according to your system: [Download drivers](https://www.silabs.com/interface/usb-bridges/classic/device.cp2102?tab=softwareandtools)
+ 
+**2)** Connect **AT dongle** to USB and set desired LoRa parameter configuration (or leave defaults)
+
+**3)** Send your first LoRa packet via AT commands:
+
+  - Send data in ASCII: ```AT+RF_TX_TXT=Hello, this is AT LoRa dongle Ropixon!```
+  - Send data in HEX: ```AT+RF_TX_HEX=48656C6C6F2C2074686973206973204154204C6F526120646F6E676C6520526F7069786F6E21```
+
+**4)** Reception is activated automatically - output format HEX/ASCII can be selected using `AT+RF_RX_FORMAT=HEX|ASCII, ?`
+
+**Status LEDs**
+
+The dongle has 3 LEDs serving these functions:
+
+| LED | Function |
+|-----|----------|
+| 🔴 RED | Reception of new AT commands |
+| 🟢 GREEN | System LED - indicates proper operation |
+| 🔵 BLUE | Reception or transmission of LoRa data |
+
+
+**Aux pins**
+
+The **AT dongle** has 8 aux pins that can be "manually" controlled or run PWM modulation (maximum frequency 1 kHz): `AT+AUX_PULSE=<pin:1-8>,<period_ms>,<duty%:0-100>`
 
 ### Main Features
 
@@ -25,13 +66,6 @@ When sending packets, no additional "wrapping" or encryption of data is used - y
 
 > **Note:** RF path is optimized for 868 MHz band (EU: 863-870 MHz, USA: 915 MHz). The further from the operating band, the less power can be transmitted/received.
 
-### Status LEDs
-
-| LED | Function |
-|-----|----------|
-| 🔴 RED | Reception of new AT commands |
-| 🟢 GREEN | System LED - indicates proper operation |
-| 🔵 BLUE | Reception or transmission of LoRa data |
 
 ### AUX Pins
 

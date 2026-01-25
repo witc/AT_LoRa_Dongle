@@ -31,7 +31,7 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 # Test configuration
-TEST_PACKET_HEX = "010203"  # 3 bytes
+TEST_PACKET_HEX = "010203040506070809112233445566778899112233445566778899"  # 3 bytes
 TEST_FREQUENCY = 869525000
 BAUD_RATES_TO_TRY = [115200, 230400]  # Try common baud rate first, then max supported
 TARGET_BAUD_RATE = 230400  # Target baud rate to set after detection (max supported by dongle)
@@ -39,13 +39,13 @@ TIMEOUT = 5.0  # seconds
 
 # RF Parameters to test
 SF_RANGE = range(5, 13)  # SF5 to SF12
-BW_OPTIONS = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]  # All bandwidth options
+BW_OPTIONS = [6, 9]  # All bandwidth options
 # BW mapping: 0=7.81kHz, 1=10.42kHz, 2=15.63kHz, 3=20.83kHz, 4=31.25kHz, 
 #             5=41.67kHz, 6=62.5kHz, 7=125kHz, 8=250kHz, 9=500kHz
 
-CR_OPTIONS = [45, 48]  # Coding rates: 4/5, 4/6, 4/7, 4/8
+CR_OPTIONS = [45]  # Coding rates: 4/5, 4/6, 4/7, 4/8
 IQ_INV_OPTIONS = [0]  # IQ inversion: 0=normal (testujeme pouze bez inverze)
-HEADER_MODE_OPTIONS = [0, 1]  # Header mode: 0=explicit, 1=implicit
+HEADER_MODE_OPTIONS = [0]  # Header mode: 0=explicit, 1=implicit
 CRC_OPTIONS = [ 1]  # CRC: 0=disabled, 1=enabled
 PREAMBLE_OPTIONS = [16]  # Preamble length in symbols (can add: 8, 16, 32, etc.)
 
@@ -986,7 +986,7 @@ def run_single_test(tx_dongle: ATLoraDongle, rx_dongle: ATLoraDongle,
     # Timeout = TOA + 60% margin (minimum 100ms for command processing)
     rx_timeout_ms = max(100, toa_ms * 1.6)
     rx_timeout_s = rx_timeout_ms / 1000
-    logger.info(f"RX timeout set to: {rx_timeout_ms:.0f} ms (TOA {toa_ms} ms + 25%)")
+    logger.info(f"RX timeout set to: {rx_timeout_ms:.0f} ms (TOA {toa_ms} ms + 60%)")
     
     # Clear RX buffer before sending
     rx_dongle.serial.reset_input_buffer()
@@ -1144,8 +1144,8 @@ def main():
         logger.warning(f"Found {len(ports)} devices, using first two: {ports[0]}, {ports[1]}")
     
     # Create dongle instances
-    tx_dongle = ATLoraDongle(ports[1], "TX_Dongle")
-    rx_dongle = ATLoraDongle(ports[0], "RX_Dongle")
+    tx_dongle = ATLoraDongle(ports[0], "TX_Dongle")
+    rx_dongle = ATLoraDongle(ports[1], "RX_Dongle")
     
     try:
         # Connect to both dongles
